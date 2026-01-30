@@ -8,4 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\OwnerTrack.Data\OwnerTrack.Data.csproj" />
+    <ProjectReference Include="..\OwnerTrack.Infrastructure\OwnerTrack.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

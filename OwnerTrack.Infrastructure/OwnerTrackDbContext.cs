@@ -26,63 +26,54 @@ namespace OwnerTrack.Infrastructure
         {
             base.OnModelCreating(modelBuilder);
 
-            // -------------------------------
             // Djelatnost → Klijenti (1:N)
-            // -------------------------------
             modelBuilder.Entity<Klijent>()
                 .HasOne(k => k.Djelatnost)
                 .WithMany(d => d.Klijenti)
                 .HasForeignKey(k => k.SifraDjelativnosti)
+                .HasPrincipalKey(d => d.Sifra)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // -------------------------------
             // Klijent → Vlasnici (1:N)
-            // -------------------------------
             modelBuilder.Entity<Vlasnik>()
                 .HasOne(v => v.Klijent)
                 .WithMany(k => k.Vlasnici)
                 .HasForeignKey(v => v.KlijentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // UNIQUE constraint za Vlasnik (klijent + ime)
-            modelBuilder.Entity<Vlasnik>()
-                .HasIndex(v => new { v.KlijentId, v.ImePrezime })
-                .IsUnique();
+            // Klijent → Direktori (1:N)
+            modelBuilder.Entity<Direktor>()
+                .HasOne(d => d.Klijent)
+                .WithMany(k => k.Direktori)
+                .HasForeignKey(d => d.KlijentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // -------------------------------
-            // Klijent → Direktor (1:1)
-            // -------------------------------
-            modelBuilder.Entity<Klijent>()
-                .HasMany(k => k.Direktori)
-                .WithOne(d => d.Klijent)
-                .HasForeignKey(d => d.KlijentId);
-
-            // -------------------------------
             // Klijent → Ugovor (1:1)
-            // -------------------------------
-            modelBuilder.Entity<Klijent>()
-                .HasOne(k => k.Ugovor)
-                .WithOne(u => u.Klijent)
-                .HasForeignKey<Ugovor>(u => u.KlijentId);
+            modelBuilder.Entity<Ugovor>()
+                .HasOne(u => u.Klijent)
+                .WithOne(k => k.Ugovor)
+                .HasForeignKey<Ugovor>(u => u.KlijentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // -------------------------------
-            // Indeksi i unique constraints za Klijente
-            // -------------------------------
+            // UNIQUE constraints
             modelBuilder.Entity<Klijent>()
-                .HasIndex(k => k.Naziv)
-                .IsUnique();
-
+                .HasIndex(k => k.Naziv).IsUnique();
             modelBuilder.Entity<Klijent>()
-                .HasIndex(k => k.IdBroj)
-                .IsUnique();
+                .HasIndex(k => k.IdBroj).IsUnique();
+            modelBuilder.Entity<Vlasnik>()
+                .HasIndex(v => new { v.KlijentId, v.ImePrezime }).IsUnique();
+            modelBuilder.Entity<Direktor>()
+                .HasIndex(d => d.KlijentId).IsUnique();
+            modelBuilder.Entity<Ugovor>()
+                .HasIndex(u => u.KlijentId).IsUnique();
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
 
             if (!optionsBuilder.IsConfigured)
             {
-                
-                optionsBuilder.UseSqlite(@"Data Source=C:\Users\tarik\Desktop\Job\Firme.db");
+
+                optionsBuilder.UseSqlite($"Data Source=C:\\Users\\tarik\\Desktop\\Job\\Firme.db");
             }
         }
 
