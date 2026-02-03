@@ -11,7 +11,9 @@ namespace OwnerTrack.Infrastructure
 {
     public class OwnerTrackDbContext:DbContext
     {
-
+        public OwnerTrackDbContext()
+        {
+        }
         public OwnerTrackDbContext(DbContextOptions<OwnerTrackDbContext> options)
           : base(options)
         {
@@ -30,7 +32,7 @@ namespace OwnerTrack.Infrastructure
             modelBuilder.Entity<Klijent>()
                 .HasOne(k => k.Djelatnost)
                 .WithMany(d => d.Klijenti)
-                .HasForeignKey(k => k.SifraDjelativnosti)
+                .HasForeignKey(k => k.SifraDjelatnosti)
                 .HasPrincipalKey(d => d.Sifra)
                 .OnDelete(DeleteBehavior.Restrict);
 
