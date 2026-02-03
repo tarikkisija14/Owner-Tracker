@@ -68,7 +68,7 @@
             // ========== FORMA ==========
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 650);
+            this.ClientSize = new System.Drawing.Size(800, 680);
             this.Text = "Dodaj firmu";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -80,12 +80,12 @@
             var scrollPanel = new System.Windows.Forms.Panel();
             scrollPanel.AutoScroll = true;
             scrollPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            scrollPanel.Padding = new System.Windows.Forms.Padding(0, 0, 0, 60); // Prostor za buttone
+            scrollPanel.Padding = new System.Windows.Forms.Padding(0, 0, 0, 60);
 
             // ========== OSNOVNI PODACI ==========
             this.groupBoxOsnovni.Text = "📋 Osnovni podaci";
             this.groupBoxOsnovni.Location = new System.Drawing.Point(10, 10);
-            this.groupBoxOsnovni.Size = new System.Drawing.Size(760, 180);
+            this.groupBoxOsnovni.Size = new System.Drawing.Size(760, 210);
 
             this.lblNaziv.Text = "Naziv firme:";
             this.lblNaziv.Location = new System.Drawing.Point(10, 25);
@@ -97,13 +97,13 @@
             this.lblIdBroj.Location = new System.Drawing.Point(430, 25);
             this.lblIdBroj.AutoSize = true;
             this.txtIdBroj.Location = new System.Drawing.Point(530, 25);
-            this.txtIdBroj.Size = new System.Drawing.Size(200, 20);
+            this.txtIdBroj.Size = new System.Drawing.Size(210, 20);
 
             this.lblAdresa.Text = "Adresa:";
             this.lblAdresa.Location = new System.Drawing.Point(10, 60);
             this.lblAdresa.AutoSize = true;
             this.txtAdresa.Location = new System.Drawing.Point(120, 60);
-            this.txtAdresa.Size = new System.Drawing.Size(610, 20);
+            this.txtAdresa.Size = new System.Drawing.Size(620, 20);
 
             this.lblSifra.Text = "Šifra djelatnosti:";
             this.lblSifra.Location = new System.Drawing.Point(10, 95);
@@ -115,26 +115,27 @@
             this.lblDatumUspostave.Text = "Datum uspostave:";
             this.lblDatumUspostave.Location = new System.Drawing.Point(430, 95);
             this.lblDatumUspostave.AutoSize = true;
-            this.dtDatumUspostave.Location = new System.Drawing.Point(550, 95);
+            this.dtDatumUspostave.Location = new System.Drawing.Point(560, 95);
             this.dtDatumUspostave.Size = new System.Drawing.Size(180, 20);
 
             this.lblVrstaKlijenta.Text = "Vrsta klijenta:";
             this.lblVrstaKlijenta.Location = new System.Drawing.Point(10, 130);
             this.lblVrstaKlijenta.AutoSize = true;
             this.cbVrstaKlijenta.Location = new System.Drawing.Point(120, 130);
-            this.cbVrstaKlijenta.Size = new System.Drawing.Size(200, 21);
+            this.cbVrstaKlijenta.Size = new System.Drawing.Size(180, 21);
 
             this.lblDatumOsnivanja.Text = "Datum osnivanja:";
-            this.lblDatumOsnivanja.Location = new System.Drawing.Point(330, 130);
+            this.lblDatumOsnivanja.Location = new System.Drawing.Point(310, 130);
             this.lblDatumOsnivanja.AutoSize = true;
-            this.dtDatumOsnivanja.Location = new System.Drawing.Point(450, 130);
+            this.dtDatumOsnivanja.Location = new System.Drawing.Point(430, 130);
             this.dtDatumOsnivanja.Size = new System.Drawing.Size(180, 20);
 
+            // POPRAVKA: Veličina sada u novom redu da ne prelazi 800px
             this.lblVelicina.Text = "Veličina:";
-            this.lblVelicina.Location = new System.Drawing.Point(640, 130);
+            this.lblVelicina.Location = new System.Drawing.Point(10, 165);
             this.lblVelicina.AutoSize = true;
-            this.cbVelicina.Location = new System.Drawing.Point(700, 130);
-            this.cbVelicina.Size = new System.Drawing.Size(100, 21);
+            this.cbVelicina.Location = new System.Drawing.Point(120, 165);
+            this.cbVelicina.Size = new System.Drawing.Size(180, 21);
 
             this.groupBoxOsnovni.Controls.Add(this.lblNaziv);
             this.groupBoxOsnovni.Controls.Add(this.txtNaziv);
@@ -155,50 +156,51 @@
 
             // ========== RIZICI ==========
             this.groupBoxRizici.Text = "⚠️ Procjena rizika";
-            this.groupBoxRizici.Location = new System.Drawing.Point(10, 200);
+            this.groupBoxRizici.Location = new System.Drawing.Point(10, 230);
             this.groupBoxRizici.Size = new System.Drawing.Size(760, 140);
 
             this.lblPepRizik.Text = "PEP rizik:";
             this.lblPepRizik.Location = new System.Drawing.Point(10, 25);
             this.lblPepRizik.AutoSize = true;
-            this.cbPepRizik.Location = new System.Drawing.Point(80, 25);
+            this.cbPepRizik.Location = new System.Drawing.Point(100, 25);
             this.cbPepRizik.Size = new System.Drawing.Size(80, 21);
 
             this.lblUboRizik.Text = "UBO rizik:";
-            this.lblUboRizik.Location = new System.Drawing.Point(170, 25);
+            this.lblUboRizik.Location = new System.Drawing.Point(200, 25);
             this.lblUboRizik.AutoSize = true;
-            this.cbUboRizik.Location = new System.Drawing.Point(240, 25);
+            this.cbUboRizik.Location = new System.Drawing.Point(290, 25);
             this.cbUboRizik.Size = new System.Drawing.Size(80, 21);
 
-            this.lblGotovinaRizik.Text = "Gotovina rizik:";
-            this.lblGotovinaRizik.Location = new System.Drawing.Point(330, 25);
+            this.lblGotovinaRizik.Text = "Gotovina:";
+            this.lblGotovinaRizik.Location = new System.Drawing.Point(390, 25);
             this.lblGotovinaRizik.AutoSize = true;
-            this.cbGotovinaRizik.Location = new System.Drawing.Point(430, 25);
+            this.cbGotovinaRizik.Location = new System.Drawing.Point(470, 25);
             this.cbGotovinaRizik.Size = new System.Drawing.Size(80, 21);
 
-            this.lblGeografskiRizik.Text = "Geografski rizik:";
-            this.lblGeografskiRizik.Location = new System.Drawing.Point(520, 25);
+            this.lblGeografskiRizik.Text = "Geografski:";
+            this.lblGeografskiRizik.Location = new System.Drawing.Point(570, 25);
             this.lblGeografskiRizik.AutoSize = true;
-            this.cbGeografskiRizik.Location = new System.Drawing.Point(650, 25);
-            this.cbGeografskiRizik.Size = new System.Drawing.Size(100, 21);
+            this.cbGeografskiRizik.Location = new System.Drawing.Point(660, 25);
+            this.cbGeografskiRizik.Size = new System.Drawing.Size(80, 21);
 
+            // POPRAVKA: Ukupna procjena - povećan TextBox
             this.lblUkupnaProcjena.Text = "Ukupna procjena:";
             this.lblUkupnaProcjena.Location = new System.Drawing.Point(10, 60);
             this.lblUkupnaProcjena.AutoSize = true;
             this.txtUkupnaProcjena.Location = new System.Drawing.Point(120, 60);
-            this.txtUkupnaProcjena.Size = new System.Drawing.Size(240, 20);
+            this.txtUkupnaProcjena.Size = new System.Drawing.Size(300, 20);
 
             this.lblDatumProcjene.Text = "Datum procjene:";
-            this.lblDatumProcjene.Location = new System.Drawing.Point(370, 60);
+            this.lblDatumProcjene.Location = new System.Drawing.Point(430, 60);
             this.lblDatumProcjene.AutoSize = true;
-            this.dtDatumProcjene.Location = new System.Drawing.Point(480, 60);
+            this.dtDatumProcjene.Location = new System.Drawing.Point(560, 60);
             this.dtDatumProcjene.Size = new System.Drawing.Size(180, 20);
 
             this.lblOvjeraCr.Text = "Ovjera/CR:";
             this.lblOvjeraCr.Location = new System.Drawing.Point(10, 95);
             this.lblOvjeraCr.AutoSize = true;
             this.txtOvjeraCr.Location = new System.Drawing.Point(120, 95);
-            this.txtOvjeraCr.Size = new System.Drawing.Size(240, 20);
+            this.txtOvjeraCr.Size = new System.Drawing.Size(300, 20);
 
             this.groupBoxRizici.Controls.Add(this.lblPepRizik);
             this.groupBoxRizici.Controls.Add(this.cbPepRizik);
@@ -217,7 +219,7 @@
 
             // ========== UGOVOR ==========
             this.groupBoxUgovor.Text = "📜 Ugovor";
-            this.groupBoxUgovor.Location = new System.Drawing.Point(10, 350);
+            this.groupBoxUgovor.Location = new System.Drawing.Point(10, 380);
             this.groupBoxUgovor.Size = new System.Drawing.Size(760, 80);
 
             this.lblStatusUgovora.Text = "Status ugovora:";

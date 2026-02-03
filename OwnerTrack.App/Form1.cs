@@ -36,7 +36,11 @@ namespace OwnerTrack.App
 
                 if (!string.IsNullOrWhiteSpace(filter))
                 {
-                    query = query.Where(k => k.Naziv.Contains(filter) || k.IdBroj.Contains(filter));
+                    // POPRAVKA: Case-insensitive pretraga pomoću ToLower()
+                    string lowerFilter = filter.ToLower();
+                    query = query.Where(k =>
+                        k.Naziv.ToLower().Contains(lowerFilter) ||
+                        k.IdBroj.ToLower().Contains(lowerFilter));
                 }
 
                 var klijenti = query.ToList();
@@ -87,6 +91,12 @@ namespace OwnerTrack.App
                 v.IzvorPodatka,
                 v.Status
             }).ToList();
+
+            // POPRAVKA: Očisti selekciju da ne bude auto-selektovan prvi red
+            if (dataGridVlasnici.Rows.Count > 0)
+            {
+                dataGridVlasnici.ClearSelection();
+            }
         }
 
         private void LoadDirektori(int klijentId)
@@ -103,6 +113,12 @@ namespace OwnerTrack.App
                 d.TipValjanosti,
                 d.Status
             }).ToList();
+
+            // POPRAVKA: Očisti selekciju da ne bude auto-selektovan prvi red
+            if (dataGridDirektori.Rows.Count > 0)
+            {
+                dataGridDirektori.ClearSelection();
+            }
         }
 
         // ========== SELECTION ==========

@@ -36,6 +36,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
+            this.Load += FrmDodajDirektora_Load;  // POPRAVKA: Dodao Load event
 
             // ========== GROUPBOX ==========
             this.groupBox1.Text = "👔 Podaci direktora";

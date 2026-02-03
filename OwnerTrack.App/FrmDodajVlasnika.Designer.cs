@@ -38,6 +38,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
+            this.Load += FrmDodajVlasnika_Load;
 
             // ========== GROUPBOX ==========
             this.groupBox1.Text = "👤 Podaci vlasnika";
@@ -48,25 +49,26 @@
             this.lblImePrezime.Text = "Ime i prezime:";
             this.lblImePrezime.Location = new System.Drawing.Point(10, 30);
             this.lblImePrezime.AutoSize = true;
-            this.txtImePrezime.Location = new System.Drawing.Point(150, 30);
+            this.txtImePrezime.Location = new System.Drawing.Point(180, 30);
             this.txtImePrezime.Size = new System.Drawing.Size(350, 20);
 
-            this.lblProcetat.Text = "Procetat vlasnistva (%):";
+            // POPRAVKA: Skraćen tekst labele i pomjeren TextBox
+            this.lblProcetat.Text = "Vlasništvo (%):";
             this.lblProcetat.Location = new System.Drawing.Point(10, 70);
             this.lblProcetat.AutoSize = true;
-            this.txtProcetat.Location = new System.Drawing.Point(150, 70);
+            this.txtProcetat.Location = new System.Drawing.Point(180, 70);
             this.txtProcetat.Size = new System.Drawing.Size(100, 20);
 
             this.lblDatumUtvrdjivanja.Text = "Datum utvrđivanja:";
             this.lblDatumUtvrdjivanja.Location = new System.Drawing.Point(10, 110);
             this.lblDatumUtvrdjivanja.AutoSize = true;
-            this.dtDatumUtvrdjivanja.Location = new System.Drawing.Point(150, 110);
+            this.dtDatumUtvrdjivanja.Location = new System.Drawing.Point(180, 110);
             this.dtDatumUtvrdjivanja.Size = new System.Drawing.Size(200, 20);
 
             this.lblIzvorPodatka.Text = "Izvor podatka:";
             this.lblIzvorPodatka.Location = new System.Drawing.Point(10, 150);
             this.lblIzvorPodatka.AutoSize = true;
-            this.txtIzvorPodatka.Location = new System.Drawing.Point(150, 150);
+            this.txtIzvorPodatka.Location = new System.Drawing.Point(180, 150);
             this.txtIzvorPodatka.Size = new System.Drawing.Size(350, 20);
 
             this.groupBox1.Controls.Add(this.lblImePrezime);
