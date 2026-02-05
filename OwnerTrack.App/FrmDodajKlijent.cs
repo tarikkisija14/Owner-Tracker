@@ -34,7 +34,7 @@ namespace OwnerTrack.App
 
         private void LoadComboValues()
         {
-            // Popunjavanje ComboBox-ova sa vrijednostima
+            
             cbVrstaKlijenta.Items.Clear();
             cbVrstaKlijenta.Items.AddRange(new[] { "PRAVNO LICE", "FIZIČKA OSOBA" });
 
@@ -56,7 +56,10 @@ namespace OwnerTrack.App
             cbStatusUgovora.Items.Clear();
             cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "NEPOTPISAN", "ANEKS" });
 
-            // Postavi default vrijednosti za nove unose
+            cbStatus.Items.Clear();
+            cbStatus.Items.AddRange(new[] { "AKTIVAN", "NEAKTIVAN", "ARHIVIRAN" });
+
+            
             if (!_klijentId.HasValue)
             {
                 cbVrstaKlijenta.SelectedIndex = 0;
@@ -66,6 +69,7 @@ namespace OwnerTrack.App
                 cbGotovinaRizik.SelectedIndex = 0;
                 cbGeografskiRizik.SelectedIndex = 0;
                 cbStatusUgovora.SelectedIndex = 0;
+                cbStatus.SelectedIndex = 0;
             }
         }
 
@@ -95,7 +99,7 @@ namespace OwnerTrack.App
                 txtIdBroj.Text = klijent.IdBroj ?? "";
                 txtAdresa.Text = klijent.Adresa ?? "";
 
-                // Postavi šifru djelatnosti
+                
                 if (!string.IsNullOrEmpty(klijent.SifraDjelatnosti))
                 {
                     cbSifra.SelectedValue = klijent.SifraDjelatnosti;
@@ -103,7 +107,7 @@ namespace OwnerTrack.App
 
                 dtDatumUspostave.Value = klijent.DatumUspostave ?? DateTime.Now;
 
-                // Postavi vrstu klijenta
+               
                 if (!string.IsNullOrEmpty(klijent.VrstaKlijenta))
                 {
                     int index = cbVrstaKlijenta.FindStringExact(klijent.VrstaKlijenta);
@@ -112,14 +116,14 @@ namespace OwnerTrack.App
 
                 dtDatumOsnivanja.Value = klijent.DatumOsnivanja ?? DateTime.Now;
 
-                // Postavi veličinu
+                
                 if (!string.IsNullOrEmpty(klijent.Velicina))
                 {
                     int index = cbVelicina.FindStringExact(klijent.Velicina);
                     if (index >= 0) cbVelicina.SelectedIndex = index;
                 }
 
-                // Postavi rizike
+                
                 SetComboValue(cbPepRizik, klijent.PepRizik);
                 SetComboValue(cbUboRizik, klijent.UboRizik);
                 SetComboValue(cbGotovinaRizik, klijent.GotovinaRizik);
@@ -129,8 +133,23 @@ namespace OwnerTrack.App
                 dtDatumProcjene.Value = klijent.DatumProcjene ?? DateTime.Now;
                 txtOvjeraCr.Text = klijent.OvjeraCr ?? "";
 
+                
+                if (!string.IsNullOrEmpty(klijent.Status))
+                {
+                    int index = cbStatus.FindStringExact(klijent.Status);
+                    if (index >= 0) cbStatus.SelectedIndex = index;
+                }
+                else
+                {
+                    cbStatus.SelectedIndex = 0;
+                }
+
+                
+                txtNapomena.Text = klijent.Napomena ?? "";
+
                 if (klijent.Ugovor != null)
                 {
+                    txtVrstaUgovora.Text = klijent.Ugovor.VrstaUgovora ?? "";
                     SetComboValue(cbStatusUgovora, klijent.Ugovor.StatusUgovora);
                     dtDatumUgovora.Value = klijent.Ugovor.DatumUgovora ?? DateTime.Now;
                 }
@@ -141,7 +160,7 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrEmpty(value))
             {
-                combo.SelectedIndex = 0; // Prazna opcija
+                combo.SelectedIndex = 0; 
             }
             else
             {
@@ -183,6 +202,8 @@ namespace OwnerTrack.App
                         klijent.UkupnaProcjena = txtUkupnaProcjena.Text ?? "";
                         klijent.DatumProcjene = dtDatumProcjene.Value;
                         klijent.OvjeraCr = txtOvjeraCr.Text ?? "";
+                        klijent.Status = cbStatus.Text ?? "AKTIVAN";
+                        klijent.Napomena = txtNapomena.Text ?? "";
                         klijent.Azuriran = DateTime.Now;
 
                         _db.SaveChanges();
@@ -196,6 +217,7 @@ namespace OwnerTrack.App
                                 ugovor = new Ugovor { KlijentId = klijent.Id };
                                 _db.Ugovori.Add(ugovor);
                             }
+                            ugovor.VrstaUgovora = txtVrstaUgovora.Text ?? "";
                             ugovor.StatusUgovora = cbStatusUgovora.Text;
                             ugovor.DatumUgovora = dtDatumUgovora.Value;
                         }
@@ -227,7 +249,9 @@ namespace OwnerTrack.App
                         UkupnaProcjena = txtUkupnaProcjena.Text ?? "",
                         DatumProcjene = dtDatumProcjene.Value,
                         OvjeraCr = txtOvjeraCr.Text ?? "",
-                        Status = "AKTIVAN"
+                        Status = cbStatus.Text ?? "AKTIVAN",
+                        Napomena = txtNapomena.Text ?? "",
+                        Kreiran = DateTime.Now
                     };
 
                     _db.Klijenti.Add(klijent);
@@ -238,6 +262,7 @@ namespace OwnerTrack.App
                         var ugovor = new Ugovor
                         {
                             KlijentId = klijent.Id,
+                            VrstaUgovora = txtVrstaUgovora.Text ?? "",
                             StatusUgovora = cbStatusUgovora.Text,
                             DatumUgovora = dtDatumUgovora.Value
                         };

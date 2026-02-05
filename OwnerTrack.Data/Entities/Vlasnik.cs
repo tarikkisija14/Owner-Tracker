@@ -21,6 +21,8 @@ namespace OwnerTrack.Data.Entities
         [StringLength(255)]
         public string ImePrezime { get; set; }
 
+        public DateTime? DatumValjanostiDokumenta { get; set; }  
+
         [Range(0, 100)]
         public decimal ProcetatVlasnistva { get; set; }
 
@@ -34,7 +36,7 @@ namespace OwnerTrack.Data.Entities
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
 
-        
+
         public virtual Klijent Klijent { get; set; }
     }
 }

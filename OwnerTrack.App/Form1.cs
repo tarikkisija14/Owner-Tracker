@@ -32,11 +32,11 @@ namespace OwnerTrack.App
                     .Include(k => k.Djelatnost)
                     .Include(k => k.Vlasnici)
                     .Include(k => k.Direktori)
+                    .Include(k => k.Ugovor)
                     .AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(filter))
                 {
-                    // POPRAVKA: Case-insensitive pretraga pomoću ToLower()
                     string lowerFilter = filter.ToLower();
                     query = query.Where(k =>
                         k.Naziv.ToLower().Contains(lowerFilter) ||
@@ -51,23 +51,104 @@ namespace OwnerTrack.App
                     k.Naziv,
                     k.IdBroj,
                     k.Adresa,
-                    k.VrstaKlijenta,
-                    k.Velicina,
-                    Sifra = k.SifraDjelatnosti,
+                    SifraDjelatnosti = k.SifraDjelatnosti,
                     Djelatnost = k.Djelatnost?.Naziv ?? "",
+                    DatumUspostaveOdnosa = k.DatumUspostave,
+                    k.VrstaKlijenta,
+                    DatumOsnivanjaFirme = k.DatumOsnivanja,
+                    k.Velicina,
+                    k.PepRizik,
+                    k.UboRizik,
+                    k.GotovinaRizik,
+                    k.GeografskiRizik,
+                    k.UkupnaProcjena,
+                    DatumProcjeneRizika = k.DatumProcjene,
+                    k.OvjeraCr,
+                    StatusUgovora = k.Ugovor?.StatusUgovora ?? "",
+                    DatumPotpisaUgovora = k.Ugovor?.DatumUgovora,
                     BrojVlasnika = k.Vlasnici.Count,
                     BrojDirektora = k.Direktori.Count,
-                    k.Status
+                    StatusKlijenta = k.Status,
+                    k.Napomena
                 }).ToList();
 
                 if (dataGridKlijenti.Columns.Count > 0)
                 {
                     dataGridKlijenti.Columns["Id"].Width = 40;
+                    dataGridKlijenti.Columns["Id"].HeaderText = "ID";
+
                     dataGridKlijenti.Columns["Naziv"].Width = 220;
+                    dataGridKlijenti.Columns["Naziv"].HeaderText = "Naziv preduzeća";
+
                     dataGridKlijenti.Columns["IdBroj"].Width = 130;
+                    dataGridKlijenti.Columns["IdBroj"].HeaderText = "ID broj";
+
                     dataGridKlijenti.Columns["Adresa"].Width = 200;
+                    dataGridKlijenti.Columns["Adresa"].HeaderText = "Adresa";
+
+                    dataGridKlijenti.Columns["SifraDjelatnosti"].Width = 70;
+                    dataGridKlijenti.Columns["SifraDjelatnosti"].HeaderText = "Šifra";
+
+                    dataGridKlijenti.Columns["Djelatnost"].Width = 220;
+                    dataGridKlijenti.Columns["Djelatnost"].HeaderText = "Djelatnost";
+
+                    dataGridKlijenti.Columns["DatumUspostaveOdnosa"].Width = 120;
+                    dataGridKlijenti.Columns["DatumUspostaveOdnosa"].HeaderText = "Datum uspostave odnosa";
+                    dataGridKlijenti.Columns["DatumUspostaveOdnosa"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridKlijenti.Columns["VrstaKlijenta"].Width = 110;
+                    dataGridKlijenti.Columns["VrstaKlijenta"].HeaderText = "Vrsta klijenta";
+
+                    dataGridKlijenti.Columns["DatumOsnivanjaFirme"].Width = 120;
+                    dataGridKlijenti.Columns["DatumOsnivanjaFirme"].HeaderText = "Datum osnivanja";
+                    dataGridKlijenti.Columns["DatumOsnivanjaFirme"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridKlijenti.Columns["Velicina"].Width = 80;
+                    dataGridKlijenti.Columns["Velicina"].HeaderText = "Veličina";
+
+                    // RIZICI
+                    dataGridKlijenti.Columns["PepRizik"].Width = 70;
+                    dataGridKlijenti.Columns["PepRizik"].HeaderText = "PEP rizik";
+
+                    dataGridKlijenti.Columns["UboRizik"].Width = 70;
+                    dataGridKlijenti.Columns["UboRizik"].HeaderText = "UBO rizik";
+
+                    dataGridKlijenti.Columns["GotovinaRizik"].Width = 90;
+                    dataGridKlijenti.Columns["GotovinaRizik"].HeaderText = "Gotovina rizik";
+
+                    dataGridKlijenti.Columns["GeografskiRizik"].Width = 100;
+                    dataGridKlijenti.Columns["GeografskiRizik"].HeaderText = "Geografski rizik";
+
+                    dataGridKlijenti.Columns["UkupnaProcjena"].Width = 120;
+                    dataGridKlijenti.Columns["UkupnaProcjena"].HeaderText = "Ukupna procjena";
+
+                    dataGridKlijenti.Columns["DatumProcjeneRizika"].Width = 120;
+                    dataGridKlijenti.Columns["DatumProcjeneRizika"].HeaderText = "Datum procjene rizika";
+                    dataGridKlijenti.Columns["DatumProcjeneRizika"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridKlijenti.Columns["OvjeraCr"].Width = 150;
+                    dataGridKlijenti.Columns["OvjeraCr"].HeaderText = "Ovjera/CR";
+
+                    // UGOVOR
+                    dataGridKlijenti.Columns["StatusUgovora"].Width = 110;
+                    dataGridKlijenti.Columns["StatusUgovora"].HeaderText = "Status ugovora";
+
+                    dataGridKlijenti.Columns["DatumPotpisaUgovora"].Width = 120;
+                    dataGridKlijenti.Columns["DatumPotpisaUgovora"].HeaderText = "Datum potpisa ugovora";
+                    dataGridKlijenti.Columns["DatumPotpisaUgovora"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    // BROJAČI
                     dataGridKlijenti.Columns["BrojVlasnika"].Width = 80;
+                    dataGridKlijenti.Columns["BrojVlasnika"].HeaderText = "Vlasnici";
+
                     dataGridKlijenti.Columns["BrojDirektora"].Width = 80;
+                    dataGridKlijenti.Columns["BrojDirektora"].HeaderText = "Direktori";
+
+                    dataGridKlijenti.Columns["StatusKlijenta"].Width = 90;
+                    dataGridKlijenti.Columns["StatusKlijenta"].HeaderText = "Status klijenta";
+
+                    dataGridKlijenti.Columns["Napomena"].Width = 200;
+                    dataGridKlijenti.Columns["Napomena"].HeaderText = "Napomena";
                 }
             }
             catch (Exception ex)
@@ -86,18 +167,46 @@ namespace OwnerTrack.App
             {
                 v.Id,
                 v.ImePrezime,
-                v.ProcetatVlasnistva,
-                v.DatumUtvrdjivanja,
+                DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,  
+                ProcenatVlasnistva = v.ProcetatVlasnistva,
+                DatumUtvrdjivanja = v.DatumUtvrdjivanja,
                 v.IzvorPodatka,
-                v.Status
+                StatusVlasnika = v.Status
             }).ToList();
 
-            // POPRAVKA: Očisti selekciju da ne bude auto-selektovan prvi red
             if (dataGridVlasnici.Rows.Count > 0)
             {
+               
+                if (dataGridVlasnici.Columns.Count > 0)
+                {
+                    dataGridVlasnici.Columns["Id"].Width = 40;
+                    dataGridVlasnici.Columns["Id"].HeaderText = "ID";
+
+                    dataGridVlasnici.Columns["ImePrezime"].Width = 180;
+                    dataGridVlasnici.Columns["ImePrezime"].HeaderText = "Ime i prezime";
+
+                    dataGridVlasnici.Columns["DatumValjanostiDokumenta"].Width = 140;
+                    dataGridVlasnici.Columns["DatumValjanostiDokumenta"].HeaderText = "Datum važenja dok.";
+                    dataGridVlasnici.Columns["DatumValjanostiDokumenta"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridVlasnici.Columns["ProcenatVlasnistva"].Width = 100;
+                    dataGridVlasnici.Columns["ProcenatVlasnistva"].HeaderText = "% vlasništva";
+
+                    dataGridVlasnici.Columns["DatumUtvrdjivanja"].Width = 130;
+                    dataGridVlasnici.Columns["DatumUtvrdjivanja"].HeaderText = "Datum utvrđivanja";
+                    dataGridVlasnici.Columns["DatumUtvrdjivanja"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridVlasnici.Columns["IzvorPodatka"].Width = 150;
+                    dataGridVlasnici.Columns["IzvorPodatka"].HeaderText = "Izvor podatka";
+
+                    dataGridVlasnici.Columns["StatusVlasnika"].Width = 90;
+                    dataGridVlasnici.Columns["StatusVlasnika"].HeaderText = "Status";
+                }
+
                 dataGridVlasnici.ClearSelection();
             }
         }
+
 
         private void LoadDirektori(int klijentId)
         {
@@ -109,14 +218,33 @@ namespace OwnerTrack.App
             {
                 d.Id,
                 d.ImePrezime,
-                d.DatumValjanosti,
+                DatumValjanostiDokumenta = d.DatumValjanosti,
                 d.TipValjanosti,
-                d.Status
+                StatusDirektora = d.Status
             }).ToList();
 
-            // POPRAVKA: Očisti selekciju da ne bude auto-selektovan prvi red
             if (dataGridDirektori.Rows.Count > 0)
             {
+                
+                if (dataGridDirektori.Columns.Count > 0)
+                {
+                    dataGridDirektori.Columns["Id"].Width = 40;
+                    dataGridDirektori.Columns["Id"].HeaderText = "ID";
+
+                    dataGridDirektori.Columns["ImePrezime"].Width = 200;
+                    dataGridDirektori.Columns["ImePrezime"].HeaderText = "Ime i prezime";
+
+                    dataGridDirektori.Columns["DatumValjanostiDokumenta"].Width = 140;
+                    dataGridDirektori.Columns["DatumValjanostiDokumenta"].HeaderText = "Datum važenja dok.";
+                    dataGridDirektori.Columns["DatumValjanostiDokumenta"].DefaultCellStyle.Format = "dd.MM.yyyy";
+
+                    dataGridDirektori.Columns["TipValjanosti"].Width = 120;
+                    dataGridDirektori.Columns["TipValjanosti"].HeaderText = "Tip valjanosti";
+
+                    dataGridDirektori.Columns["StatusDirektora"].Width = 90;
+                    dataGridDirektori.Columns["StatusDirektora"].HeaderText = "Status";
+                }
+
                 dataGridDirektori.ClearSelection();
             }
         }
@@ -337,7 +465,7 @@ namespace OwnerTrack.App
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                // Kreiraj progress dialog
+               
                 using (var progressForm = new Form())
                 {
                     progressForm.Text = "Import u toku...";
@@ -376,7 +504,7 @@ namespace OwnerTrack.App
                     progressForm.Controls.Add(lblStatus);
                     progressForm.Controls.Add(btnCancel);
 
-                    // Progress reporter
+                    
                     var progress = new Progress<ImportProgress>(p =>
                     {
                         progressBar.Maximum = p.TotalRows;
@@ -387,7 +515,7 @@ namespace OwnerTrack.App
                         progressForm.Refresh();
                     });
 
-                    // Pokreni import u pozadini
+                    
                     progressForm.Shown += async (s, args) =>
                     {
                         try

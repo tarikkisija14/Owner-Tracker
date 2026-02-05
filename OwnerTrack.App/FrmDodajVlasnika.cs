@@ -40,6 +40,7 @@ namespace OwnerTrack.App
             if (vlasnik != null)
             {
                 txtImePrezime.Text = vlasnik.ImePrezime ?? "";
+                dtDatumValjanosti.Value = vlasnik.DatumValjanostiDokumenta ?? DateTime.Now;
                 txtProcetat.Text = vlasnik.ProcetatVlasnistva.ToString("F2");
                 dtDatumUtvrdjivanja.Value = vlasnik.DatumUtvrdjivanja ?? DateTime.Now;
                 txtIzvorPodatka.Text = vlasnik.IzvorPodatka ?? "";
@@ -68,6 +69,7 @@ namespace OwnerTrack.App
                     if (vlasnik != null)
                     {
                         vlasnik.ImePrezime = txtImePrezime.Text.Trim();
+                        vlasnik.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
                         vlasnik.ProcetatVlasnistva = procetat;
                         vlasnik.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
                         vlasnik.IzvorPodatka = txtIzvorPodatka.Text ?? "";
@@ -81,6 +83,7 @@ namespace OwnerTrack.App
                     {
                         KlijentId = _klijentId,
                         ImePrezime = txtImePrezime.Text.Trim(),
+                        DatumValjanostiDokumenta = dtDatumValjanosti.Value,
                         ProcetatVlasnistva = procetat,
                         DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value,
                         IzvorPodatka = txtIzvorPodatka.Text ?? "",

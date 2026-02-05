@@ -68,7 +68,7 @@
             // ========== FORMA ==========
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 680);
+            this.ClientSize = new System.Drawing.Size(800, 750);
             this.Text = "Dodaj firmu";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -130,12 +130,20 @@
             this.dtDatumOsnivanja.Location = new System.Drawing.Point(430, 130);
             this.dtDatumOsnivanja.Size = new System.Drawing.Size(180, 20);
 
-            // POPRAVKA: Veličina sada u novom redu da ne prelazi 800px
             this.lblVelicina.Text = "Veličina:";
             this.lblVelicina.Location = new System.Drawing.Point(10, 165);
             this.lblVelicina.AutoSize = true;
             this.cbVelicina.Location = new System.Drawing.Point(120, 165);
             this.cbVelicina.Size = new System.Drawing.Size(180, 21);
+
+            // STATUS
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.cbStatus = new System.Windows.Forms.ComboBox();
+            this.lblStatus.Text = "Status:";
+            this.lblStatus.Location = new System.Drawing.Point(330, 165);
+            this.lblStatus.AutoSize = true;
+            this.cbStatus.Location = new System.Drawing.Point(430, 165);
+            this.cbStatus.Size = new System.Drawing.Size(180, 21);
 
             this.groupBoxOsnovni.Controls.Add(this.lblNaziv);
             this.groupBoxOsnovni.Controls.Add(this.txtNaziv);
@@ -153,28 +161,30 @@
             this.groupBoxOsnovni.Controls.Add(this.dtDatumOsnivanja);
             this.groupBoxOsnovni.Controls.Add(this.lblVelicina);
             this.groupBoxOsnovni.Controls.Add(this.cbVelicina);
+            this.groupBoxOsnovni.Controls.Add(this.lblStatus);
+            this.groupBoxOsnovni.Controls.Add(this.cbStatus);
 
             // ========== RIZICI ==========
             this.groupBoxRizici.Text = "⚠️ Procjena rizika";
             this.groupBoxRizici.Location = new System.Drawing.Point(10, 230);
             this.groupBoxRizici.Size = new System.Drawing.Size(760, 140);
 
-            this.lblPepRizik.Text = "PEP rizik:";
+            this.lblPepRizik.Text = "PEP:";
             this.lblPepRizik.Location = new System.Drawing.Point(10, 25);
             this.lblPepRizik.AutoSize = true;
-            this.cbPepRizik.Location = new System.Drawing.Point(100, 25);
+            this.cbPepRizik.Location = new System.Drawing.Point(80, 25);
             this.cbPepRizik.Size = new System.Drawing.Size(80, 21);
 
-            this.lblUboRizik.Text = "UBO rizik:";
-            this.lblUboRizik.Location = new System.Drawing.Point(200, 25);
+            this.lblUboRizik.Text = "UBO:";
+            this.lblUboRizik.Location = new System.Drawing.Point(180, 25);
             this.lblUboRizik.AutoSize = true;
-            this.cbUboRizik.Location = new System.Drawing.Point(290, 25);
+            this.cbUboRizik.Location = new System.Drawing.Point(250, 25);
             this.cbUboRizik.Size = new System.Drawing.Size(80, 21);
 
             this.lblGotovinaRizik.Text = "Gotovina:";
-            this.lblGotovinaRizik.Location = new System.Drawing.Point(390, 25);
+            this.lblGotovinaRizik.Location = new System.Drawing.Point(350, 25);
             this.lblGotovinaRizik.AutoSize = true;
-            this.cbGotovinaRizik.Location = new System.Drawing.Point(470, 25);
+            this.cbGotovinaRizik.Location = new System.Drawing.Point(440, 25);
             this.cbGotovinaRizik.Size = new System.Drawing.Size(80, 21);
 
             this.lblGeografskiRizik.Text = "Geografski:";
@@ -183,7 +193,6 @@
             this.cbGeografskiRizik.Location = new System.Drawing.Point(660, 25);
             this.cbGeografskiRizik.Size = new System.Drawing.Size(80, 21);
 
-            // POPRAVKA: Ukupna procjena - povećan TextBox
             this.lblUkupnaProcjena.Text = "Ukupna procjena:";
             this.lblUkupnaProcjena.Location = new System.Drawing.Point(10, 60);
             this.lblUkupnaProcjena.AutoSize = true;
@@ -220,24 +229,53 @@
             // ========== UGOVOR ==========
             this.groupBoxUgovor.Text = "📜 Ugovor";
             this.groupBoxUgovor.Location = new System.Drawing.Point(10, 380);
-            this.groupBoxUgovor.Size = new System.Drawing.Size(760, 80);
+            this.groupBoxUgovor.Size = new System.Drawing.Size(760, 115);
+
+            this.lblVrstaUgovora = new System.Windows.Forms.Label();
+            this.txtVrstaUgovora = new System.Windows.Forms.TextBox();
+            this.lblVrstaUgovora.Text = "Vrsta ugovora:";
+            this.lblVrstaUgovora.Location = new System.Drawing.Point(10, 30);
+            this.lblVrstaUgovora.AutoSize = true;
+            this.txtVrstaUgovora.Location = new System.Drawing.Point(120, 30);
+            this.txtVrstaUgovora.Size = new System.Drawing.Size(200, 20);
 
             this.lblStatusUgovora.Text = "Status ugovora:";
-            this.lblStatusUgovora.Location = new System.Drawing.Point(10, 30);
+            this.lblStatusUgovora.Location = new System.Drawing.Point(330, 30);
             this.lblStatusUgovora.AutoSize = true;
-            this.cbStatusUgovora.Location = new System.Drawing.Point(120, 30);
+            this.cbStatusUgovora.Location = new System.Drawing.Point(450, 30);
             this.cbStatusUgovora.Size = new System.Drawing.Size(200, 21);
 
             this.lblDatumUgovora.Text = "Datum ugovora:";
-            this.lblDatumUgovora.Location = new System.Drawing.Point(330, 30);
+            this.lblDatumUgovora.Location = new System.Drawing.Point(10, 65);
             this.lblDatumUgovora.AutoSize = true;
-            this.dtDatumUgovora.Location = new System.Drawing.Point(450, 30);
+            this.dtDatumUgovora.Location = new System.Drawing.Point(120, 65);
             this.dtDatumUgovora.Size = new System.Drawing.Size(180, 20);
 
+            this.groupBoxUgovor.Controls.Add(this.lblVrstaUgovora);
+            this.groupBoxUgovor.Controls.Add(this.txtVrstaUgovora);
             this.groupBoxUgovor.Controls.Add(this.lblStatusUgovora);
             this.groupBoxUgovor.Controls.Add(this.cbStatusUgovora);
             this.groupBoxUgovor.Controls.Add(this.lblDatumUgovora);
             this.groupBoxUgovor.Controls.Add(this.dtDatumUgovora);
+
+            // ========== NAPOMENA ==========
+            this.groupBoxNapomena = new System.Windows.Forms.GroupBox();
+            this.groupBoxNapomena.Text = "📝 Napomena";
+            this.groupBoxNapomena.Location = new System.Drawing.Point(10, 505);
+            this.groupBoxNapomena.Size = new System.Drawing.Size(760, 120);
+
+            this.lblNapomena = new System.Windows.Forms.Label();
+            this.txtNapomena = new System.Windows.Forms.TextBox();
+            this.lblNapomena.Text = "Napomena:";
+            this.lblNapomena.Location = new System.Drawing.Point(10, 25);
+            this.lblNapomena.AutoSize = true;
+            this.txtNapomena.Location = new System.Drawing.Point(10, 45);
+            this.txtNapomena.Size = new System.Drawing.Size(730, 60);
+            this.txtNapomena.Multiline = true;
+            this.txtNapomena.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+
+            this.groupBoxNapomena.Controls.Add(this.lblNapomena);
+            this.groupBoxNapomena.Controls.Add(this.txtNapomena);
 
             // ========== PANEL ZA BUTTONE (FIKSIRAN NA DNU) ==========
             this.panelButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -270,6 +308,7 @@
             scrollPanel.Controls.Add(this.groupBoxOsnovni);
             scrollPanel.Controls.Add(this.groupBoxRizici);
             scrollPanel.Controls.Add(this.groupBoxUgovor);
+            scrollPanel.Controls.Add(this.groupBoxNapomena);
 
             // ========== DODAJ SVE NA FORMU ==========
             this.Controls.Add(scrollPanel);
@@ -295,6 +334,8 @@
         public System.Windows.Forms.DateTimePicker dtDatumOsnivanja;
         private System.Windows.Forms.Label lblVelicina;
         public System.Windows.Forms.ComboBox cbVelicina;
+        private System.Windows.Forms.Label lblStatus;
+        public System.Windows.Forms.ComboBox cbStatus;
         private System.Windows.Forms.GroupBox groupBoxRizici;
         private System.Windows.Forms.Label lblPepRizik;
         public System.Windows.Forms.ComboBox cbPepRizik;
@@ -311,10 +352,15 @@
         private System.Windows.Forms.Label lblOvjeraCr;
         public System.Windows.Forms.TextBox txtOvjeraCr;
         private System.Windows.Forms.GroupBox groupBoxUgovor;
+        private System.Windows.Forms.Label lblVrstaUgovora;
+        public System.Windows.Forms.TextBox txtVrstaUgovora;
         private System.Windows.Forms.Label lblStatusUgovora;
         public System.Windows.Forms.ComboBox cbStatusUgovora;
         private System.Windows.Forms.Label lblDatumUgovora;
         public System.Windows.Forms.DateTimePicker dtDatumUgovora;
+        private System.Windows.Forms.GroupBox groupBoxNapomena;
+        private System.Windows.Forms.Label lblNapomena;
+        public System.Windows.Forms.TextBox txtNapomena;
         private System.Windows.Forms.Panel panelButtons;
         public System.Windows.Forms.Button btnSpremi;
         public System.Windows.Forms.Button btnOtkazi;
