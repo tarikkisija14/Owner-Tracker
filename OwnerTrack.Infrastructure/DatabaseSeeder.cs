@@ -18,7 +18,7 @@ namespace OwnerTrack.Infrastructure
 
         public void SeedTestData()
         {
-            // Provjeri da li već postoje podaci
+            
             if (_db.Klijenti.Any())
             {
                 Console.WriteLine("Baza već ima podatke. Skip seed.");
@@ -27,7 +27,7 @@ namespace OwnerTrack.Infrastructure
 
             Console.WriteLine("Dodajem test podatke u bazu...");
 
-            // Dodaj test klijente
+            
             var klijent1 = new Klijent
             {
                 Naziv = "TEST RAČUNOVODSTVENA KUĆA DOO",

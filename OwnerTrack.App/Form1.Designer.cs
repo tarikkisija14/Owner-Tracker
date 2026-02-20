@@ -25,6 +25,9 @@
             panelSearch = new Panel();
             lblSearchKlijent = new Label();
             txtSearchKlijent = new TextBox();
+            lblFilterDjelatnost = new Label();
+            cmbFilterDjelatnost = new ComboBox();
+            btnResetFilters = new Button();
             dataGridKlijenti = new DataGridView();
             dataGridVlasnici = new DataGridView();
             dataGridDirektori = new DataGridView();
@@ -131,6 +134,9 @@
             panelSearch.BorderStyle = BorderStyle.FixedSingle;
             panelSearch.Controls.Add(lblSearchKlijent);
             panelSearch.Controls.Add(txtSearchKlijent);
+            panelSearch.Controls.Add(lblFilterDjelatnost);
+            panelSearch.Controls.Add(cmbFilterDjelatnost);
+            panelSearch.Controls.Add(btnResetFilters);
             panelSearch.Dock = DockStyle.Top;
             panelSearch.Location = new Point(0, 47);
             panelSearch.Name = "panelSearch";
@@ -148,11 +154,39 @@
             // 
             // txtSearchKlijent
             // 
-            txtSearchKlijent.Location = new Point(262, 11);
+            txtSearchKlijent.Location = new Point(200, 8);
             txtSearchKlijent.Name = "txtSearchKlijent";
-            txtSearchKlijent.Size = new Size(307, 23);
+            txtSearchKlijent.Size = new Size(270, 23);
             txtSearchKlijent.TabIndex = 1;
             txtSearchKlijent.TextChanged += txtSearchKlijent_TextChanged;
+            // 
+            // lblFilterDjelatnost
+            // 
+            lblFilterDjelatnost.AutoSize = true;
+            lblFilterDjelatnost.Location = new Point(490, 11);
+            lblFilterDjelatnost.Name = "lblFilterDjelatnost";
+            lblFilterDjelatnost.Size = new Size(120, 15);
+            lblFilterDjelatnost.TabIndex = 2;
+            lblFilterDjelatnost.Text = "🏭 Filter djelatnost:";
+            // 
+            // cmbFilterDjelatnost
+            // 
+            cmbFilterDjelatnost.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbFilterDjelatnost.Location = new Point(618, 8);
+            cmbFilterDjelatnost.Name = "cmbFilterDjelatnost";
+            cmbFilterDjelatnost.Size = new Size(380, 23);
+            cmbFilterDjelatnost.TabIndex = 3;
+            cmbFilterDjelatnost.SelectedIndexChanged += cmbFilterDjelatnost_SelectedIndexChanged;
+            // 
+            // btnResetFilters
+            // 
+            btnResetFilters.Location = new Point(1010, 7);
+            btnResetFilters.Name = "btnResetFilters";
+            btnResetFilters.Size = new Size(100, 25);
+            btnResetFilters.TabIndex = 4;
+            btnResetFilters.Text = "🔄 Resetuj";
+            btnResetFilters.UseVisualStyleBackColor = true;
+            btnResetFilters.Click += btnResetFilters_Click;
             // 
             // dataGridKlijenti
             // 
@@ -396,5 +430,8 @@
         private Panel panelVlasniciBtns;
         private Panel panelDirektori;
         private Panel panelDirektoriBtns;
+        private System.Windows.Forms.Label lblFilterDjelatnost;
+        public System.Windows.Forms.ComboBox cmbFilterDjelatnost;
+        private System.Windows.Forms.Button btnResetFilters;
     }
 }

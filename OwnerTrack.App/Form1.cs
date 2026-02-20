@@ -20,12 +20,39 @@ namespace OwnerTrack.App
                .Options;
 
             _db = new OwnerTrackDbContext(options);
+            LoadDjelatnostiFilter();
             LoadKlijenti();
         }
 
         // ========== UČITAVANJE PODATAKA ==========
 
-        private void LoadKlijenti(string filter = "")
+        private void LoadDjelatnostiFilter()
+        {
+            try
+            {
+                var djelatnosti = _db.Djelatnosti
+                    .OrderBy(d => d.Naziv)
+                    .ToList();
+
+                cmbFilterDjelatnost.Items.Clear();
+                cmbFilterDjelatnost.Items.Add(new { Sifra = "", Naziv = "-- Sve djelatnosti --" });
+
+                foreach (var d in djelatnosti)
+                {
+                    cmbFilterDjelatnost.Items.Add(new { d.Sifra, Naziv = $"{d.Sifra} - {d.Naziv}" });
+                }
+
+                cmbFilterDjelatnost.DisplayMember = "Naziv";
+                cmbFilterDjelatnost.ValueMember = "Sifra";
+                cmbFilterDjelatnost.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Greška pri učitavanju djelatnosti: {ex.Message}");
+            }
+        }
+
+        private void LoadKlijenti(string filter = "", string sifraDjelatnosti = "")
         {
             try
             {
@@ -42,6 +69,11 @@ namespace OwnerTrack.App
                     query = query.Where(k =>
                         k.Naziv.ToLower().Contains(lowerFilter) ||
                         k.IdBroj.ToLower().Contains(lowerFilter));
+                }
+
+                if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
+                {
+                    query = query.Where(k => k.SifraDjelatnosti == sifraDjelatnosti);
                 }
 
                 var klijenti = query.ToList();
@@ -264,12 +296,18 @@ namespace OwnerTrack.App
 
         // ========== KLIJENTI - DODAJ, IZMIJENI, OBRIŠI ==========
 
+        private void ApplyCurrentFilters()
+        {
+            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra());
+        }
+
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
             FrmDodajKlijent forma = new FrmDodajKlijent(null, _db);
             if (forma.ShowDialog() == DialogResult.OK)
             {
-                LoadKlijenti();
+                LoadDjelatnostiFilter();
+                ApplyCurrentFilters();
             }
         }
 
@@ -285,7 +323,8 @@ namespace OwnerTrack.App
             FrmDodajKlijent forma = new FrmDodajKlijent(id, _db);
             if (forma.ShowDialog() == DialogResult.OK)
             {
-                LoadKlijenti();
+                LoadDjelatnostiFilter();
+                ApplyCurrentFilters();
             }
         }
 
@@ -309,7 +348,7 @@ namespace OwnerTrack.App
                     _db.Klijenti.Remove(klijent);
                     _db.SaveChanges();
                     MessageBox.Show("Obrisano!");
-                    LoadKlijenti();
+                    ApplyCurrentFilters();
                 }
             }
             catch (Exception ex)
@@ -452,9 +491,28 @@ namespace OwnerTrack.App
 
         // ========== SEARCH ==========
 
+        private string GetSelectedDjelatnostSifra()
+        {
+            if (cmbFilterDjelatnost.SelectedItem == null) return "";
+            dynamic item = cmbFilterDjelatnost.SelectedItem;
+            return item.Sifra ?? "";
+        }
+
         private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
         {
-            LoadKlijenti(txtSearchKlijent.Text);
+            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra());
+        }
+
+        private void cmbFilterDjelatnost_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra());
+        }
+
+        private void btnResetFilters_Click(object sender, EventArgs e)
+        {
+            txtSearchKlijent.Text = "";
+            cmbFilterDjelatnost.SelectedIndex = 0;
+            LoadKlijenti();
         }
 
         // ========== EXCEL IMPORT ==========
@@ -538,6 +596,7 @@ namespace OwnerTrack.App
                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             }
 
+                            LoadDjelatnostiFilter();
                             LoadKlijenti();
                         }
                         catch (Exception ex)
@@ -584,17 +643,17 @@ namespace OwnerTrack.App
         }
         private void ResetujBazu()
         {
-           
+
             _db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
             _db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
             _db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
             _db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
             _db.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
 
-           
+
             _db.Database.ExecuteSqlRaw("DELETE FROM sqlite_sequence WHERE name IN ('Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
 
-            
+
             _db.ChangeTracker.Clear();
         }
         private void PokreniImport(string filePath)
@@ -668,6 +727,7 @@ namespace OwnerTrack.App
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         }
 
+                        LoadDjelatnostiFilter();
                         LoadKlijenti();
                     }
                     catch (Exception ex)
