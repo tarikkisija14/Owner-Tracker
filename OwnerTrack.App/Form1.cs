@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DocumentFormat.OpenXml.Presentation;
+using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Infrastructure;
 using System;
@@ -167,7 +168,7 @@ namespace OwnerTrack.App
             {
                 v.Id,
                 v.ImePrezime,
-                DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,  
+                DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,
                 ProcenatVlasnistva = v.ProcetatVlasnistva,
                 DatumUtvrdjivanja = v.DatumUtvrdjivanja,
                 v.IzvorPodatka,
@@ -176,7 +177,7 @@ namespace OwnerTrack.App
 
             if (dataGridVlasnici.Rows.Count > 0)
             {
-               
+
                 if (dataGridVlasnici.Columns.Count > 0)
                 {
                     dataGridVlasnici.Columns["Id"].Width = 40;
@@ -225,7 +226,7 @@ namespace OwnerTrack.App
 
             if (dataGridDirektori.Rows.Count > 0)
             {
-                
+
                 if (dataGridDirektori.Columns.Count > 0)
                 {
                     dataGridDirektori.Columns["Id"].Width = 40;
@@ -465,7 +466,7 @@ namespace OwnerTrack.App
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-               
+
                 using (var progressForm = new Form())
                 {
                     progressForm.Text = "Import u toku...";
@@ -504,7 +505,7 @@ namespace OwnerTrack.App
                     progressForm.Controls.Add(lblStatus);
                     progressForm.Controls.Add(btnCancel);
 
-                    
+
                     var progress = new Progress<ImportProgress>(p =>
                     {
                         progressBar.Maximum = p.TotalRows;
@@ -515,7 +516,7 @@ namespace OwnerTrack.App
                         progressForm.Refresh();
                     });
 
-                    
+
                     progressForm.Shown += async (s, args) =>
                     {
                         try
@@ -550,6 +551,134 @@ namespace OwnerTrack.App
                     progressForm.ShowDialog(this);
                 }
 
+            }
+        }
+
+        private void btnResetImport_Click(object sender, EventArgs e)
+        {
+            var potvrda = MessageBox.Show(
+               "Ovo će obrisati SVE podatke iz baze (klijente, vlasnike, direktore, ugovore, djelatnosti) " +
+               "i zatim pokrenuti novi import iz Excel fajla.\n\nJesi li siguran?",
+               "RESET BAZE",
+               MessageBoxButtons.YesNo,
+               MessageBoxIcon.Warning);
+
+            if (potvrda != DialogResult.Yes) return;
+
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "Excel Files (*.xlsx)|*.xlsx";
+            dialog.Title = "Odaberi Excel fajl za reimport";
+
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            try
+            {
+                ResetujBazu();
+                MessageBox.Show("Baza uspješno resetovana! Pokrećem import...", "Reset OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                PokreniImport(dialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Greška pri resetu baze:\n{ex.Message}", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        private void ResetujBazu()
+        {
+           
+            _db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
+            _db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
+            _db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
+            _db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
+            _db.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
+
+           
+            _db.Database.ExecuteSqlRaw("DELETE FROM sqlite_sequence WHERE name IN ('Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
+
+            
+            _db.ChangeTracker.Clear();
+        }
+        private void PokreniImport(string filePath)
+        {
+            using (var progressForm = new Form())
+            {
+                progressForm.Text = "Import u toku...";
+                progressForm.Width = 500;
+                progressForm.Height = 200;
+                progressForm.StartPosition = FormStartPosition.CenterParent;
+                progressForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                progressForm.MaximizeBox = false;
+                progressForm.MinimizeBox = false;
+
+                var progressBar = new ProgressBar
+                {
+                    Location = new System.Drawing.Point(20, 20),
+                    Width = 440,
+                    Height = 30,
+                    Style = ProgressBarStyle.Continuous
+                };
+
+                var lblStatus = new Label
+                {
+                    Location = new System.Drawing.Point(20, 60),
+                    Width = 440,
+                    Height = 60,
+                    Text = "Priprema..."
+                };
+
+                var btnCancel = new Button
+                {
+                    Text = "Zatvori",
+                    Location = new System.Drawing.Point(200, 130),
+                    Enabled = false
+                };
+                btnCancel.Click += (s, args) => progressForm.Close();
+
+                progressForm.Controls.Add(progressBar);
+                progressForm.Controls.Add(lblStatus);
+                progressForm.Controls.Add(btnCancel);
+
+                var progress = new Progress<ImportProgress>(p =>
+                {
+                    progressBar.Maximum = p.TotalRows;
+                    progressBar.Value = p.ProcessedRows;
+                    lblStatus.Text = $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
+                                     $"Dodato: {p.SuccessCount} | Greške: {p.ErrorCount}\n" +
+                                     $"{p.CurrentRow}";
+                    progressForm.Refresh();
+                });
+
+                progressForm.Shown += async (s, args) =>
+                {
+                    try
+                    {
+                        var importService = new ExcelImportService(_db);
+                        var result = await System.Threading.Tasks.Task.Run(() =>
+                            importService.ImportFromExcel(filePath, progress));
+
+                        btnCancel.Enabled = true;
+                        lblStatus.Text = $"Import završen!\n" +
+                                         $"Dodano: {result.SuccessCount}\n" +
+                                         $"Greške: {result.ErrorCount}\n" +
+                                         $"Vlasnici: {result.VlasnikCount}";
+
+                        if (result.Errors.Count > 0)
+                        {
+                            string errors = string.Join("\n", result.Errors.Take(10));
+                            MessageBox.Show($"Greške tokom importa:\n{errors}", "Upozorenje",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+
+                        LoadKlijenti();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Greška: {ex.Message}", "Greška",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        progressForm.Close();
+                    }
+                };
+
+                progressForm.ShowDialog(this);
             }
         }
     }

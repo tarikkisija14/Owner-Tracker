@@ -3,12 +3,14 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Entities;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace OwnerTrack.App
@@ -16,7 +18,8 @@ namespace OwnerTrack.App
     public class ExcelImportService
     {
         private OwnerTrackDbContext _db;
-        private const int BATCH_SIZE = 5; // (trenutno se ne koristi)
+
+        
 
         public ExcelImportService(OwnerTrackDbContext db)
         {
@@ -25,22 +28,14 @@ namespace OwnerTrack.App
 
         public ImportResult ImportFromExcel(string filePath, IProgress<ImportProgress> progress = null)
         {
-            if (_db == null)
-                throw new Exception("_db JE NULL");
-
-            if (_db.Klijenti == null)
-                throw new Exception("_db.Klijenti JE NULL");
-
-            if (_db.Database == null)
-                throw new Exception("_db.Database JE NULL");
+            if (_db == null) throw new Exception("_db JE NULL");
+            if (_db.Klijenti == null) throw new Exception("_db.Klijenti JE NULL");
+            if (_db.Database == null) throw new Exception("_db.Database JE NULL");
 
             var result = new ImportResult();
             var importProgress = new ImportProgress();
 
-            void Log(string text)
-            {
-                Debug.WriteLine(text);
-            }
+            void Log(string text) => Debug.WriteLine(text);
 
             try
             {
@@ -50,11 +45,11 @@ namespace OwnerTrack.App
                 {
                     WorkbookPart workbookPart = doc.WorkbookPart;
 
-                    if (workbookPart == null || workbookPart.Workbook == null || workbookPart.Workbook.Sheets == null)
+                    if (workbookPart?.Workbook?.Sheets == null)
                         throw new Exception("Excel fajl nema validan Workbook/Sheets!");
 
                     Sheet sheet = workbookPart.Workbook.Sheets.Cast<Sheet>()
-                        .FirstOrDefault(s => s.Name != null && s.Name.Value != null && s.Name.Value.Contains("ZBIRNA"));
+                        .FirstOrDefault(s => s.Name?.Value != null && s.Name.Value.Contains("ZBIRNA"));
 
                     if (sheet == null)
                         throw new Exception("Nije pronađen list sa 'ZBIRNA'!");
@@ -64,6 +59,7 @@ namespace OwnerTrack.App
                     WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id);
                     SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
 
+                    // Preskačemo 2 reda (red 1 = prazno/naslov, red 2 = header)
                     var allRows = sheetData.Elements<Row>().Skip(2).ToList();
                     importProgress.TotalRows = allRows.Count;
 
@@ -72,14 +68,13 @@ namespace OwnerTrack.App
                     for (int i = 0; i < allRows.Count; i++)
                     {
                         var row = allRows[i];
-
                         string naziv = "";
                         string idBroj = "";
 
                         try
                         {
-                            naziv = (GetCellValue(workbookPart, row, 2) ?? "").Trim();
-                            idBroj = (GetCellValue(workbookPart, row, 3) ?? "").Trim();
+                            naziv = (GetCellValue(workbookPart, row, 2) ?? "").Trim();  // B
+                            idBroj = (GetCellValue(workbookPart, row, 3) ?? "").Trim(); // C
 
                             importProgress.CurrentRow = $"{naziv} ({idBroj})";
                             importProgress.ProcessedRows = i + 1;
@@ -91,7 +86,6 @@ namespace OwnerTrack.App
                                 continue;
                             }
 
-                            // BITNO: AsNoTracking da se ne nakupi tracking, i bude brže/čistije
                             if (_db.Klijenti.AsNoTracking().Any(k => k.IdBroj == idBroj))
                             {
                                 Log($"[SKIP-DUPLICATE] ExcelRed={i + 3} ID='{idBroj}' Naziv='{naziv}'");
@@ -99,124 +93,117 @@ namespace OwnerTrack.App
                                 continue;
                             }
 
+                           
+                            string sifraDjelatnosti = GetCellValue(workbookPart, row, 5)?.Trim(); // E
+                            string nazivDjelatnosti = GetCellValue(workbookPart, row, 6)?.Trim(); // F
+
+                            if (string.IsNullOrWhiteSpace(sifraDjelatnosti))
+                                sifraDjelatnosti = "69.20";
+
+                            EnsureDjelatnostExists(sifraDjelatnosti, nazivDjelatnosti);
+
+                            
                             var klijent = new Klijent
                             {
                                 Naziv = naziv,
                                 IdBroj = idBroj,
-                                Adresa = GetCellValue(workbookPart, row, 4),
-                                SifraDjelatnosti = (GetCellValue(workbookPart, row, 5) ?? "69.20"),
-                                DatumUspostave = ParseDate(GetCellValue(workbookPart, row, 7)),
-                                VrstaKlijenta = (GetCellValue(workbookPart, row, 8) ?? "PRAVNO LICE"),
-                                DatumOsnivanja = ParseDate(GetCellValue(workbookPart, row, 9)),
-                                Velicina = GetCellValue(workbookPart, row, 17),
-                                PepRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 18)),
-                                UboRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 19)),
-                                GotovinaRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 20)),
-                                GeografskiRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 21)),
-                                UkupnaProcjena = GetCellValue(workbookPart, row, 22),
-                                DatumProcjene = ParseDate(GetCellValue(workbookPart, row, 23)),
-                                OvjeraCr = GetCellValue(workbookPart, row, 24),
-                                Status = "AKTIVAN"
+                                Adresa = GetCellValue(workbookPart, row, 4)?.Trim(),           // D
+                                SifraDjelatnosti = sifraDjelatnosti,
+                                DatumUspostave = ParseDate(GetCellValue(workbookPart, row, 7)), // G
+                                VrstaKlijenta = NormalizeVrstaKlijenta(GetCellValue(workbookPart, row, 8)), // H
+                                DatumOsnivanja = ParseDate(GetCellValue(workbookPart, row, 9)), // I
+                                Velicina = GetCellValue(workbookPart, row, 17)?.Trim(),         // Q
+                                PepRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 18)),  // R
+                                UboRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 19)),  // S
+                                GotovinaRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 20)), // T
+                                GeografskiRizik = NormalizeDaNe(GetCellValue(workbookPart, row, 21)), // U
+                                UkupnaProcjena = GetCellValue(workbookPart, row, 22)?.Trim(),   // V
+                                DatumProcjene = ParseDate(GetCellValue(workbookPart, row, 23)), // W
+                                OvjeraCr = GetCellValue(workbookPart, row, 24)?.Trim(),         // X
+                                Status = StatusEntiteta.AKTIVAN.ToString()
                             };
 
                             _db.Klijenti.Add(klijent);
-
-                            // KRITIČNO: klijent mora dobiti Id prije Vlasnika/Direktora/Ugovora
                             SaveChangesWithRetry();
 
                             Log($"[KLIJENT-SAVED] ExcelRed={i + 3} KlijentId={klijent.Id} Naziv='{naziv}' ID='{idBroj}'");
 
-                            string vlasnicString = GetCellValue(workbookPart, row, 10);
-                            string procenatString = GetCellValue(workbookPart, row, 12);
-                            string datumString = GetCellValue(workbookPart, row, 13);
-                            string izvorString = GetCellValue(workbookPart, row, 14);
+                           
+                            string vlasnikRaw = GetCellValue(workbookPart, row, 10);        // J
+                            string datVazVlasnikaRaw = GetCellValue(workbookPart, row, 11); // K
+                            string procenatRaw = GetCellValue(workbookPart, row, 12);       // L
+                            string datUtvrdjivanja = GetCellValue(workbookPart, row, 13);   // M
+                            string izvorPodatka = GetCellValue(workbookPart, row, 14);      // N
 
-                            if (!string.IsNullOrWhiteSpace(vlasnicString))
+                            if (!string.IsNullOrWhiteSpace(vlasnikRaw))
                             {
-                                var vlasnici = ParseVlasnici(vlasnicString, procenatString);
+                                var vlasnici = ParseVlasnici(vlasnikRaw, datVazVlasnikaRaw, procenatRaw);
                                 foreach (var vlasnik in vlasnici)
                                 {
                                     vlasnik.KlijentId = klijent.Id;
-                                    vlasnik.DatumUtvrdjivanja = ParseDate(datumString);
-                                    vlasnik.IzvorPodatka = izvorString;
-                                    vlasnik.Status = "AKTIVAN";
+                                    vlasnik.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
+                                    vlasnik.IzvorPodatka = izvorPodatka?.Trim();
+                                    vlasnik.Status = StatusEntiteta.AKTIVAN.ToString();
                                     _db.Vlasnici.Add(vlasnik);
                                     result.VlasnikCount++;
+                                    Log($"  [VLASNIK] '{vlasnik.ImePrezime}' {vlasnik.ProcetatVlasnistva}%");
                                 }
                             }
 
-                            string direktorString = GetCellValue(workbookPart, row, 15);
-                            string datumDirektora = GetCellValue(workbookPart, row, 16);
+                           
+                            string direktorRaw = GetCellValue(workbookPart, row, 15);        // O
+                            string datVazDirektoraRaw = GetCellValue(workbookPart, row, 16); // P
 
-                            if (!string.IsNullOrWhiteSpace(direktorString))
+                            if (!string.IsNullOrWhiteSpace(direktorRaw))
                             {
-                                var direktori = ParseDirektori(direktorString, datumDirektora);
+                                var direktori = ParseDirektori(direktorRaw, datVazDirektoraRaw);
                                 foreach (var direktor in direktori)
                                 {
                                     direktor.KlijentId = klijent.Id;
-                                    direktor.Status = "AKTIVAN";
+                                    direktor.Status = StatusEntiteta.AKTIVAN.ToString();
                                     _db.Direktori.Add(direktor);
+                                    Log($"  [DIREKTOR] '{direktor.ImePrezime}' tip={direktor.TipValjanosti}");
                                 }
                             }
 
-                            string statusUgovora = GetCellValue(workbookPart, row, 25);
-                            string datumUgovora = GetCellValue(workbookPart, row, 26);
+                           
+                            string statusUgovora = GetCellValue(workbookPart, row, 25); // Y
+                            string datumUgovora = GetCellValue(workbookPart, row, 26);  // Z
 
                             if (!string.IsNullOrWhiteSpace(statusUgovora))
                             {
-                                var ugovor = new Ugovor
+                                _db.Ugovori.Add(new Ugovor
                                 {
                                     KlijentId = klijent.Id,
-                                    StatusUgovora = statusUgovora,
+                                    StatusUgovora = statusUgovora.Trim(),
                                     DatumUgovora = ParseDate(datumUgovora)
-                                };
-                                _db.Ugovori.Add(ugovor);
+                                });
                             }
 
-                            // Snimi related podatke (vlasnici/direktori/ugovor) za ovaj red
                             SaveChangesWithRetry();
 
                             result.SuccessCount++;
                             importProgress.SuccessCount = result.SuccessCount;
-
                             Log($"[OK] ExcelRed={i + 3} KlijentId={klijent.Id} Naziv='{naziv}' ID='{idBroj}'");
 
-                            // da se tracker ne napuni (pomaže i protiv "database is locked" scenarija kod dužih importa)
                             _db.ChangeTracker.Clear();
-
                             progress?.Report(importProgress);
                         }
                         catch (Exception ex)
                         {
-                            // OBAVEZNO: očisti tracking nakon greške da ne ostanu "pokvareni" entiteti u kontekstu
                             _db.ChangeTracker.Clear();
-
                             result.ErrorCount++;
                             importProgress.ErrorCount = result.ErrorCount;
 
-                            // Pokušaj izvući SQLite detalje
-                            SqliteException sqliteEx = null;
-                            if (ex is SqliteException se)
-                                sqliteEx = se;
-                            else if (ex.InnerException is SqliteException ise)
-                                sqliteEx = ise;
+                            string sqliteInfo = ExtractSqliteInfo(ex);
+                            string inner = ex.InnerException?.Message ?? "";
 
-                            string sqliteInfo = "";
-                            if (sqliteEx != null)
-                                sqliteInfo = $" | SQLiteCode={sqliteEx.SqliteErrorCode} Ext={sqliteEx.SqliteExtendedErrorCode}";
-
-                            string inner = ex.InnerException != null ? ex.InnerException.Message : "";
-
-                            string dbg =
-                                $"[ERROR] ExcelRed={i + 3} Naziv='{naziv}' ID='{idBroj}' " +
-                                $"Msg='{ex.Message}'{sqliteInfo}" +
-                                (string.IsNullOrWhiteSpace(inner) ? "" : $" Inner='{inner}'");
-
-                            Log(dbg);
+                            Log($"[ERROR] ExcelRed={i + 3} Naziv='{naziv}' ID='{idBroj}' Msg='{ex.Message}'{sqliteInfo}"
+                                + (string.IsNullOrWhiteSpace(inner) ? "" : $" Inner='{inner}'"));
 
                             result.Errors.Add(
-                                $"Red {i + 3} | Naziv={naziv} | ID={idBroj} | {ex.Message}{sqliteInfo}" +
-                                (string.IsNullOrWhiteSpace(inner) ? "" : $" | Inner={inner}")
+                                $"Red {i + 3} | Naziv={naziv} | ID={idBroj} | {ex.Message}{sqliteInfo}"
+                                + (string.IsNullOrWhiteSpace(inner) ? "" : $" | Inner={inner}")
                             );
 
                             progress?.Report(importProgress);
@@ -227,73 +214,228 @@ namespace OwnerTrack.App
             catch (Exception ex)
             {
                 result.Success = false;
-
-                SqliteException sqliteEx = null;
-                if (ex is SqliteException se)
-                    sqliteEx = se;
-                else if (ex.InnerException is SqliteException ise)
-                    sqliteEx = ise;
-
-                string sqliteInfo = "";
-                if (sqliteEx != null)
-                    sqliteInfo = $" | SQLiteCode={sqliteEx.SqliteErrorCode} Ext={sqliteEx.SqliteExtendedErrorCode}";
-
-                Log($"[CRITICAL] Msg='{ex.Message}'{sqliteInfo}");
-
+                string sqliteInfo = ExtractSqliteInfo(ex);
+                Debug.WriteLine($"[CRITICAL] Msg='{ex.Message}'{sqliteInfo}");
                 if (ex.InnerException != null)
-                    Log($"[CRITICAL-INNER] {ex.InnerException.Message}");
-
+                    Debug.WriteLine($"[CRITICAL-INNER] {ex.InnerException.Message}");
                 result.Errors.Add($"KRITIČNA GREŠKA: {ex.Message}{sqliteInfo}");
                 return result;
             }
 
-            Log($"[IMPORT-END] SuccessCount={result.SuccessCount} ErrorCount={result.ErrorCount} VlasnikCount={result.VlasnikCount}");
-
+            Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Error={result.ErrorCount} Vlasnici={result.VlasnikCount}");
             result.Success = true;
             return result;
         }
 
-        // Retry za "database is locked" (SQLiteCode=5)
+       
+        private void EnsureDjelatnostExists(string sifra, string naziv)
+        {
+            if (string.IsNullOrWhiteSpace(sifra)) return;
+
+            bool exists = _db.Djelatnosti.AsNoTracking().Any(d => d.Sifra == sifra);
+            if (exists) return;
+
+           
+            string nazivZapis = naziv;
+            if (string.IsNullOrWhiteSpace(nazivZapis) || nazivZapis.StartsWith("="))
+                nazivZapis = $"Djelatnost {sifra}";
+
+            _db.Djelatnosti.Add(new Djelatnost
+            {
+                Sifra = sifra,
+                Naziv = nazivZapis
+            });
+
+            SaveChangesWithRetry();
+            Debug.WriteLine($"[DJELATNOST-CREATED] Sifra='{sifra}' Naziv='{nazivZapis}'");
+        }
+
+        private List<Vlasnik> ParseVlasnici(string vlasnikRaw, string datVazRaw, string procenatRaw)
+        {
+            var result = new List<Vlasnik>();
+            if (string.IsNullOrWhiteSpace(vlasnikRaw))
+                return result;
+
+            vlasnikRaw = NormalizeWhitespace(vlasnikRaw);
+
+            List<string> imenaLista;
+
+            if (vlasnikRaw.Contains(","))
+            {
+                imenaLista = vlasnikRaw
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+            }
+            else
+            {
+                var rijeci = vlasnikRaw.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                imenaLista = SplitNaImena(rijeci);
+            }
+
+            var datVazLista = ParseTokenLista(datVazRaw, jeDatum: true);
+            var procenatLista = ParseTokenLista(procenatRaw, jeDatum: false);
+
+            for (int i = 0; i < imenaLista.Count; i++)
+            {
+                string ime = imenaLista[i];
+                if (string.IsNullOrWhiteSpace(ime)) continue;
+
+                string datVazToken = i < datVazLista.Count ? datVazLista[i] : null;
+                string procToken = i < procenatLista.Count ? procenatLista[i] : null;
+
+                result.Add(new Vlasnik
+                {
+                    ImePrezime = ime,
+                    DatumValjanostiDokumenta = ParseDate(datVazToken),
+                    ProcetatVlasnistva = ParseDecimal(procToken),
+                    Status = StatusEntiteta.AKTIVAN.ToString()
+                });
+            }
+
+            return result;
+        }
+
+        
+        private List<string> SplitNaImena(string[] rijeci)
+        {
+            var lista = new List<string>();
+            if (rijeci.Length == 0) return lista;
+
+            if (rijeci.Length <= 2)
+            {
+                lista.Add(string.Join(" ", rijeci));
+                return lista;
+            }
+
+            string cijeli = string.Join(" ", rijeci);
+
+            // Heuristika za naziv firme
+            if (rijeci.Length > 4 ||
+                Regex.IsMatch(cijeli,
+                    @"\b(d\.o\.o\.|doo|d\.d\.|dd|a\.d\.|ad|ltd|gmbh|inc|zajednica|dioničar|diničar|registar|komisija|općina|kanton|vlada|fond)\b",
+                    RegexOptions.IgnoreCase))
+            {
+                lista.Add(cijeli);
+                return lista;
+            }
+
+            // Svake 2 = 1 osoba
+            for (int i = 0; i + 1 < rijeci.Length; i += 2)
+                lista.Add(rijeci[i] + " " + rijeci[i + 1]);
+
+            // Neparni ostatak
+            if (rijeci.Length % 2 != 0)
+                lista.Add(rijeci[rijeci.Length - 1]);
+
+            return lista;
+        }
+
+        
+        private List<string> ParseTokenLista(string raw, bool jeDatum)
+        {
+            var lista = new List<string>();
+            if (string.IsNullOrWhiteSpace(raw)) return lista;
+
+            raw = NormalizeWhitespace(raw);
+
+            if (jeDatum)
+            {
+                var matches = Regex.Matches(raw, @"\d{1,2}\.\d{1,2}\.\d{4}\.?");
+                if (matches.Count > 0)
+                {
+                    foreach (Match m in matches)
+                        lista.Add(m.Value.Trim());
+                    return lista;
+                }
+            }
+
+            lista.AddRange(Regex.Split(raw, @"\s+").Where(s => !string.IsNullOrWhiteSpace(s)));
+            return lista;
+        }
+
+       
+        private List<Direktor> ParseDirektori(string direktorRaw, string datVazRaw)
+        {
+            var result = new List<Direktor>();
+            if (string.IsNullOrWhiteSpace(direktorRaw))
+                return result;
+
+            direktorRaw = NormalizeWhitespace(direktorRaw);
+
+            List<string> imenaLista;
+            if (direktorRaw.Contains(","))
+            {
+                imenaLista = direktorRaw
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+            }
+            else
+            {
+                imenaLista = new List<string> { direktorRaw };
+            }
+
+            bool jeTrajno = !string.IsNullOrWhiteSpace(datVazRaw)
+                            && datVazRaw.Trim().ToUpper() == "TRAJNO";
+
+            string tipValjanosti = jeTrajno
+                ? TipValjanosti.TRAJNO.ToString()
+                : TipValjanosti.VREMENSKI.ToString();
+
+            DateTime? datVaz = jeTrajno ? (DateTime?)null : ParseDate(datVazRaw);
+
+            foreach (var ime in imenaLista)
+            {
+                if (string.IsNullOrWhiteSpace(ime)) continue;
+                result.Add(new Direktor
+                {
+                    ImePrezime = ime,
+                    DatumValjanosti = datVaz,
+                    TipValjanosti = tipValjanosti,
+                    Status = StatusEntiteta.AKTIVAN.ToString()
+                });
+            }
+
+            return result;
+        }
+
+        
+
+        private string NormalizeWhitespace(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "";
+            return Regex.Replace(s.Replace("\u00a0", " "), @" {2,}", " ").Trim();
+        }
+
         private void SaveChangesWithRetry()
         {
             int attempts = 0;
             while (attempts < 5)
             {
-                try
+                try { _db.SaveChanges(); return; }
+                catch (DbUpdateException ex) when (ex.InnerException is SqliteException { SqliteErrorCode: 5 })
                 {
-                    _db.SaveChanges();
-                    return;
+                    attempts++;
+                    Thread.Sleep(150 * attempts);
                 }
-                catch (DbUpdateException ex)
+                catch (SqliteException ex) when (ex.SqliteErrorCode == 5)
                 {
-                    SqliteException sqliteEx = null;
-                    if (ex.InnerException is SqliteException ise)
-                        sqliteEx = ise;
-
-                    if (sqliteEx != null && sqliteEx.SqliteErrorCode == 5) // SQLITE_BUSY / locked
-                    {
-                        attempts++;
-                        Thread.Sleep(150 * attempts);
-                        continue;
-                    }
-
-                    throw;
-                }
-                catch (SqliteException ex)
-                {
-                    if (ex.SqliteErrorCode == 5)
-                    {
-                        attempts++;
-                        Thread.Sleep(150 * attempts);
-                        continue;
-                    }
-
-                    throw;
+                    attempts++;
+                    Thread.Sleep(150 * attempts);
                 }
             }
-
-            // ako je i dalje zaključano nakon retry-a, pusti izuzetak da ga gore uhvati i loguje
             _db.SaveChanges();
+        }
+
+        private string ExtractSqliteInfo(Exception ex)
+        {
+            var sqliteEx = ex as SqliteException ?? ex.InnerException as SqliteException;
+            return sqliteEx == null
+                ? ""
+                : $" | SQLiteCode={sqliteEx.SqliteErrorCode} Ext={sqliteEx.SqliteExtendedErrorCode}";
         }
 
         private string GetCellValue(WorkbookPart workbookPart, Row row, int columnIndex)
@@ -303,138 +445,72 @@ namespace OwnerTrack.App
                 Cell cell = row.Elements<Cell>()
                     .FirstOrDefault(c => GetColumnIndex(c.CellReference?.Value) == columnIndex);
 
-                if (cell == null)
-                    return "";
+                if (cell == null) return "";
 
+                // Numerička vrijednost (DataType == null)
                 if (cell.DataType == null)
                     return cell.CellValue?.Text ?? "";
 
+                // SharedString
                 if (cell.DataType.Value == CellValues.SharedString)
                 {
-                    if (cell.CellValue == null)
-                        return "";
-
-                    int stringId;
-                    if (!int.TryParse(cell.CellValue.Text, out stringId))
-                        return "";
-
-                    SharedStringTablePart stringTablePart = workbookPart.SharedStringTablePart;
-                    if (stringTablePart == null)
-                        return "";
-
-                    return stringTablePart.SharedStringTable
-                        .Elements<SharedStringItem>()
-                        .ElementAt(stringId)
-                        .InnerText;
+                    if (cell.CellValue == null) return "";
+                    if (!int.TryParse(cell.CellValue.Text, out int id)) return "";
+                    return workbookPart.SharedStringTablePart?.SharedStringTable
+                               .Elements<SharedStringItem>()
+                               .ElementAt(id)
+                               .InnerText ?? "";
                 }
+
+                // Inline string (t="str") - Excel formula rezultat
+                if (cell.DataType.Value == CellValues.String)
+                    return cell.CellValue?.Text ?? "";
 
                 return cell.CellValue?.Text ?? "";
             }
-            catch
-            {
-                return "";
-            }
+            catch { return ""; }
         }
 
         private int GetColumnIndex(string cellReference)
         {
-            if (string.IsNullOrWhiteSpace(cellReference))
-                return 0;
-
-            string columnPart = System.Text.RegularExpressions.Regex.Replace(cellReference, @"\d", "");
-            int column = 0;
-            foreach (char c in columnPart)
-            {
-                column = column * 26 + (c - 'A' + 1);
-            }
-            return column;
-        }
-
-        private List<Vlasnik> ParseVlasnici(string vlasnicString, string procenatString)
-        {
-            var result = new List<Vlasnik>();
-
-            if (string.IsNullOrWhiteSpace(vlasnicString))
-                return result;
-
-            // procenti su često jedan ili više; probaj razdvojiti
-            var procentiLista = procenatString?.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
-
-            if (!vlasnicString.Contains("  ") && vlasnicString.Split(' ').Length <= 2)
-            {
-                result.Add(new Vlasnik
-                {
-                    ImePrezime = vlasnicString.Trim(),
-                    ProcetatVlasnistva = ParseDecimal(procenatString),
-                    Status = "AKTIVAN"
-                });
-            }
-            else
-            {
-                var imena = vlasnicString.Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (imena.Length == 1)
-                    imena = vlasnicString.Split(new[] { "   " }, StringSplitOptions.RemoveEmptyEntries);
-
-                for (int i = 0; i < imena.Length; i++)
-                {
-                    string proc = i < procentiLista.Length ? procentiLista[i] : "";
-                    result.Add(new Vlasnik
-                    {
-                        ImePrezime = imena[i].Trim(),
-                        ProcetatVlasnistva = ParseDecimal(proc),
-                        Status = "AKTIVAN"
-                    });
-                }
-            }
-
-            return result;
-        }
-
-        private List<Direktor> ParseDirektori(string direktorString, string datumString)
-        {
-            var result = new List<Direktor>();
-
-            if (string.IsNullOrWhiteSpace(direktorString))
-                return result;
-
-            var imena = direktorString.Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (imena.Length == 0)
-                imena = new[] { direktorString };
-
-            foreach (var ime in imena)
-            {
-                string tipValjanosti = "VREMENSKI";
-                if (!string.IsNullOrEmpty(datumString) && datumString.ToUpper().IndexOf("TRAJNO") >= 0)
-                {
-                    tipValjanosti = "TRAJNO";
-                }
-
-                result.Add(new Direktor
-                {
-                    ImePrezime = ime.Trim(),
-                    DatumValjanosti = ParseDate(datumString),
-                    TipValjanosti = tipValjanosti,
-                    Status = "AKTIVAN"
-                });
-            }
-
-            return result;
+            if (string.IsNullOrWhiteSpace(cellReference)) return 0;
+            string col = Regex.Replace(cellReference, @"\d", "");
+            int index = 0;
+            foreach (char c in col)
+                index = index * 26 + (c - 'A' + 1);
+            return index;
         }
 
         private DateTime? ParseDate(string dateString)
         {
-            if (string.IsNullOrWhiteSpace(dateString) || dateString.ToUpper() == "TRAJNO")
+            if (string.IsNullOrWhiteSpace(dateString)) return null;
+            dateString = dateString.Trim();
+
+            // Excel OA datum (numerički string, npr. "49414")
+            if (double.TryParse(dateString, NumberStyles.Number, CultureInfo.InvariantCulture, out double oaDate)
+                && oaDate > 10000 && oaDate < 100000)
+            {
+                try { return DateTime.FromOADate(oaDate); }
+                catch { }
+            }
+
+            string upper = dateString.ToUpper();
+            if (upper == "TRAJNO" || upper == "STEČAJ" || upper == "STECAJ")
                 return null;
 
-            string[] formats = { "dd.MM.yyyy.", "dd.MM.yyyy", "d.M.yyyy.", "d.M.yyyy", "yyyy-MM-dd" };
-
-            foreach (var format in formats)
+            string[] formats =
             {
-                DateTime date;
-                if (DateTime.TryParseExact(dateString, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-                    return date;
+                "dd.MM.yyyy.", "dd.MM.yyyy",
+                "d.M.yyyy.",  "d.M.yyyy",
+                "d.MM.yyyy.", "d.MM.yyyy",
+                "yyyy-MM-dd"
+            };
+
+            foreach (var fmt in formats)
+            {
+                if (DateTime.TryParseExact(dateString, fmt,
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
+                    return dt;
             }
 
             return null;
@@ -442,28 +518,38 @@ namespace OwnerTrack.App
 
         private decimal ParseDecimal(string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                return 0;
-
-            decimal result;
-            if (decimal.TryParse(value.Replace(",", "."), CultureInfo.InvariantCulture, out result))
-                return result;
-
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+            value = value.Replace(",", ".").Trim();
+            if (value == "-") return 0;
+            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal d))
+                return d;
             return 0;
         }
 
         private string NormalizeDaNe(string value)
         {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            string upper = value.ToUpper().Trim();
+            if (upper.StartsWith("D")) return DaNe.DA.ToString();
+            if (upper.StartsWith("N")) return DaNe.NE.ToString();
+            return null;
+        }
+
+        private string NormalizeVrstaKlijenta(string value)
+        {
             if (string.IsNullOrWhiteSpace(value))
-                return null;
+                return "PRAVNO LICE";
 
             string upper = value.ToUpper().Trim();
-            if (upper.StartsWith("D"))
-                return "DA";
-            if (upper.StartsWith("N"))
-                return "NE";
 
-            return null;
+            if (upper.Contains("FIZIČKO") || upper.Contains("FIZICKO"))
+                return "FIZIČKO LICE";
+            if (upper.Contains("UDRUŽ") || upper.Contains("UDRUZ"))
+                return "UDRUŽENJE";
+            if (upper.Contains("JAVNA") || upper.Contains("USTANOVA"))
+                return "JAVNA USTANOVA";
+
+            return value.Trim();
         }
     }
 }
