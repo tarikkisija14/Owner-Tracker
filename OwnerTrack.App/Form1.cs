@@ -11,7 +11,7 @@ namespace OwnerTrack.App
     public partial class Form1 : Form
     {
         private OwnerTrackDbContext _db;
-        private string _dbPath;      
+        private string _dbPath;     
         private string _connString;  
 
         
@@ -24,17 +24,17 @@ namespace OwnerTrack.App
         {
             InitializeComponent();
 
-           
+            
             _dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Firme.db");
             _connString = $"Data Source={_dbPath}";
 
-            
+           
             var schema = new OwnerTrack.Infrastructure.SchemaManager(_connString);
             schema.ApplyMigrations();
 
             _db = KreirajDbContext();
 
-            
+           
             _db.Database.EnsureCreated();
 
             
@@ -47,6 +47,7 @@ namespace OwnerTrack.App
 
             LoadDjelatnostiFilter();
             LoadKlijenti();
+            OsvjeziUpozerenjaBadge();
         }
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
@@ -135,7 +136,11 @@ namespace OwnerTrack.App
                     })
                     .ToList();
 
+                
+                dataGridKlijenti.SelectionChanged -= dataGridKlijenti_SelectionChanged;
                 dataGridKlijenti.DataSource = klijenti;
+                dataGridKlijenti.ClearSelection();
+                dataGridKlijenti.SelectionChanged += dataGridKlijenti_SelectionChanged;
 
                 if (dataGridKlijenti.Columns.Count > 0)
                 {
@@ -277,7 +282,7 @@ namespace OwnerTrack.App
 
         private void LoadDirektori(int klijentId)
         {
-            
+           
             var direktori = _db.Direktori
                 .Where(d => d.KlijentId == klijentId)
                 .AsNoTracking()
@@ -344,6 +349,7 @@ namespace OwnerTrack.App
             {
                 LoadDjelatnostiFilter();
                 ApplyCurrentFilters();
+                OsvjeziUpozerenjaBadge();
             }
         }
 
@@ -361,6 +367,7 @@ namespace OwnerTrack.App
             {
                 LoadDjelatnostiFilter();
                 ApplyCurrentFilters();
+                OsvjeziUpozerenjaBadge();
             }
         }
 
@@ -387,6 +394,7 @@ namespace OwnerTrack.App
                     
                     LoadDjelatnostiFilter();
                     ApplyCurrentFilters();
+                    OsvjeziUpozerenjaBadge();
                 }
             }
             catch (Exception ex)
@@ -494,7 +502,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-           
+            
             if (dataGridKlijenti.SelectedRows.Count == 0)
             {
                 MessageBox.Show("Odaberi firmu!");
@@ -637,7 +645,7 @@ namespace OwnerTrack.App
                     {
                         try
                         {
-                           
+                            
                             var result = await System.Threading.Tasks.Task.Run(() =>
                             {
                                 var bgOptions = new DbContextOptionsBuilder<OwnerTrackDbContext>()
@@ -663,6 +671,7 @@ namespace OwnerTrack.App
 
                             LoadDjelatnostiFilter();
                             LoadKlijenti();
+                            OsvjeziUpozerenjaBadge();
                         }
                         catch (Exception ex)
                         {
@@ -708,7 +717,7 @@ namespace OwnerTrack.App
         }
         private void ResetujBazu()
         {
-           
+            
             try
             {
                 string backupPath = _dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
@@ -739,7 +748,7 @@ namespace OwnerTrack.App
                 throw;
             }
 
-            
+           
             _db.Dispose();
             _db = KreirajDbContext();
         }
@@ -801,7 +810,7 @@ namespace OwnerTrack.App
                 {
                     try
                     {
-                       
+                        
                         var result = await System.Threading.Tasks.Task.Run(() =>
                         {
                             var bgOptions = new DbContextOptionsBuilder<OwnerTrackDbContext>()
@@ -838,6 +847,65 @@ namespace OwnerTrack.App
 
                 progressForm.ShowDialog(this);
             }
+        }
+        
+        private void OsvjeziUpozerenjaBadge()
+        {
+            try
+            {
+                var danas = DateTime.Today;
+                var granica = danas.AddDays(60);
+
+                int count = _db.Vlasnici
+                    .AsNoTracking()
+                    .Count(v => v.DatumValjanostiDokumenta != null
+                             && v.DatumValjanostiDokumenta <= granica
+                             && v.Status == "AKTIVAN")
+                    +
+                    _db.Direktori
+                    .AsNoTracking()
+                    .Count(d => d.DatumValjanosti != null
+                             && d.DatumValjanosti <= granica
+                             && d.TipValjanosti == "VREMENSKI"
+                             && d.Status == "AKTIVAN");
+
+                if (count > 0)
+                {
+                    btnUpozorenja.Text = $"🔔 Upozorenja ({count})";
+                    btnUpozorenja.BackColor = count > 0
+                        ? (_db.Vlasnici.AsNoTracking()
+                               .Any(v => v.DatumValjanostiDokumenta != null
+                                      && v.DatumValjanostiDokumenta < danas
+                                      && v.Status == "AKTIVAN")
+                           || _db.Direktori.AsNoTracking()
+                               .Any(d => d.DatumValjanosti != null
+                                      && d.DatumValjanosti < danas
+                                      && d.TipValjanosti == "VREMENSKI"
+                                      && d.Status == "AKTIVAN")
+                            ? Color.Firebrick          
+                            : Color.FromArgb(220, 120, 20))  
+                        : SystemColors.Control;
+                    btnUpozorenja.ForeColor = Color.White;
+                    btnUpozorenja.Font = new System.Drawing.Font(btnUpozorenja.Font, System.Drawing.FontStyle.Bold);
+                }
+                else
+                {
+                    btnUpozorenja.Text = "🔔 Upozorenja";
+                    btnUpozorenja.BackColor = SystemColors.Control;
+                    btnUpozorenja.ForeColor = SystemColors.ControlText;
+                    btnUpozorenja.Font = new System.Drawing.Font(btnUpozorenja.Font, System.Drawing.FontStyle.Regular);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BADGE] Greška: {ex.Message}");
+            }
+        }
+
+        private void btnUpozorenja_Click(object sender, EventArgs e)
+        {
+            var frm = new FrmUpozorenja(_db);
+            frm.ShowDialog(this);
         }
     }
 }

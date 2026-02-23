@@ -43,6 +43,7 @@
             panelVlasniciBtns = new Panel();
             panelDirektori = new Panel();
             panelDirektoriBtns = new Panel();
+            btnUpozorenja = new Button();
             panelToolbar.SuspendLayout();
             panelSearch.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridKlijenti).BeginInit();
@@ -70,6 +71,7 @@
             panelToolbar.Controls.Add(btnIzmijeniKlijent);
             panelToolbar.Controls.Add(btnObrisiKlijent);
             panelToolbar.Controls.Add(btnImportExcel);
+            panelToolbar.Controls.Add(btnUpozorenja);
             panelToolbar.Dock = DockStyle.Top;
             panelToolbar.Location = new Point(0, 0);
             panelToolbar.Name = "panelToolbar";
@@ -165,7 +167,7 @@
             lblFilterDjelatnost.AutoSize = true;
             lblFilterDjelatnost.Location = new Point(490, 11);
             lblFilterDjelatnost.Name = "lblFilterDjelatnost";
-            lblFilterDjelatnost.Size = new Size(120, 15);
+            lblFilterDjelatnost.Size = new Size(106, 15);
             lblFilterDjelatnost.TabIndex = 2;
             lblFilterDjelatnost.Text = "🏭 Filter djelatnost:";
             // 
@@ -290,6 +292,19 @@
             btnObrisiDirektora.Text = "❌ Obriši";
             btnObrisiDirektora.UseVisualStyleBackColor = true;
             btnObrisiDirektora.Click += btnObrisiDirektora_Click;
+
+
+            // btnUpozorenja
+            btnUpozorenja.BackColor = Color.Gold;
+            btnUpozorenja.Location = new Point(640, 9);
+            btnUpozorenja.Name = "btnUpozorenja";
+            btnUpozorenja.Size = new Size(140, 28);
+            btnUpozorenja.TabIndex = 5;
+            btnUpozorenja.Text = "⚠ Upozorenja (0)";
+            btnUpozorenja.UseVisualStyleBackColor = false;
+            btnUpozorenja.Click += btnUpozorenja_Click;
+
+
             // 
             // splitMain
             // 
@@ -425,6 +440,7 @@
         public System.Windows.Forms.Button btnIzmijeniDirektora;
         public System.Windows.Forms.Button btnObrisiDirektora;
         private Button btnResetImport;
+        private Button btnUpozorenja;
         private SplitContainer splitBottom;
         private Panel panelVlasnici;
         private Panel panelVlasniciBtns;

@@ -131,7 +131,7 @@ namespace OwnerTrack.Infrastructure
             _db.Klijenti.AddRange(klijent1, klijent2, klijent3, klijent4, klijent5);
             _db.SaveChanges();
 
-            // Dodaj vlasnike
+            
             _db.Vlasnici.AddRange(
                 new Vlasnik
                 {
@@ -208,7 +208,7 @@ namespace OwnerTrack.Infrastructure
             );
             _db.SaveChanges();
 
-            // Dodaj direktore
+            
             _db.Direktori.AddRange(
                 new Direktor
                 {
@@ -253,7 +253,7 @@ namespace OwnerTrack.Infrastructure
             );
             _db.SaveChanges();
 
-            // Dodaj ugovore
+            
             _db.Ugovori.AddRange(
                 new Ugovor
                 {

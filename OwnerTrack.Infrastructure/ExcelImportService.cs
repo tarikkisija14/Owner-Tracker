@@ -471,11 +471,11 @@ namespace OwnerTrack.App
 
                 if (cell == null) return "";
 
-                // Numerička vrijednost (DataType == null)
+                
                 if (cell.DataType == null)
                     return cell.CellValue?.Text ?? "";
 
-                // SharedString
+                
                 if (cell.DataType.Value == CellValues.SharedString)
                 {
                     if (cell.CellValue == null) return "";
@@ -571,7 +571,7 @@ namespace OwnerTrack.App
         private string NormalizeDaNe(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;
-            // Uzmemo samo prvu "riječ" - rješava slučaj "DA             DA"
+            
             string first = value.Trim().Split(new[] { ' ', '	' }, StringSplitOptions.RemoveEmptyEntries)[0].ToUpper();
             if (first == "DA") return DaNe.DA.ToString();
             if (first == "NE") return DaNe.NE.ToString();

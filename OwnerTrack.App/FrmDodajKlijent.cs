@@ -241,7 +241,7 @@ namespace OwnerTrack.App
 
                         _db.SaveChanges();
 
-                        // Ugovor
+                        
                         var ugovor = _db.Ugovori.FirstOrDefault(u => u.KlijentId == klijent.Id);
                         if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
                         {
