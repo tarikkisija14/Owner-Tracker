@@ -34,10 +34,12 @@ namespace OwnerTrack.App
 
         private void LoadComboValues()
         {
-            
-            cbVrstaKlijenta.Items.Clear();
-            cbVrstaKlijenta.Items.AddRange(new[] { "PRAVNO LICE", "FIZIČKA OSOBA" });
 
+           
+            cbVrstaKlijenta.Items.Clear();
+            cbVrstaKlijenta.Items.AddRange(new[] { "PRAVNO LICE", "FIZIČKO LICE", "UDRUŽENJE", "OBRTNIK" });
+
+           
             cbVelicina.Items.Clear();
             cbVelicina.Items.AddRange(new[] { "MIKRO", "MALO", "SREDNJE", "VELIKA" });
 
@@ -53,13 +55,14 @@ namespace OwnerTrack.App
             cbGeografskiRizik.Items.Clear();
             cbGeografskiRizik.Items.AddRange(new[] { "", "DA", "NE" });
 
+            
             cbStatusUgovora.Items.Clear();
-            cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "NEPOTPISAN", "ANEKS" });
+            cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "ANEKS", "OTKAZAN", "NEMA UGOVOR", "NEAKTIVAN" });
 
             cbStatus.Items.Clear();
             cbStatus.Items.AddRange(new[] { "AKTIVAN", "NEAKTIVAN", "ARHIVIRAN" });
 
-            
+
             if (!_klijentId.HasValue)
             {
                 cbVrstaKlijenta.SelectedIndex = 0;
@@ -99,7 +102,7 @@ namespace OwnerTrack.App
                 txtIdBroj.Text = klijent.IdBroj ?? "";
                 txtAdresa.Text = klijent.Adresa ?? "";
 
-                
+
                 if (!string.IsNullOrEmpty(klijent.SifraDjelatnosti))
                 {
                     cbSifra.SelectedValue = klijent.SifraDjelatnosti;
@@ -107,7 +110,7 @@ namespace OwnerTrack.App
 
                 dtDatumUspostave.Value = klijent.DatumUspostave ?? DateTime.Now;
 
-               
+
                 if (!string.IsNullOrEmpty(klijent.VrstaKlijenta))
                 {
                     int index = cbVrstaKlijenta.FindStringExact(klijent.VrstaKlijenta);
@@ -116,14 +119,14 @@ namespace OwnerTrack.App
 
                 dtDatumOsnivanja.Value = klijent.DatumOsnivanja ?? DateTime.Now;
 
-                
+
                 if (!string.IsNullOrEmpty(klijent.Velicina))
                 {
                     int index = cbVelicina.FindStringExact(klijent.Velicina);
                     if (index >= 0) cbVelicina.SelectedIndex = index;
                 }
 
-                
+
                 SetComboValue(cbPepRizik, klijent.PepRizik);
                 SetComboValue(cbUboRizik, klijent.UboRizik);
                 SetComboValue(cbGotovinaRizik, klijent.GotovinaRizik);
@@ -133,7 +136,7 @@ namespace OwnerTrack.App
                 dtDatumProcjene.Value = klijent.DatumProcjene ?? DateTime.Now;
                 txtOvjeraCr.Text = klijent.OvjeraCr ?? "";
 
-                
+
                 if (!string.IsNullOrEmpty(klijent.Status))
                 {
                     int index = cbStatus.FindStringExact(klijent.Status);
@@ -144,7 +147,7 @@ namespace OwnerTrack.App
                     cbStatus.SelectedIndex = 0;
                 }
 
-                
+
                 txtNapomena.Text = klijent.Napomena ?? "";
 
                 if (klijent.Ugovor != null)
@@ -160,7 +163,7 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrEmpty(value))
             {
-                combo.SelectedIndex = 0; 
+                combo.SelectedIndex = 0;
             }
             else
             {
@@ -177,6 +180,36 @@ namespace OwnerTrack.App
             if (string.IsNullOrWhiteSpace(txtNaziv.Text) || string.IsNullOrWhiteSpace(txtIdBroj.Text))
             {
                 MessageBox.Show("Popuni obavezna polja: Naziv i ID Broj!");
+                return;
+            }
+
+           
+            string idBrojTrim = txtIdBroj.Text.Trim();
+            bool idBrojValidan = idBrojTrim.Length == 13 && idBrojTrim.All(char.IsDigit);
+            if (!idBrojValidan)
+            {
+                MessageBox.Show("ID broj mora sadržavati tačno 13 cifara!", "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtIdBroj.Focus();
+                return;
+            }
+
+          
+            int trenutniId = _klijentId ?? 0;
+            bool idBrojPostoji = _db.Klijenti.Any(k => k.IdBroj == idBrojTrim && k.Id != trenutniId);
+            if (idBrojPostoji)
+            {
+                MessageBox.Show($"Klijent s ID brojem '{idBrojTrim}' već postoji u bazi!", "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtIdBroj.Focus();
+                return;
+            }
+
+           
+            string nazivTrim = txtNaziv.Text.Trim();
+            bool nazivPostoji = _db.Klijenti.Any(k => k.Naziv == nazivTrim && k.Id != trenutniId);
+            if (nazivPostoji)
+            {
+                MessageBox.Show($"Klijent s nazivom '{nazivTrim}' već postoji u bazi!", "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtNaziv.Focus();
                 return;
             }
 

@@ -11,17 +11,57 @@ namespace OwnerTrack.App
     public partial class Form1 : Form
     {
         private OwnerTrackDbContext _db;
+        private string _dbPath;      
+        private string _connString;  
+
+        
+        private System.Windows.Forms.Timer _searchTimer;
+
+
+
 
         public Form1()
         {
             InitializeComponent();
-            var options = new DbContextOptionsBuilder<OwnerTrackDbContext>()
-              .UseSqlite(@"Data Source=C:\Users\tarik\Desktop\Job\Firme.db")
-               .Options;
 
-            _db = new OwnerTrackDbContext(options);
+           
+            _dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Firme.db");
+            _connString = $"Data Source={_dbPath}";
+
+            
+            var schema = new OwnerTrack.Infrastructure.SchemaManager(_connString);
+            schema.ApplyMigrations();
+
+            _db = KreirajDbContext();
+
+            
+            _db.Database.EnsureCreated();
+
+            
+            _searchTimer = new System.Windows.Forms.Timer { Interval = 300 };
+            _searchTimer.Tick += (s, e) =>
+            {
+                _searchTimer.Stop();
+                LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra());
+            };
+
             LoadDjelatnostiFilter();
             LoadKlijenti();
+        }
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _db?.Dispose();
+            _searchTimer?.Dispose();
+            base.OnFormClosed(e);
+        }
+
+        
+        private OwnerTrackDbContext KreirajDbContext()
+        {
+            var options = new DbContextOptionsBuilder<OwnerTrackDbContext>()
+                .UseSqlite(_connString)
+                .Options;
+            return new OwnerTrackDbContext(options);
         }
 
         // ========== UČITAVANJE PODATAKA ==========
@@ -56,54 +96,46 @@ namespace OwnerTrack.App
         {
             try
             {
-                var query = _db.Klijenti
-                    .Include(k => k.Djelatnost)
-                    .Include(k => k.Vlasnici)
-                    .Include(k => k.Direktori)
-                    .Include(k => k.Ugovor)
-                    .AsQueryable();
+                
+                var klijenti = _db.Klijenti
+                    .AsNoTracking()
+                    .Where(k =>
+                        (string.IsNullOrWhiteSpace(filter) ||
+                         k.Naziv.ToLower().Contains(filter.ToLower()) ||
+                         k.IdBroj.ToLower().Contains(filter.ToLower()))
+                        &&
+                        (string.IsNullOrWhiteSpace(sifraDjelatnosti) ||
+                         k.SifraDjelatnosti == sifraDjelatnosti)
+                    )
+                    .Select(k => new
+                    {
+                        k.Id,
+                        k.Naziv,
+                        k.IdBroj,
+                        k.Adresa,
+                        SifraDjelatnosti = k.SifraDjelatnosti,
+                        Djelatnost = k.Djelatnost != null ? k.Djelatnost.Naziv : "",
+                        DatumUspostaveOdnosa = k.DatumUspostave,
+                        k.VrstaKlijenta,
+                        DatumOsnivanjaFirme = k.DatumOsnivanja,
+                        k.Velicina,
+                        k.PepRizik,
+                        k.UboRizik,
+                        k.GotovinaRizik,
+                        k.GeografskiRizik,
+                        k.UkupnaProcjena,
+                        DatumProcjeneRizika = k.DatumProcjene,
+                        k.OvjeraCr,
+                        StatusUgovora = k.Ugovor != null ? k.Ugovor.StatusUgovora : "",
+                        DatumPotpisaUgovora = k.Ugovor != null ? k.Ugovor.DatumUgovora : (DateTime?)null,
+                        BrojVlasnika = k.Vlasnici.Count(),
+                        BrojDirektora = k.Direktori.Count(),
+                        StatusKlijenta = k.Status,
+                        k.Napomena
+                    })
+                    .ToList();
 
-                if (!string.IsNullOrWhiteSpace(filter))
-                {
-                    string lowerFilter = filter.ToLower();
-                    query = query.Where(k =>
-                        k.Naziv.ToLower().Contains(lowerFilter) ||
-                        k.IdBroj.ToLower().Contains(lowerFilter));
-                }
-
-                if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                {
-                    query = query.Where(k => k.SifraDjelatnosti == sifraDjelatnosti);
-                }
-
-                var klijenti = query.ToList();
-
-                dataGridKlijenti.DataSource = klijenti.Select(k => new
-                {
-                    k.Id,
-                    k.Naziv,
-                    k.IdBroj,
-                    k.Adresa,
-                    SifraDjelatnosti = k.SifraDjelatnosti,
-                    Djelatnost = k.Djelatnost?.Naziv ?? "",
-                    DatumUspostaveOdnosa = k.DatumUspostave,
-                    k.VrstaKlijenta,
-                    DatumOsnivanjaFirme = k.DatumOsnivanja,
-                    k.Velicina,
-                    k.PepRizik,
-                    k.UboRizik,
-                    k.GotovinaRizik,
-                    k.GeografskiRizik,
-                    k.UkupnaProcjena,
-                    DatumProcjeneRizika = k.DatumProcjene,
-                    k.OvjeraCr,
-                    StatusUgovora = k.Ugovor?.StatusUgovora ?? "",
-                    DatumPotpisaUgovora = k.Ugovor?.DatumUgovora,
-                    BrojVlasnika = k.Vlasnici.Count,
-                    BrojDirektora = k.Direktori.Count,
-                    StatusKlijenta = k.Status,
-                    k.Napomena
-                }).ToList();
+                dataGridKlijenti.DataSource = klijenti;
 
                 if (dataGridKlijenti.Columns.Count > 0)
                 {
@@ -192,8 +224,10 @@ namespace OwnerTrack.App
 
         private void LoadVlasnici(int klijentId)
         {
+           
             var vlasnici = _db.Vlasnici
                 .Where(v => v.KlijentId == klijentId)
+                .AsNoTracking()
                 .ToList();
 
             dataGridVlasnici.DataSource = vlasnici.Select(v => new
@@ -243,8 +277,10 @@ namespace OwnerTrack.App
 
         private void LoadDirektori(int klijentId)
         {
+            
             var direktori = _db.Direktori
                 .Where(d => d.KlijentId == klijentId)
+                .AsNoTracking()
                 .ToList();
 
             dataGridDirektori.DataSource = direktori.Select(d => new
@@ -348,6 +384,8 @@ namespace OwnerTrack.App
                     _db.Klijenti.Remove(klijent);
                     _db.SaveChanges();
                     MessageBox.Show("Obrisano!");
+                    
+                    LoadDjelatnostiFilter();
                     ApplyCurrentFilters();
                 }
             }
@@ -380,6 +418,13 @@ namespace OwnerTrack.App
             if (dataGridVlasnici.SelectedRows.Count == 0)
             {
                 MessageBox.Show("Odaberi vlasnika!");
+                return;
+            }
+
+            
+            if (dataGridKlijenti.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Odaberi firmu!");
                 return;
             }
 
@@ -449,6 +494,13 @@ namespace OwnerTrack.App
                 return;
             }
 
+           
+            if (dataGridKlijenti.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Odaberi firmu!");
+                return;
+            }
+
             int direktorId = (int)dataGridDirektori.SelectedRows[0].Cells["Id"].Value;
             int klijentId = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
 
@@ -500,7 +552,9 @@ namespace OwnerTrack.App
 
         private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
         {
-            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra());
+           
+            _searchTimer.Stop();
+            _searchTimer.Start();
         }
 
         private void cmbFilterDjelatnost_SelectedIndexChanged(object sender, EventArgs e)
@@ -564,14 +618,18 @@ namespace OwnerTrack.App
                     progressForm.Controls.Add(btnCancel);
 
 
+                   
                     var progress = new Progress<ImportProgress>(p =>
                     {
-                        progressBar.Maximum = p.TotalRows;
-                        progressBar.Value = p.ProcessedRows;
-                        lblStatus.Text = $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
-                                        $"Dodato: {p.SuccessCount} | Greške: {p.ErrorCount}\n" +
-                                        $"{p.CurrentRow}";
-                        progressForm.Refresh();
+                        if (progressForm.IsHandleCreated)
+                            progressForm.Invoke((Action)(() => {
+                                progressBar.Maximum = p.TotalRows;
+                                progressBar.Value = p.ProcessedRows;
+                                lblStatus.Text = $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
+                                                $"Dodato: {p.SuccessCount} | Greške: {p.ErrorCount}\n" +
+                                                $"{p.CurrentRow}";
+                                progressForm.Refresh();
+                            }));
                     });
 
 
@@ -579,9 +637,16 @@ namespace OwnerTrack.App
                     {
                         try
                         {
-                            var importService = new ExcelImportService(_db);
+                           
                             var result = await System.Threading.Tasks.Task.Run(() =>
-                                importService.ImportFromExcel(dialog.FileName, progress));
+                            {
+                                var bgOptions = new DbContextOptionsBuilder<OwnerTrackDbContext>()
+                                    .UseSqlite(_connString)
+                                    .Options;
+                                using var bgDb = new OwnerTrackDbContext(bgOptions);
+                                var importService = new ExcelImportService(bgDb);
+                                return importService.ImportFromExcel(dialog.FileName, progress);
+                            });
 
                             btnCancel.Enabled = true;
                             lblStatus.Text = $"Import završen!\n" +
@@ -643,18 +708,40 @@ namespace OwnerTrack.App
         }
         private void ResetujBazu()
         {
+           
+            try
+            {
+                string backupPath = _dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
+                System.IO.File.Copy(_dbPath, backupPath, overwrite: true);
+                System.Diagnostics.Debug.WriteLine($"[BACKUP] Kreiran backup: {backupPath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BACKUP] Backup nije uspio: {ex.Message}");
+                
+            }
 
-            _db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
-            _db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
-            _db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
-            _db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
-            _db.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
+            using var transaction = _db.Database.BeginTransaction();
+            try
+            {
+                _db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
+                _db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
+                _db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
+                _db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
+                _db.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
+                _db.Database.ExecuteSqlRaw("DELETE FROM sqlite_sequence WHERE name IN ('Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
 
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
 
-            _db.Database.ExecuteSqlRaw("DELETE FROM sqlite_sequence WHERE name IN ('Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
-
-
-            _db.ChangeTracker.Clear();
+            
+            _db.Dispose();
+            _db = KreirajDbContext();
         }
         private void PokreniImport(string filePath)
         {
@@ -696,23 +783,34 @@ namespace OwnerTrack.App
                 progressForm.Controls.Add(lblStatus);
                 progressForm.Controls.Add(btnCancel);
 
+                
                 var progress = new Progress<ImportProgress>(p =>
                 {
-                    progressBar.Maximum = p.TotalRows;
-                    progressBar.Value = p.ProcessedRows;
-                    lblStatus.Text = $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
-                                     $"Dodato: {p.SuccessCount} | Greške: {p.ErrorCount}\n" +
-                                     $"{p.CurrentRow}";
-                    progressForm.Refresh();
+                    if (progressForm.IsHandleCreated)
+                        progressForm.Invoke((Action)(() => {
+                            progressBar.Maximum = p.TotalRows;
+                            progressBar.Value = p.ProcessedRows;
+                            lblStatus.Text = $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
+                                             $"Dodato: {p.SuccessCount} | Greške: {p.ErrorCount}\n" +
+                                             $"{p.CurrentRow}";
+                            progressForm.Refresh();
+                        }));
                 });
 
                 progressForm.Shown += async (s, args) =>
                 {
                     try
                     {
-                        var importService = new ExcelImportService(_db);
+                       
                         var result = await System.Threading.Tasks.Task.Run(() =>
-                            importService.ImportFromExcel(filePath, progress));
+                        {
+                            var bgOptions = new DbContextOptionsBuilder<OwnerTrackDbContext>()
+                                .UseSqlite(_connString)
+                                .Options;
+                            using var bgDb = new OwnerTrackDbContext(bgOptions);
+                            var importService = new ExcelImportService(bgDb);
+                            return importService.ImportFromExcel(filePath, progress);
+                        });
 
                         btnCancel.Enabled = true;
                         lblStatus.Text = $"Import završen!\n" +

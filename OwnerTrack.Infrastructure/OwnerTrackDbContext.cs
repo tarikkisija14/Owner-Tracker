@@ -59,14 +59,15 @@ namespace OwnerTrack.Infrastructure
 
             // UNIQUE constraints
             modelBuilder.Entity<Klijent>()
-                .HasIndex(k => k.Naziv).IsUnique();
+                 .HasIndex(k => k.Naziv).IsUnique();
             modelBuilder.Entity<Klijent>()
                 .HasIndex(k => k.IdBroj).IsUnique();
             modelBuilder.Entity<Vlasnik>()
                 .HasIndex(v => new { v.KlijentId, v.ImePrezime }).IsUnique();
+            
             modelBuilder.Entity<Direktor>()
-                .HasIndex(d => d.KlijentId).IsUnique();
-            modelBuilder.Entity<Ugovor>()
+                .HasIndex(d => d.KlijentId);
+            modelBuilder.Entity<Ugovor>() 
                 .HasIndex(u => u.KlijentId).IsUnique();
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -75,7 +76,8 @@ namespace OwnerTrack.Infrastructure
             if (!optionsBuilder.IsConfigured)
             {
 
-                optionsBuilder.UseSqlite($"Data Source=C:\\Users\\tarik\\Desktop\\Job\\Firme.db");
+                throw new InvalidOperationException(
+                    "DbContext nije konfigurisan. Proslijedi DbContextOptions pri kreiranju instance.");
             }
         }
 
