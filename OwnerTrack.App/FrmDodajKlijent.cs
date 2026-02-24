@@ -1,6 +1,7 @@
-﻿using OwnerTrack.Data.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Data.Entities;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Windows.Forms;
@@ -9,59 +10,48 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajKlijent : Form
     {
-        private OwnerTrackDbContext _db;
-        private int? _klijentId;
+        private readonly OwnerTrackDbContext _db;
+        private readonly AuditService _audit;
+        private readonly int? _klijentId;
 
         public FrmDodajKlijent(int? klijentId, OwnerTrackDbContext db)
         {
             InitializeComponent();
             _klijentId = klijentId;
             _db = db;
+            _audit = new AuditService(db);
         }
 
         private void FrmDodajKlijent_Load(object sender, EventArgs e)
         {
             LoadComboValues();
             LoadSifre();
-
             if (_klijentId.HasValue)
             {
                 LoadKlijent(_klijentId.Value);
-                this.Text = "Izmijeni firmu";
+                Text = "Izmijeni firmu";
                 btnSpremi.Text = "💾 Spremi izmjene";
             }
         }
 
         private void LoadComboValues()
         {
-
-           
             cbVrstaKlijenta.Items.Clear();
             cbVrstaKlijenta.Items.AddRange(new[] { "PRAVNO LICE", "FIZIČKO LICE", "UDRUŽENJE", "OBRTNIK" });
-
-           
             cbVelicina.Items.Clear();
-            cbVelicina.Items.AddRange(new[] { "MIKRO", "MALO", "SREDNJE", "VELIKA" });
-
+            cbVelicina.Items.AddRange(Enum.GetNames(typeof(VelicinaFirme)));
             cbPepRizik.Items.Clear();
             cbPepRizik.Items.AddRange(new[] { "", "DA", "NE" });
-
             cbUboRizik.Items.Clear();
             cbUboRizik.Items.AddRange(new[] { "", "DA", "NE" });
-
             cbGotovinaRizik.Items.Clear();
             cbGotovinaRizik.Items.AddRange(new[] { "", "DA", "NE" });
-
             cbGeografskiRizik.Items.Clear();
             cbGeografskiRizik.Items.AddRange(new[] { "", "DA", "NE" });
-
-            
             cbStatusUgovora.Items.Clear();
             cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "ANEKS", "OTKAZAN", "NEMA UGOVOR", "NEAKTIVAN" });
-
             cbStatus.Items.Clear();
             cbStatus.Items.AddRange(new[] { "AKTIVAN", "NEAKTIVAN", "ARHIVIRAN" });
-
 
             if (!_klijentId.HasValue)
             {
@@ -79,100 +69,52 @@ namespace OwnerTrack.App
         private void LoadSifre()
         {
             var sifre = _db.Djelatnosti.OrderBy(d => d.Sifra).ToList();
-
             cbSifra.DataSource = sifre;
             cbSifra.DisplayMember = "Naziv";
             cbSifra.ValueMember = "Sifra";
-
             if (sifre.Count > 0 && !_klijentId.HasValue)
-            {
                 cbSifra.SelectedIndex = 0;
+        }
+
+        private void LoadKlijent(int id)
+        {
+            var k = _db.Klijenti.Include(x => x.Ugovor).FirstOrDefault(x => x.Id == id);
+            if (k == null) return;
+
+            txtNaziv.Text = k.Naziv ?? "";
+            txtIdBroj.Text = k.IdBroj ?? "";
+            txtAdresa.Text = k.Adresa ?? "";
+            if (!string.IsNullOrEmpty(k.SifraDjelatnosti))
+                cbSifra.SelectedValue = k.SifraDjelatnosti;
+            dtDatumUspostave.Value = k.DatumUspostave ?? DateTime.Now;
+            SetCombo(cbVrstaKlijenta, k.VrstaKlijenta);
+            dtDatumOsnivanja.Value = k.DatumOsnivanja ?? DateTime.Now;
+            SetCombo(cbVelicina, k.Velicina);
+            SetCombo(cbPepRizik, k.PepRizik);
+            SetCombo(cbUboRizik, k.UboRizik);
+            SetCombo(cbGotovinaRizik, k.GotovinaRizik);
+            SetCombo(cbGeografskiRizik, k.GeografskiRizik);
+            txtUkupnaProcjena.Text = k.UkupnaProcjena ?? "";
+            dtDatumProcjene.Value = k.DatumProcjene ?? DateTime.Now;
+            txtOvjeraCr.Text = k.OvjeraCr ?? "";
+            SetCombo(cbStatus, k.Status);
+            txtNapomena.Text = k.Napomena ?? "";
+            txtEmail.Text = k.Email ?? "";
+            txtTelefon.Text = k.Telefon ?? "";
+
+            if (k.Ugovor != null)
+            {
+                txtVrstaUgovora.Text = k.Ugovor.VrstaUgovora ?? "";
+                SetCombo(cbStatusUgovora, k.Ugovor.StatusUgovora);
+                dtDatumUgovora.Value = k.Ugovor.DatumUgovora ?? DateTime.Now;
             }
         }
 
-        private void LoadKlijent(int klijentId)
+        private void SetCombo(ComboBox cb, string? value)
         {
-            var klijent = _db.Klijenti
-                .Include(k => k.Ugovor)
-                .FirstOrDefault(k => k.Id == klijentId);
-
-            if (klijent != null)
-            {
-                txtNaziv.Text = klijent.Naziv ?? "";
-                txtIdBroj.Text = klijent.IdBroj ?? "";
-                txtAdresa.Text = klijent.Adresa ?? "";
-
-
-                if (!string.IsNullOrEmpty(klijent.SifraDjelatnosti))
-                {
-                    cbSifra.SelectedValue = klijent.SifraDjelatnosti;
-                }
-
-                dtDatumUspostave.Value = klijent.DatumUspostave ?? DateTime.Now;
-
-
-                if (!string.IsNullOrEmpty(klijent.VrstaKlijenta))
-                {
-                    int index = cbVrstaKlijenta.FindStringExact(klijent.VrstaKlijenta);
-                    if (index >= 0) cbVrstaKlijenta.SelectedIndex = index;
-                }
-
-                dtDatumOsnivanja.Value = klijent.DatumOsnivanja ?? DateTime.Now;
-
-
-                if (!string.IsNullOrEmpty(klijent.Velicina))
-                {
-                    int index = cbVelicina.FindStringExact(klijent.Velicina);
-                    if (index >= 0) cbVelicina.SelectedIndex = index;
-                }
-
-
-                SetComboValue(cbPepRizik, klijent.PepRizik);
-                SetComboValue(cbUboRizik, klijent.UboRizik);
-                SetComboValue(cbGotovinaRizik, klijent.GotovinaRizik);
-                SetComboValue(cbGeografskiRizik, klijent.GeografskiRizik);
-
-                txtUkupnaProcjena.Text = klijent.UkupnaProcjena ?? "";
-                dtDatumProcjene.Value = klijent.DatumProcjene ?? DateTime.Now;
-                txtOvjeraCr.Text = klijent.OvjeraCr ?? "";
-
-
-                if (!string.IsNullOrEmpty(klijent.Status))
-                {
-                    int index = cbStatus.FindStringExact(klijent.Status);
-                    if (index >= 0) cbStatus.SelectedIndex = index;
-                }
-                else
-                {
-                    cbStatus.SelectedIndex = 0;
-                }
-
-
-                txtNapomena.Text = klijent.Napomena ?? "";
-
-                if (klijent.Ugovor != null)
-                {
-                    txtVrstaUgovora.Text = klijent.Ugovor.VrstaUgovora ?? "";
-                    SetComboValue(cbStatusUgovora, klijent.Ugovor.StatusUgovora);
-                    dtDatumUgovora.Value = klijent.Ugovor.DatumUgovora ?? DateTime.Now;
-                }
-            }
-        }
-
-        private void SetComboValue(ComboBox combo, string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                combo.SelectedIndex = 0;
-            }
-            else
-            {
-                int index = combo.FindStringExact(value);
-                if (index >= 0)
-                {
-                    combo.SelectedIndex = index;
-                }
-            }
+            if (string.IsNullOrEmpty(value)) { cb.SelectedIndex = 0; return; }
+            int idx = cb.FindStringExact(value);
+            if (idx >= 0) cb.SelectedIndex = idx;
         }
 
         private void btnSpremi_Click(object sender, EventArgs e)
@@ -183,32 +125,32 @@ namespace OwnerTrack.App
                 return;
             }
 
-           
-            string idBrojTrim = txtIdBroj.Text.Trim();
-            bool idBrojValidan = idBrojTrim.Length == 13 && idBrojTrim.All(char.IsDigit);
-            if (!idBrojValidan)
+            // Pravi JIB validator umjesto naivne provjere dužine
+            string idBroj = txtIdBroj.Text.Trim();
+            string? jibGreska = JibValidator.GreškaValidacije(idBroj);
+            if (jibGreska != null)
             {
-                MessageBox.Show("ID broj mora sadržavati tačno 13 cifara!", "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(jibGreska, "Greška validacije",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtIdBroj.Focus();
                 return;
             }
 
-          
             int trenutniId = _klijentId ?? 0;
-            bool idBrojPostoji = _db.Klijenti.Any(k => k.IdBroj == idBrojTrim && k.Id != trenutniId);
-            if (idBrojPostoji)
+
+            if (_db.Klijenti.Any(k => k.IdBroj == idBroj && k.Id != trenutniId))
             {
-                MessageBox.Show($"Klijent s ID brojem '{idBrojTrim}' već postoji u bazi!", "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($"Klijent s ID brojem '{idBroj}' već postoji!",
+                    "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtIdBroj.Focus();
                 return;
             }
 
-           
-            string nazivTrim = txtNaziv.Text.Trim();
-            bool nazivPostoji = _db.Klijenti.Any(k => k.Naziv == nazivTrim && k.Id != trenutniId);
-            if (nazivPostoji)
+            string naziv = txtNaziv.Text.Trim();
+            if (_db.Klijenti.Any(k => k.Naziv == naziv && k.Id != trenutniId))
             {
-                MessageBox.Show($"Klijent s nazivom '{nazivTrim}' već postoji u bazi!", "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($"Klijent s nazivom '{naziv}' već postoji!",
+                    "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtNaziv.Focus();
                 return;
             }
@@ -216,98 +158,12 @@ namespace OwnerTrack.App
             try
             {
                 if (_klijentId.HasValue)
-                {
-                    var klijent = _db.Klijenti.Find(_klijentId.Value);
-                    if (klijent != null)
-                    {
-                        klijent.Naziv = txtNaziv.Text.Trim();
-                        klijent.IdBroj = txtIdBroj.Text.Trim();
-                        klijent.Adresa = txtAdresa.Text ?? "";
-                        klijent.SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "";
-                        klijent.DatumUspostave = dtDatumUspostave.Value;
-                        klijent.VrstaKlijenta = cbVrstaKlijenta.Text;
-                        klijent.DatumOsnivanja = dtDatumOsnivanja.Value;
-                        klijent.Velicina = cbVelicina.Text;
-                        klijent.PepRizik = cbPepRizik.Text == "" ? null : cbPepRizik.Text;
-                        klijent.UboRizik = cbUboRizik.Text == "" ? null : cbUboRizik.Text;
-                        klijent.GotovinaRizik = cbGotovinaRizik.Text == "" ? null : cbGotovinaRizik.Text;
-                        klijent.GeografskiRizik = cbGeografskiRizik.Text == "" ? null : cbGeografskiRizik.Text;
-                        klijent.UkupnaProcjena = txtUkupnaProcjena.Text ?? "";
-                        klijent.DatumProcjene = dtDatumProcjene.Value;
-                        klijent.OvjeraCr = txtOvjeraCr.Text ?? "";
-                        klijent.Status = cbStatus.Text ?? "AKTIVAN";
-                        klijent.Napomena = txtNapomena.Text ?? "";
-                        klijent.Azuriran = DateTime.Now;
-
-                        _db.SaveChanges();
-
-                        
-                        var ugovor = _db.Ugovori.FirstOrDefault(u => u.KlijentId == klijent.Id);
-                        if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
-                        {
-                            if (ugovor == null)
-                            {
-                                ugovor = new Ugovor { KlijentId = klijent.Id };
-                                _db.Ugovori.Add(ugovor);
-                            }
-                            ugovor.VrstaUgovora = txtVrstaUgovora.Text ?? "";
-                            ugovor.StatusUgovora = cbStatusUgovora.Text;
-                            ugovor.DatumUgovora = dtDatumUgovora.Value;
-                        }
-                        else if (ugovor != null)
-                        {
-                            _db.Ugovori.Remove(ugovor);
-                        }
-
-                        _db.SaveChanges();
-                        MessageBox.Show("Klijent ažuriran!");
-                    }
-                }
+                    SpremiIzmjenu(_klijentId.Value, naziv, idBroj);
                 else
-                {
-                    var klijent = new Klijent
-                    {
-                        Naziv = txtNaziv.Text.Trim(),
-                        IdBroj = txtIdBroj.Text.Trim(),
-                        Adresa = txtAdresa.Text ?? "",
-                        SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "",
-                        DatumUspostave = dtDatumUspostave.Value,
-                        VrstaKlijenta = cbVrstaKlijenta.Text,
-                        DatumOsnivanja = dtDatumOsnivanja.Value,
-                        Velicina = cbVelicina.Text,
-                        PepRizik = cbPepRizik.Text == "" ? null : cbPepRizik.Text,
-                        UboRizik = cbUboRizik.Text == "" ? null : cbUboRizik.Text,
-                        GotovinaRizik = cbGotovinaRizik.Text == "" ? null : cbGotovinaRizik.Text,
-                        GeografskiRizik = cbGeografskiRizik.Text == "" ? null : cbGeografskiRizik.Text,
-                        UkupnaProcjena = txtUkupnaProcjena.Text ?? "",
-                        DatumProcjene = dtDatumProcjene.Value,
-                        OvjeraCr = txtOvjeraCr.Text ?? "",
-                        Status = cbStatus.Text ?? "AKTIVAN",
-                        Napomena = txtNapomena.Text ?? "",
-                        Kreiran = DateTime.Now
-                    };
+                    SpremiNovog(naziv, idBroj);
 
-                    _db.Klijenti.Add(klijent);
-                    _db.SaveChanges();
-
-                    if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
-                    {
-                        var ugovor = new Ugovor
-                        {
-                            KlijentId = klijent.Id,
-                            VrstaUgovora = txtVrstaUgovora.Text ?? "",
-                            StatusUgovora = cbStatusUgovora.Text,
-                            DatumUgovora = dtDatumUgovora.Value
-                        };
-                        _db.Ugovori.Add(ugovor);
-                        _db.SaveChanges();
-                    }
-
-                    MessageBox.Show("Klijent dodan!");
-                }
-
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+                DialogResult = DialogResult.OK;
+                Close();
             }
             catch (Exception ex)
             {
@@ -315,10 +171,109 @@ namespace OwnerTrack.App
             }
         }
 
+        private void SpremiIzmjenu(int id, string naziv, string idBroj)
+        {
+            var k = _db.Klijenti.Find(id);
+            if (k == null) return;
+
+            string stariNaziv = k.Naziv;
+            k.Naziv = naziv;
+            k.IdBroj = idBroj;
+            k.Adresa = txtAdresa.Text;
+            k.SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "";
+            k.DatumUspostave = dtDatumUspostave.Value;
+            k.VrstaKlijenta = cbVrstaKlijenta.Text;
+            k.DatumOsnivanja = dtDatumOsnivanja.Value;
+            k.Velicina = cbVelicina.Text;
+            k.PepRizik = Null(cbPepRizik.Text);
+            k.UboRizik = Null(cbUboRizik.Text);
+            k.GotovinaRizik = Null(cbGotovinaRizik.Text);
+            k.GeografskiRizik = Null(cbGeografskiRizik.Text);
+            k.UkupnaProcjena = txtUkupnaProcjena.Text;
+            k.DatumProcjene = dtDatumProcjene.Value;
+            k.OvjeraCr = txtOvjeraCr.Text;
+            k.Status = cbStatus.Text;
+            k.Napomena = txtNapomena.Text;
+            k.Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim();
+            k.Telefon = string.IsNullOrWhiteSpace(txtTelefon.Text) ? null : txtTelefon.Text.Trim();
+
+            k.Azuriran = DateTime.Now;
+
+            _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'");
+            _db.SaveChanges();
+
+            var ugovor = _db.Ugovori.FirstOrDefault(u => u.KlijentId == id);
+            if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
+            {
+                if (ugovor == null) { ugovor = new Ugovor { KlijentId = id }; _db.Ugovori.Add(ugovor); }
+                ugovor.VrstaUgovora = txtVrstaUgovora.Text;
+                ugovor.StatusUgovora = cbStatusUgovora.Text;
+                ugovor.DatumUgovora = dtDatumUgovora.Value;
+            }
+            else if (ugovor != null)
+            {
+                _db.Ugovori.Remove(ugovor);
+            }
+
+            _db.SaveChanges();
+            MessageBox.Show("Klijent ažuriran!");
+        }
+
+        private void SpremiNovog(string naziv, string idBroj)
+        {
+            var k = new Klijent
+            {
+                Naziv = naziv,
+                IdBroj = idBroj,
+                Adresa = txtAdresa.Text,
+                SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "",
+                DatumUspostave = dtDatumUspostave.Value,
+                VrstaKlijenta = cbVrstaKlijenta.Text,
+                DatumOsnivanja = dtDatumOsnivanja.Value,
+                Velicina = cbVelicina.Text,
+                PepRizik = Null(cbPepRizik.Text),
+                UboRizik = Null(cbUboRizik.Text),
+                GotovinaRizik = Null(cbGotovinaRizik.Text),
+                GeografskiRizik = Null(cbGeografskiRizik.Text),
+                UkupnaProcjena = txtUkupnaProcjena.Text,
+                DatumProcjene = dtDatumProcjene.Value,
+                OvjeraCr = txtOvjeraCr.Text,
+                Status = cbStatus.Text,
+                Napomena = txtNapomena.Text,
+                Kreiran = DateTime.Now,
+                Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim(),
+                Telefon = string.IsNullOrWhiteSpace(txtTelefon.Text) ? null : txtTelefon.Text.Trim(),
+
+            };
+
+            _db.Klijenti.Add(k);
+            _db.Klijenti.Add(k);
+            _db.SaveChanges();
+            _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
+            _db.SaveChanges();
+
+            if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
+            {
+                _db.Ugovori.Add(new Ugovor
+                {
+                    KlijentId = k.Id,
+                    VrstaUgovora = txtVrstaUgovora.Text,
+                    StatusUgovora = cbStatusUgovora.Text,
+                    DatumUgovora = dtDatumUgovora.Value
+                });
+                _db.SaveChanges();
+            }
+
+            MessageBox.Show("Klijent dodan!");
+        }
+
+        private static string? Null(string s) =>
+            string.IsNullOrWhiteSpace(s) ? null : s;
+
         private void btnOtkazi_Click(object sender, EventArgs e)
         {
-            this.DialogResult = DialogResult.Cancel;
-            this.Close();
+            DialogResult = DialogResult.Cancel;
+            Close();
         }
     }
 }

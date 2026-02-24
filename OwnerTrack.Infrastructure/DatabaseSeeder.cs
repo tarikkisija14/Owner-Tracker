@@ -137,7 +137,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent1.Id,
                     ImePrezime = "Marko Marković",
-                    ProcetatVlasnistva = 60,
+                    ProcenatVlasnistva = 60,
                     DatumUtvrdjivanja = new DateTime(2015, 3, 15),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -146,7 +146,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent1.Id,
                     ImePrezime = "Ana Anić",
-                    ProcetatVlasnistva = 40,
+                    ProcenatVlasnistva = 40,
                     DatumUtvrdjivanja = new DateTime(2015, 3, 15),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -155,7 +155,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent2.Id,
                     ImePrezime = "Petar Petrović",
-                    ProcetatVlasnistva = 100,
+                    ProcenatVlasnistva = 100,
                     DatumUtvrdjivanja = new DateTime(2018, 6, 20),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -164,7 +164,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent3.Id,
                     ImePrezime = "Ivan Ivanović",
-                    ProcetatVlasnistva = 51,
+                    ProcenatVlasnistva = 51,
                     DatumUtvrdjivanja = new DateTime(2010, 1, 10),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -173,7 +173,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent3.Id,
                     ImePrezime = "Jovana Jovanović",
-                    ProcetatVlasnistva = 49,
+                    ProcenatVlasnistva = 49,
                     DatumUtvrdjivanja = new DateTime(2010, 1, 10),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -182,7 +182,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent4.Id,
                     ImePrezime = "Ahmed Ahmetović",
-                    ProcetatVlasnistva = 100,
+                    ProcenatVlasnistva = 100,
                     DatumUtvrdjivanja = new DateTime(2020, 5, 1),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -191,7 +191,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent5.Id,
                     ImePrezime = "Nikola Nikolić",
-                    ProcetatVlasnistva = 70,
+                    ProcenatVlasnistva = 70,
                     DatumUtvrdjivanja = new DateTime(2019, 9, 15),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"
@@ -200,7 +200,7 @@ namespace OwnerTrack.Infrastructure
                 {
                     KlijentId = klijent5.Id,
                     ImePrezime = "Maja Majić",
-                    ProcetatVlasnistva = 30,
+                    ProcenatVlasnistva = 30,
                     DatumUtvrdjivanja = new DateTime(2019, 9, 15),
                     IzvorPodatka = "SUDSKI REGISTAR",
                     Status = "AKTIVAN"

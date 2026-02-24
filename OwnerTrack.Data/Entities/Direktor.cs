@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Direktor
+    public class Direktor : ISoftDeletable
     {
         [Key]
         public int Id { get; set; }
@@ -30,8 +30,13 @@ namespace OwnerTrack.Data.Entities
         public string Status { get; set; } = "AKTIVAN";
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
+        public DateTime? Obrisan { get; set; }
 
-        
+        [StringLength(13)]
+        public string? Jmbg { get; set; }
+
+
+
         public virtual Klijent Klijent { get; set; }
     }
 }

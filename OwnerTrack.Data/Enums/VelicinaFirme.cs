@@ -11,6 +11,8 @@ namespace OwnerTrack.Data.Enums
         MIKRO,
         MALO,
         SREDNJE,
-        VELIKO
+        VELIKO,
+        OBRTNIK,
+        UDRUŽENJE
     }
 }

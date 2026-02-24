@@ -23,6 +23,7 @@ namespace OwnerTrack.Infrastructure
         public DbSet<Vlasnik> Vlasnici { get; set; }
         public DbSet<Direktor> Direktori { get; set; }
         public DbSet<Ugovor> Ugovori { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -69,6 +70,14 @@ namespace OwnerTrack.Infrastructure
                 .HasIndex(d => d.KlijentId);
             modelBuilder.Entity<Ugovor>() 
                 .HasIndex(u => u.KlijentId).IsUnique();
+
+            //soft-delete
+            modelBuilder.Entity<Klijent>()
+                .HasQueryFilter(k => k.Obrisan == null);
+            modelBuilder.Entity<Vlasnik>()
+                .HasQueryFilter(v => v.Obrisan == null);
+            modelBuilder.Entity<Direktor>()
+                .HasQueryFilter(d => d.Obrisan == null);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

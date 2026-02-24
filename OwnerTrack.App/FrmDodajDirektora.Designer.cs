@@ -24,6 +24,10 @@
             this.cbTipValjanosti = new System.Windows.Forms.ComboBox();
             this.btnSpremi = new System.Windows.Forms.Button();
             this.btnOtkazi = new System.Windows.Forms.Button();
+            this.lblJmbg = new System.Windows.Forms.Label();
+            this.txtJmbg = new System.Windows.Forms.TextBox();
+
+
 
             this.SuspendLayout();
 
@@ -63,7 +67,17 @@
             this.lblDatumValjanosti.AutoSize = true;
             this.dtDatumValjanosti.Location = new System.Drawing.Point(150, 110);
             this.dtDatumValjanosti.Size = new System.Drawing.Size(200, 20);
-            this.dtDatumValjanosti.Enabled = false;
+            this.dtDatumValjanosti.Enabled = true;
+
+
+            this.lblJmbg.Text = "JMBG:";
+            this.lblJmbg.Location = new System.Drawing.Point(10, 150);
+            this.lblJmbg.AutoSize = true;
+
+            this.txtJmbg.Location = new System.Drawing.Point(150, 150);
+            this.txtJmbg.Size = new System.Drawing.Size(200, 20);
+            this.txtJmbg.MaxLength = 13;
+            this.txtJmbg.Name = "txtJmbg";
 
             this.groupBox1.Controls.Add(this.lblImePrezime);
             this.groupBox1.Controls.Add(this.txtImePrezime);
@@ -71,6 +85,8 @@
             this.groupBox1.Controls.Add(this.cbTipValjanosti);
             this.groupBox1.Controls.Add(this.lblDatumValjanosti);
             this.groupBox1.Controls.Add(this.dtDatumValjanosti);
+            this.groupBox1.Controls.Add(this.lblJmbg);
+            this.groupBox1.Controls.Add(this.txtJmbg);
 
             // ========== DUGMICI ==========
             this.btnSpremi.Location = new System.Drawing.Point(240, 240);
@@ -102,5 +118,7 @@
         public System.Windows.Forms.ComboBox cbTipValjanosti;
         public System.Windows.Forms.Button btnSpremi;
         public System.Windows.Forms.Button btnOtkazi;
+        private System.Windows.Forms.Label lblJmbg;
+        private System.Windows.Forms.TextBox txtJmbg;
     }
 }

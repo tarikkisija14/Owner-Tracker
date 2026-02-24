@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Vlasnik
+    public class Vlasnik:ISoftDeletable
     {
         [Key]
         public int Id { get; set; }
@@ -24,7 +24,7 @@ namespace OwnerTrack.Data.Entities
         public DateTime? DatumValjanostiDokumenta { get; set; }  
 
         [Range(0, 100)]
-        public decimal ProcetatVlasnistva { get; set; }
+        public decimal ProcenatVlasnistva { get; set; }
 
         public DateTime? DatumUtvrdjivanja { get; set; }
 
@@ -35,6 +35,7 @@ namespace OwnerTrack.Data.Entities
         public string Status { get; set; } = "AKTIVAN";
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
+        public DateTime? Obrisan { get; set; }
 
 
         public virtual Klijent Klijent { get; set; }

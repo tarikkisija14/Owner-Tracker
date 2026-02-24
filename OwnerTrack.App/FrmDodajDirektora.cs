@@ -23,6 +23,8 @@ namespace OwnerTrack.App
         {
             cbTipValjanosti.Items.AddRange(new[] { "TRAJNO", "VREMENSKI" });
             cbTipValjanosti.SelectedIndex = 0;
+            
+
 
             if (_direktorId.HasValue)
             {
@@ -35,6 +37,7 @@ namespace OwnerTrack.App
                 this.Text = "Dodaj novog direktora";
                 btnSpremi.Text = "💾 Dodaj";
             }
+
         }
 
         private void LoadDirektor(int direktorId)
@@ -45,6 +48,7 @@ namespace OwnerTrack.App
                 txtImePrezime.Text = direktor.ImePrezime ?? "";
                 dtDatumValjanosti.Value = direktor.DatumValjanosti ?? DateTime.Now;
                 cbTipValjanosti.Text = direktor.TipValjanosti ?? "TRAJNO";
+                txtJmbg.Text = direktor.Jmbg ?? "";
             }
         }
 
@@ -66,6 +70,8 @@ namespace OwnerTrack.App
                         direktor.ImePrezime = txtImePrezime.Text.Trim();
                         direktor.DatumValjanosti = cbTipValjanosti.Text == "TRAJNO" ? null : dtDatumValjanosti.Value;
                         direktor.TipValjanosti = cbTipValjanosti.Text;
+                        direktor.Jmbg = string.IsNullOrWhiteSpace(txtJmbg.Text) ? null : txtJmbg.Text.Trim();
+
                         _db.SaveChanges();
                         MessageBox.Show("Ažurirano!");
                     }
@@ -78,7 +84,9 @@ namespace OwnerTrack.App
                         ImePrezime = txtImePrezime.Text.Trim(),
                         DatumValjanosti = cbTipValjanosti.Text == "TRAJNO" ? null : dtDatumValjanosti.Value,
                         TipValjanosti = cbTipValjanosti.Text,
-                        Status = "AKTIVAN"
+                        Status = "AKTIVAN",
+                        Jmbg = string.IsNullOrWhiteSpace(txtJmbg.Text) ? null : txtJmbg.Text.Trim(),
+
                     };
 
                     _db.Direktori.Add(direktor);
@@ -103,7 +111,7 @@ namespace OwnerTrack.App
 
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
-            dtDatumValjanosti.Enabled = cbTipValjanosti.Text == "VREMENSKI";
+            dtDatumValjanosti.Enabled = true;
         }
     }
 }

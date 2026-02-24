@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Klijent
+    public class Klijent : ISoftDeletable
     {
         [Key]
         public int Id { get; set; }
@@ -27,7 +27,7 @@ namespace OwnerTrack.Data.Entities
 
         public DateTime? DatumUspostave { get; set; }
 
-        // 🔴 OVO JE BIO PROBLEM (ordinal 6)
+        
         [StringLength(50)]
         public string? VrstaKlijenta { get; set; }
 
@@ -64,6 +64,13 @@ namespace OwnerTrack.Data.Entities
 
         public DateTime? Kreiran { get; set; }
         public DateTime? Azuriran { get; set; }
+        public DateTime? Obrisan { get; set; }
+
+        [StringLength(255)]
+        public string? Email { get; set; }
+
+        [StringLength(50)]
+        public string? Telefon { get; set; }
 
         public virtual Djelatnost? Djelatnost { get; set; }
         public virtual ICollection<Vlasnik> Vlasnici { get; set; } = new List<Vlasnik>();

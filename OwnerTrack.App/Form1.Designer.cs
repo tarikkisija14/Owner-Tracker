@@ -22,11 +22,16 @@
             btnIzmijeniKlijent = new Button();
             btnObrisiKlijent = new Button();
             btnImportExcel = new Button();
+            btnUpozorenja = new Button();
+            btnExportTabelaPdf = new Button();
+            btnSacuvajPdf = new Button();
             panelSearch = new Panel();
             lblSearchKlijent = new Label();
             txtSearchKlijent = new TextBox();
             lblFilterDjelatnost = new Label();
             cmbFilterDjelatnost = new ComboBox();
+            lblFilterVelicina = new Label();
+            cmbFilterVelicina = new ComboBox();
             btnResetFilters = new Button();
             dataGridKlijenti = new DataGridView();
             dataGridVlasnici = new DataGridView();
@@ -43,7 +48,6 @@
             panelVlasniciBtns = new Panel();
             panelDirektori = new Panel();
             panelDirektoriBtns = new Panel();
-            btnUpozorenja = new Button();
             panelToolbar.SuspendLayout();
             panelSearch.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridKlijenti).BeginInit();
@@ -72,10 +76,12 @@
             panelToolbar.Controls.Add(btnObrisiKlijent);
             panelToolbar.Controls.Add(btnImportExcel);
             panelToolbar.Controls.Add(btnUpozorenja);
+            panelToolbar.Controls.Add(btnExportTabelaPdf);
+            panelToolbar.Controls.Add(btnSacuvajPdf);
             panelToolbar.Dock = DockStyle.Top;
             panelToolbar.Location = new Point(0, 0);
             panelToolbar.Name = "panelToolbar";
-            panelToolbar.Size = new Size(1225, 47);
+            panelToolbar.Size = new Size(1450, 47);
             panelToolbar.TabIndex = 2;
             // 
             // btnResetImport
@@ -130,6 +136,39 @@
             btnImportExcel.UseVisualStyleBackColor = false;
             btnImportExcel.Click += btnImportExcel_Click;
             // 
+            // btnUpozorenja
+            // 
+            btnUpozorenja.BackColor = Color.Gold;
+            btnUpozorenja.Location = new Point(955, 9);
+            btnUpozorenja.Name = "btnUpozorenja";
+            btnUpozorenja.Size = new Size(140, 28);
+            btnUpozorenja.TabIndex = 5;
+            btnUpozorenja.Text = "⚠ Upozorenja (0)";
+            btnUpozorenja.UseVisualStyleBackColor = false;
+            btnUpozorenja.Click += btnUpozorenja_Click;
+            // 
+            // btnExportTabelaPdf
+            // 
+            btnExportTabelaPdf.BackColor = Color.SteelBlue;
+            btnExportTabelaPdf.ForeColor = Color.White;
+            btnExportTabelaPdf.Location = new Point(790, 9);
+            btnExportTabelaPdf.Name = "btnExportTabelaPdf";
+            btnExportTabelaPdf.Size = new Size(155, 28);
+            btnExportTabelaPdf.TabIndex = 7;
+            btnExportTabelaPdf.Text = "📋 Export tabele u PDF";
+            btnExportTabelaPdf.UseVisualStyleBackColor = false;
+            btnExportTabelaPdf.Click += btnExportTabelaPdf_Click;
+            // 
+            // btnSacuvajPdf
+            // 
+            btnSacuvajPdf.Location = new Point(640, 9);
+            btnSacuvajPdf.Name = "btnSacuvajPdf";
+            btnSacuvajPdf.Size = new Size(140, 28);
+            btnSacuvajPdf.TabIndex = 6;
+            btnSacuvajPdf.Text = "📄 Sačuvaj kao PDF";
+            btnSacuvajPdf.UseVisualStyleBackColor = true;
+            btnSacuvajPdf.Click += btnSacuvajPdf_Click;
+            // 
             // panelSearch
             // 
             panelSearch.BackColor = Color.WhiteSmoke;
@@ -138,11 +177,13 @@
             panelSearch.Controls.Add(txtSearchKlijent);
             panelSearch.Controls.Add(lblFilterDjelatnost);
             panelSearch.Controls.Add(cmbFilterDjelatnost);
+            panelSearch.Controls.Add(lblFilterVelicina);
+            panelSearch.Controls.Add(cmbFilterVelicina);
             panelSearch.Controls.Add(btnResetFilters);
             panelSearch.Dock = DockStyle.Top;
             panelSearch.Location = new Point(0, 47);
             panelSearch.Name = "panelSearch";
-            panelSearch.Size = new Size(1225, 42);
+            panelSearch.Size = new Size(1450, 42);
             panelSearch.TabIndex = 1;
             // 
             // lblSearchKlijent
@@ -156,16 +197,16 @@
             // 
             // txtSearchKlijent
             // 
-            txtSearchKlijent.Location = new Point(200, 8);
+            txtSearchKlijent.Location = new Point(191, 8);
             txtSearchKlijent.Name = "txtSearchKlijent";
-            txtSearchKlijent.Size = new Size(270, 23);
+            txtSearchKlijent.Size = new Size(220, 23);
             txtSearchKlijent.TabIndex = 1;
             txtSearchKlijent.TextChanged += txtSearchKlijent_TextChanged;
             // 
             // lblFilterDjelatnost
             // 
             lblFilterDjelatnost.AutoSize = true;
-            lblFilterDjelatnost.Location = new Point(490, 11);
+            lblFilterDjelatnost.Location = new Point(467, 11);
             lblFilterDjelatnost.Name = "lblFilterDjelatnost";
             lblFilterDjelatnost.Size = new Size(106, 15);
             lblFilterDjelatnost.TabIndex = 2;
@@ -174,17 +215,35 @@
             // cmbFilterDjelatnost
             // 
             cmbFilterDjelatnost.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbFilterDjelatnost.Location = new Point(618, 8);
+            cmbFilterDjelatnost.Location = new Point(585, 8);
             cmbFilterDjelatnost.Name = "cmbFilterDjelatnost";
-            cmbFilterDjelatnost.Size = new Size(380, 23);
+            cmbFilterDjelatnost.Size = new Size(300, 23);
             cmbFilterDjelatnost.TabIndex = 3;
             cmbFilterDjelatnost.SelectedIndexChanged += cmbFilterDjelatnost_SelectedIndexChanged;
             // 
+            // lblFilterVelicina
+            // 
+            lblFilterVelicina.AutoSize = true;
+            lblFilterVelicina.Location = new Point(910, 11);
+            lblFilterVelicina.Name = "lblFilterVelicina";
+            lblFilterVelicina.Size = new Size(65, 15);
+            lblFilterVelicina.TabIndex = 5;
+            lblFilterVelicina.Text = "📏 Veličina:";
+            // 
+            // cmbFilterVelicina
+            // 
+            cmbFilterVelicina.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbFilterVelicina.Location = new Point(983, 8);
+            cmbFilterVelicina.Name = "cmbFilterVelicina";
+            cmbFilterVelicina.Size = new Size(120, 23);
+            cmbFilterVelicina.TabIndex = 6;
+            cmbFilterVelicina.SelectedIndexChanged += cmbFilterVelicina_SelectedIndexChanged;
+            // 
             // btnResetFilters
             // 
-            btnResetFilters.Location = new Point(1010, 7);
+            btnResetFilters.Location = new Point(1122, 6);
             btnResetFilters.Name = "btnResetFilters";
-            btnResetFilters.Size = new Size(100, 25);
+            btnResetFilters.Size = new Size(90, 25);
             btnResetFilters.TabIndex = 4;
             btnResetFilters.Text = "🔄 Resetuj";
             btnResetFilters.UseVisualStyleBackColor = true;
@@ -201,7 +260,7 @@
             dataGridKlijenti.ReadOnly = true;
             dataGridKlijenti.RowHeadersVisible = false;
             dataGridKlijenti.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridKlijenti.Size = new Size(1225, 536);
+            dataGridKlijenti.Size = new Size(1450, 536);
             dataGridKlijenti.TabIndex = 0;
             dataGridKlijenti.SelectionChanged += dataGridKlijenti_SelectionChanged;
             // 
@@ -216,7 +275,7 @@
             dataGridVlasnici.ReadOnly = true;
             dataGridVlasnici.RowHeadersVisible = false;
             dataGridVlasnici.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridVlasnici.Size = new Size(583, 177);
+            dataGridVlasnici.Size = new Size(656, 177);
             dataGridVlasnici.TabIndex = 0;
             // 
             // dataGridDirektori
@@ -230,7 +289,7 @@
             dataGridDirektori.ReadOnly = true;
             dataGridDirektori.RowHeadersVisible = false;
             dataGridDirektori.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridDirektori.Size = new Size(638, 177);
+            dataGridDirektori.Size = new Size(790, 177);
             dataGridDirektori.TabIndex = 0;
             // 
             // btnDodajVlasnika
@@ -292,19 +351,6 @@
             btnObrisiDirektora.Text = "❌ Obriši";
             btnObrisiDirektora.UseVisualStyleBackColor = true;
             btnObrisiDirektora.Click += btnObrisiDirektora_Click;
-
-
-            // btnUpozorenja
-            btnUpozorenja.BackColor = Color.Gold;
-            btnUpozorenja.Location = new Point(640, 9);
-            btnUpozorenja.Name = "btnUpozorenja";
-            btnUpozorenja.Size = new Size(140, 28);
-            btnUpozorenja.TabIndex = 5;
-            btnUpozorenja.Text = "⚠ Upozorenja (0)";
-            btnUpozorenja.UseVisualStyleBackColor = false;
-            btnUpozorenja.Click += btnUpozorenja_Click;
-
-
             // 
             // splitMain
             // 
@@ -322,7 +368,7 @@
             // 
             splitMain.Panel2.Controls.Add(splitBottom);
             splitMain.Panel2MinSize = 100;
-            splitMain.Size = new Size(1225, 755);
+            splitMain.Size = new Size(1450, 755);
             splitMain.SplitterDistance = 536;
             splitMain.TabIndex = 0;
             // 
@@ -341,8 +387,8 @@
             // 
             splitBottom.Panel2.Controls.Add(panelDirektori);
             splitBottom.Panel2MinSize = 50;
-            splitBottom.Size = new Size(1225, 215);
-            splitBottom.SplitterDistance = 583;
+            splitBottom.Size = new Size(1450, 215);
+            splitBottom.SplitterDistance = 656;
             splitBottom.TabIndex = 0;
             // 
             // panelVlasnici
@@ -352,7 +398,7 @@
             panelVlasnici.Dock = DockStyle.Fill;
             panelVlasnici.Location = new Point(0, 0);
             panelVlasnici.Name = "panelVlasnici";
-            panelVlasnici.Size = new Size(583, 215);
+            panelVlasnici.Size = new Size(656, 215);
             panelVlasnici.TabIndex = 0;
             // 
             // panelVlasniciBtns
@@ -364,7 +410,7 @@
             panelVlasniciBtns.Dock = DockStyle.Top;
             panelVlasniciBtns.Location = new Point(0, 0);
             panelVlasniciBtns.Name = "panelVlasniciBtns";
-            panelVlasniciBtns.Size = new Size(583, 38);
+            panelVlasniciBtns.Size = new Size(656, 38);
             panelVlasniciBtns.TabIndex = 1;
             // 
             // panelDirektori
@@ -374,7 +420,7 @@
             panelDirektori.Dock = DockStyle.Fill;
             panelDirektori.Location = new Point(0, 0);
             panelDirektori.Name = "panelDirektori";
-            panelDirektori.Size = new Size(638, 215);
+            panelDirektori.Size = new Size(790, 215);
             panelDirektori.TabIndex = 0;
             // 
             // panelDirektoriBtns
@@ -386,14 +432,14 @@
             panelDirektoriBtns.Dock = DockStyle.Top;
             panelDirektoriBtns.Location = new Point(0, 0);
             panelDirektoriBtns.Name = "panelDirektoriBtns";
-            panelDirektoriBtns.Size = new Size(638, 38);
+            panelDirektoriBtns.Size = new Size(790, 38);
             panelDirektoriBtns.TabIndex = 1;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1225, 844);
+            ClientSize = new Size(1450, 844);
             Controls.Add(splitMain);
             Controls.Add(panelSearch);
             Controls.Add(panelToolbar);
@@ -448,6 +494,10 @@
         private Panel panelDirektoriBtns;
         private System.Windows.Forms.Label lblFilterDjelatnost;
         public System.Windows.Forms.ComboBox cmbFilterDjelatnost;
+        private System.Windows.Forms.Label lblFilterVelicina;
+        public System.Windows.Forms.ComboBox cmbFilterVelicina;
         private System.Windows.Forms.Button btnResetFilters;
+        private System.Windows.Forms.Button btnSacuvajPdf;
+        private System.Windows.Forms.Button btnExportTabelaPdf;
     }
 }

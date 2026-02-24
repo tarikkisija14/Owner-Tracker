@@ -62,6 +62,11 @@
             this.panelButtons = new System.Windows.Forms.Panel();
             this.btnSpremi = new System.Windows.Forms.Button();
             this.btnOtkazi = new System.Windows.Forms.Button();
+            this.groupBoxKontakti = new System.Windows.Forms.GroupBox();
+            this.lblEmail = new System.Windows.Forms.Label();
+            this.txtEmail = new System.Windows.Forms.TextBox();
+            this.lblTelefon = new System.Windows.Forms.Label();
+            this.txtTelefon = new System.Windows.Forms.TextBox();
 
             this.SuspendLayout();
 
@@ -258,10 +263,35 @@
             this.groupBoxUgovor.Controls.Add(this.lblDatumUgovora);
             this.groupBoxUgovor.Controls.Add(this.dtDatumUgovora);
 
+            this.groupBoxKontakti.Text = "📞 Kontakti";
+            this.groupBoxKontakti.Location = new System.Drawing.Point(10, 505);
+            this.groupBoxKontakti.Size = new System.Drawing.Size(760, 115);
+
+            this.lblEmail.Text = "Email:";
+            this.lblEmail.Location = new System.Drawing.Point(10, 30);
+            this.lblEmail.AutoSize = true;
+            this.txtEmail.Location = new System.Drawing.Point(120, 30);
+            this.txtEmail.Size = new System.Drawing.Size(300, 20);
+            this.txtEmail.MaxLength = 255;
+
+            this.lblTelefon.Text = "Telefon:";
+            this.lblTelefon.Location = new System.Drawing.Point(430, 30);
+            this.lblTelefon.AutoSize = true;
+            this.txtTelefon.Location = new System.Drawing.Point(530, 30);
+            this.txtTelefon.Size = new System.Drawing.Size(200, 20);
+            this.txtTelefon.MaxLength = 50;
+
+            this.groupBoxKontakti.Controls.Add(this.lblEmail);
+            this.groupBoxKontakti.Controls.Add(this.txtEmail);
+            this.groupBoxKontakti.Controls.Add(this.lblTelefon);
+            this.groupBoxKontakti.Controls.Add(this.txtTelefon);
+
+
             // ========== NAPOMENA ==========
             this.groupBoxNapomena = new System.Windows.Forms.GroupBox();
             this.groupBoxNapomena.Text = "📝 Napomena";
-            this.groupBoxNapomena.Location = new System.Drawing.Point(10, 505);
+            this.groupBoxNapomena.Location = new System.Drawing.Point(10, 630);
+
             this.groupBoxNapomena.Size = new System.Drawing.Size(760, 120);
 
             this.lblNapomena = new System.Windows.Forms.Label();
@@ -308,7 +338,9 @@
             scrollPanel.Controls.Add(this.groupBoxOsnovni);
             scrollPanel.Controls.Add(this.groupBoxRizici);
             scrollPanel.Controls.Add(this.groupBoxUgovor);
+            scrollPanel.Controls.Add(this.groupBoxKontakti);
             scrollPanel.Controls.Add(this.groupBoxNapomena);
+
 
             // ========== DODAJ SVE NA FORMU ==========
             this.Controls.Add(scrollPanel);
@@ -361,6 +393,11 @@
         private System.Windows.Forms.GroupBox groupBoxNapomena;
         private System.Windows.Forms.Label lblNapomena;
         public System.Windows.Forms.TextBox txtNapomena;
+        private System.Windows.Forms.GroupBox groupBoxKontakti;
+        private System.Windows.Forms.Label lblEmail;
+        public System.Windows.Forms.TextBox txtEmail;
+        private System.Windows.Forms.Label lblTelefon;
+        public System.Windows.Forms.TextBox txtTelefon;
         private System.Windows.Forms.Panel panelButtons;
         public System.Windows.Forms.Button btnSpremi;
         public System.Windows.Forms.Button btnOtkazi;

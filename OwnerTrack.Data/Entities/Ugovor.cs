@@ -29,8 +29,9 @@ namespace OwnerTrack.Data.Entities
         public string Napomena { get; set; }
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
+        public DateTime? Obrisan { get; set; }
 
-        
+
         public virtual Klijent Klijent { get; set; }
     }
 }
