@@ -410,7 +410,7 @@ namespace OwnerTrack.Infrastructure
                 _ => "#212121"
             };
 
-        // \u2500\u2500\u2500 TABELA KLIJENATA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+       
 
         public string GenerirajTabeluKlijenata(List<int> klijentIds, string outputPath)
         {
@@ -423,7 +423,7 @@ namespace OwnerTrack.Infrastructure
                 .Where(x => klijentIds.Contains(x.Id))
                 .ToList();
 
-            // Zadržavamo redoslijed kao u tabeli (po klijentIds listi)
+            
             klijenti = klijentIds
                 .Select(id => klijenti.FirstOrDefault(k => k.Id == id))
                 .Where(k => k != null)
@@ -467,18 +467,18 @@ namespace OwnerTrack.Infrastructure
             {
                 tbl.ColumnsDefinition(cd =>
                 {
-                    cd.ConstantColumn(10, Unit.Millimetre); // #
-                    cd.RelativeColumn(2);                    // Naziv
-                    cd.ConstantColumn(27, Unit.Millimetre); // ID broj
-                    cd.RelativeColumn(1.5f);                 // Djelatnost
-                    cd.ConstantColumn(32, Unit.Millimetre); // Veličina
-                    cd.ConstantColumn(14, Unit.Millimetre); // PEP
-                    cd.ConstantColumn(14, Unit.Millimetre); // UBO
-                    cd.ConstantColumn(22, Unit.Millimetre); // Procjena
-                    cd.ConstantColumn(20, Unit.Millimetre); // Ugovor
-                    cd.ConstantColumn(22, Unit.Millimetre); // Dat. uspostave
-                    cd.ConstantColumn(22, Unit.Millimetre); // Dat. osnivanja
-                    cd.ConstantColumn(16, Unit.Millimetre); // Status
+                    cd.ConstantColumn(10, Unit.Millimetre); 
+                    cd.RelativeColumn(2);                    
+                    cd.ConstantColumn(27, Unit.Millimetre); 
+                    cd.RelativeColumn(1.5f);                 
+                    cd.ConstantColumn(32, Unit.Millimetre); 
+                    cd.ConstantColumn(14, Unit.Millimetre); 
+                    cd.ConstantColumn(14, Unit.Millimetre); 
+                    cd.ConstantColumn(22, Unit.Millimetre); 
+                    cd.ConstantColumn(20, Unit.Millimetre); 
+                    cd.ConstantColumn(22, Unit.Millimetre); 
+                    cd.ConstantColumn(22, Unit.Millimetre); 
+                    cd.ConstantColumn(16, Unit.Millimetre); 
                 });
 
                 foreach (var h in new[] { "#", "Naziv klijenta", "ID broj", "Djelatnost", "Veličina", "PEP", "UBO", "Procjena", "Ugovor", "Dat. uspostave", "Dat. osnivanja", "Status" })

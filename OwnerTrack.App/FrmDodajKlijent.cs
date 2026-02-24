@@ -125,7 +125,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-            // Pravi JIB validator umjesto naivne provjere dužine
+            
             string idBroj = txtIdBroj.Text.Trim();
             string? jibGreska = JibValidator.GreškaValidacije(idBroj);
             if (jibGreska != null)

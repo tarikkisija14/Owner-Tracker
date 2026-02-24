@@ -98,7 +98,7 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-        // POPRAVKA #8: rename typo kolone ProcetatVlasnistva → ProcenatVlasnistva
+        
         private void ApplyV3(SqliteConnection conn)
         {
             Debug.WriteLine("[SCHEMA] V3 — rename ProcetatVlasnistva → ProcenatVlasnistva...");
@@ -122,14 +122,14 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-        // POPRAVKA #5: soft-delete kolone
+       
         private void ApplyV4(SqliteConnection conn)
         {
             Debug.WriteLine("[SCHEMA] V4 — dodavanje Obrisan kolona...");
             using var tx = conn.BeginTransaction();
             try
             {
-                // Provjeri da li tabele uopće postoje prije dodavanja kolona
+                
                 if (TableExists(conn, tx, "Klijenti"))
                     AddColumnIfMissing(conn, tx, "Klijenti", "Obrisan", "TEXT");
                 if (TableExists(conn, tx, "Vlasnici"))
@@ -197,7 +197,7 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-        // ─── HELPERI ────────────────────────────────────────────────────
+        
 
         private void ExecSql(SqliteConnection conn, SqliteTransaction tx, string sql)
         {

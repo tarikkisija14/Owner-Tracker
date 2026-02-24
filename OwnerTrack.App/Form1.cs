@@ -50,7 +50,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-        // ─── UČITAVANJE ──────────────────────────────────────────────────
+        /
 
         private void LoadVelicinaFilter()
         {
@@ -217,7 +217,7 @@ namespace OwnerTrack.App
             dataGridDirektori.ClearSelection();
         }
 
-        // ─── SELECTION ───────────────────────────────────────────────────
+        
 
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
@@ -232,7 +232,7 @@ namespace OwnerTrack.App
         private void ApplyCurrentFilters() =>
             LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
 
-        // ─── KLIJENTI ────────────────────────────────────────────────────
+        
 
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
@@ -282,7 +282,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        // ─── VLASNICI ────────────────────────────────────────────────────
+        
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
@@ -324,7 +324,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        // ─── DIREKTORI ───────────────────────────────────────────────────
+        
 
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
@@ -366,7 +366,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        // ─── SEARCH ──────────────────────────────────────────────────────
+        
 
         private string GetSelectedDjelatnostSifra()
         {
@@ -399,7 +399,7 @@ namespace OwnerTrack.App
             LoadKlijenti();
         }
 
-        // ─── EXCEL IMPORT ────────────────────────────────────────────────
+       
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
@@ -483,7 +483,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(_db);
         }
 
-        // ─── UPOZORENJA ──────────────────────────────────────────────────
+       
 
         private void OsvjeziUpozerenjaBadge()
         {
@@ -523,14 +523,14 @@ namespace OwnerTrack.App
         private void btnUpozorenja_Click(object sender, EventArgs e) =>
             new FrmUpozorenja(_db).ShowDialog(this);
 
-        // ─── PDF EXPORT ──────────────────────────────────────────────────
+       
 
         private void btnExportTabelaPdf_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.Rows.Count == 0)
             { MessageBox.Show("Nema klijenata za export."); return; }
 
-            // Uzimamo ID-eve svih trenutno prikazanih redova u gridu
+            
             var ids = dataGridKlijenti.Rows
                 .Cast<DataGridViewRow>()
                 .Where(r => r.DataBoundItem != null)

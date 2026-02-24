@@ -6,7 +6,6 @@ namespace OwnerTrack.Infrastructure
 {
     public static class DbContextFactory
     {
-        // AppData\Local je uvijek writable, čak i bez admin prava
         public static string DbPath { get; } = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OwnerTrack",

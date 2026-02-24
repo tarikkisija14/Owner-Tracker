@@ -104,7 +104,7 @@ namespace OwnerTrack.App
                                    string naziv, string idBroj,
                                    ImportResult result, Action<string> Log)
         {
-            // Svaki red dobiva vlastiti kratkovječni DbContext
+            
             using var db = KreirajDb();
             using var tx = db.Database.BeginTransaction();
             int privremeniVlasnikCount = 0;
@@ -151,7 +151,7 @@ namespace OwnerTrack.App
                 db.Klijenti.Add(klijent);
                 db.SaveChanges();
 
-                // Vlasnici
+                
                 string? vlasnikRaw = GetCellValue(wbPart, row, 10);
                 string? datVazVlasnika = GetCellValue(wbPart, row, 11);
                 string? procenatRaw = GetCellValue(wbPart, row, 12);
@@ -174,7 +174,7 @@ namespace OwnerTrack.App
                     }
                 }
 
-                // Direktori
+                
                 string? direktorRaw = GetCellValue(wbPart, row, 15);
                 string? datVazDirektora = GetCellValue(wbPart, row, 16);
 
@@ -189,7 +189,7 @@ namespace OwnerTrack.App
                     }
                 }
 
-                // Ugovor
+                
                 string? statusUgovora = GetCellValue(wbPart, row, 25);
                 string? datumUgovora = GetCellValue(wbPart, row, 26);
                 if (!string.IsNullOrWhiteSpace(statusUgovora))
@@ -418,7 +418,7 @@ namespace OwnerTrack.App
             if (string.IsNullOrWhiteSpace(v)) return null;
             string u = v.ToUpper().Trim();
 
-            // Aliasi za varijante iz Excela
+            
             var aliasi = new Dictionary<string, VelicinaFirme>(StringComparer.OrdinalIgnoreCase)
             {
                 ["MIKRO"] = VelicinaFirme.MIKRO,
@@ -442,11 +442,11 @@ namespace OwnerTrack.App
             if (aliasi.TryGetValue(u, out var rezultat))
                 return rezultat.ToString();
 
-            // Pokušaj direktnog parsiranja enum naziva
+            
             if (Enum.TryParse<VelicinaFirme>(u, ignoreCase: true, out var parsed))
                 return parsed.ToString();
 
-            return v.Trim(); // nepoznata vrijednost — ostavljamo kakva jeste
+            return v.Trim(); 
         }
 
         private string? NormalizeDaNe(string? v)
