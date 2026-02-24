@@ -4,18 +4,6 @@
 
 ---
 
-## Sadržaj
-
-- [Tehnologije](#tehnologije)
-- [Struktura projekta](#struktura-projekta)
-- [Funkcionalnosti](#funkcionalnosti)
-- [Pokretanje projekta](#pokretanje-projekta)
-- [Import podataka iz Excela](#import-podataka-iz-excela)
-- [Baza podataka i migracije](#baza-podataka-i-migracije)
-- [PDF export](#pdf-export)
-- [Revizijski trag](#revizijski-trag)
-
----
 
 ## Tehnologije
 
