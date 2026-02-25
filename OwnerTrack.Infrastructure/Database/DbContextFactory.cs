@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Database
 {
     public static class DbContextFactory
     {

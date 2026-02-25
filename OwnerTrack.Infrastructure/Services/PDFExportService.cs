@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Entities;
-using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Services
 {
     public class PdfExportService
     {

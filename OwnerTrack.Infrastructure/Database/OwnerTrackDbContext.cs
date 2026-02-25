@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Database
 {
     public class OwnerTrackDbContext:DbContext
     {

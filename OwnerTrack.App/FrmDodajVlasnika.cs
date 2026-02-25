@@ -1,6 +1,8 @@
-﻿using OwnerTrack.Data.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
 using System;
 using System.Windows.Forms;
 
@@ -79,10 +81,12 @@ namespace OwnerTrack.App
                 string imePrezime = txtImePrezime.Text.Trim();
                 int trenutniId = _vlasnikId ?? 0;
 
-               
-                if (_db.Vlasnici.Any(v => v.KlijentId == _klijentId
-                                       && v.ImePrezime == imePrezime
-                                       && v.Id != trenutniId))
+                
+                if (_db.Set<OwnerTrack.Data.Entities.Vlasnik>().IgnoreQueryFilters()
+                        .Any(v => v.KlijentId == _klijentId
+                               && v.ImePrezime == imePrezime
+                               && v.Id != trenutniId
+                               && v.Obrisan == null))
                 {
                     MessageBox.Show($"Vlasnik '{imePrezime}' već postoji za ovu firmu!",
                         "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);

@@ -1,7 +1,8 @@
 ﻿using OwnerTrack.Data.Entities;
+using OwnerTrack.Infrastructure.Database;
 using System;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Services
 {
     public class AuditService
     {

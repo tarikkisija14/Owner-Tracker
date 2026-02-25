@@ -1,4 +1,4 @@
-﻿namespace OwnerTrack.Infrastructure
+﻿namespace OwnerTrack.Infrastructure.Models
 {
     public class ImportResult
     {

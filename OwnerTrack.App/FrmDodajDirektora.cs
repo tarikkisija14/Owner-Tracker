@@ -1,6 +1,6 @@
 ﻿using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
-using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
 using System;
 using System.Windows.Forms;
 

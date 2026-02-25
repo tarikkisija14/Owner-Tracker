@@ -2,6 +2,8 @@
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
+using OwnerTrack.Infrastructure.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,6 +50,14 @@ namespace OwnerTrack.App
             _db?.Dispose();
             _searchTimer?.Dispose();
             base.OnFormClosed(e);
+        }
+
+        // Fix #5 — osvježi _db kontekst da nema stale cache podataka
+        private void OsvjeziDb()
+        {
+            _db?.Dispose();
+            _db = DbContextFactory.Kreiraj();
+            _audit = new AuditService(_db);
         }
 
 
@@ -214,7 +224,7 @@ namespace OwnerTrack.App
             dataGridDirektori.ClearSelection();
         }
 
-        
+
         private static void PostaviKolone(DataGridView grid,
             (string Ime, int Sirina, string Zaglavlje, string? Format)[] kolone)
         {
@@ -422,6 +432,7 @@ namespace OwnerTrack.App
             var helper = new ImportHelper(DbContextFactory.ConnectionString);
             helper.PokreniImport(dialog.FileName, this, () =>
             {
+                OsvjeziDb();
                 LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
             });
         }
@@ -438,18 +449,16 @@ namespace OwnerTrack.App
 
             try
             {
-                
+
                 var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
                 dbService.ResetirajBazu();
 
-                _db.Dispose();
-                _db = DbContextFactory.Kreiraj();
-                _db.Database.EnsureCreated();
-                _audit = new AuditService(_db);
+                OsvjeziDb();
 
                 var helper = new ImportHelper(DbContextFactory.ConnectionString);
                 helper.PokreniImport(dialog.FileName, this, () =>
                 {
+                    OsvjeziDb();
                     LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
                 });
             }
@@ -490,7 +499,7 @@ namespace OwnerTrack.App
                              && d.Status == StatusKonstante.Aktivan
                              && d.Klijent.Status != StatusKonstante.Arhiviran);
 
-                
+
                 var targetStyle = count > 0
                     ? System.Drawing.FontStyle.Bold
                     : System.Drawing.FontStyle.Regular;

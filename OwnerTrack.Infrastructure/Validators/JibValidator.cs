@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Validators
 {
     public static class JibValidator
     {
@@ -19,7 +19,7 @@ namespace OwnerTrack.Infrastructure
                 suma += cifre[i] * Tezine[i];
 
             int ostatak = suma % 11;
-            int kontrolna = (ostatak == 0 || ostatak == 1) ? 0 : (11 - ostatak);
+            int kontrolna = ostatak == 0 || ostatak == 1 ? 0 : 11 - ostatak;
             return cifre[12] == kontrolna;
         }
 

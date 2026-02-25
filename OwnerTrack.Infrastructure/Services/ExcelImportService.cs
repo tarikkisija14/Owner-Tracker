@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
+using OwnerTrack.Infrastructure.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -68,7 +70,7 @@ namespace OwnerTrack.Infrastructure
                             continue;
                         }
 
-                        
+
                         ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
 
                         result.SuccessCount++;
@@ -104,7 +106,17 @@ namespace OwnerTrack.Infrastructure
                                    string naziv, string idBroj,
                                    ImportResult result, Action<string> Log)
         {
-            
+
+            // Fix #3 — EnsureDjelatnostExists mora biti VAN glavne transakcije
+            // jer SQLite ne podržava nested transakcije i SaveChanges unutar tx može failati
+            string sifraDjelatnostiPre = GetCellValue(wbPart, row, 5)?.Trim() ?? "69.20";
+            string? nazivDjelatnostiPre = GetCellValue(wbPart, row, 6)?.Trim();
+            if (string.IsNullOrWhiteSpace(sifraDjelatnostiPre))
+                sifraDjelatnostiPre = "69.20";
+
+            using (var dbPre = KreirajDb())
+                EnsureDjelatnostExists(dbPre, sifraDjelatnostiPre, nazivDjelatnostiPre);
+
             using var db = KreirajDb();
             using var tx = db.Database.BeginTransaction();
             int privremeniVlasnikCount = 0;
@@ -120,12 +132,7 @@ namespace OwnerTrack.Infrastructure
                 if (db.Klijenti.AsNoTracking().Any(k => k.Naziv == naziv))
                     throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
 
-                string sifraDjelatnosti = GetCellValue(wbPart, row, 5)?.Trim() ?? "69.20";
-                string? nazivDjelatnosti = GetCellValue(wbPart, row, 6)?.Trim();
-                if (string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                    sifraDjelatnosti = "69.20";
-
-                EnsureDjelatnostExists(db, sifraDjelatnosti, nazivDjelatnosti);
+                string sifraDjelatnosti = sifraDjelatnostiPre;
 
                 var klijent = new Klijent
                 {
@@ -151,7 +158,7 @@ namespace OwnerTrack.Infrastructure
                 db.Klijenti.Add(klijent);
                 db.SaveChanges();
 
-                
+
                 string? vlasnikRaw = GetCellValue(wbPart, row, 10);
                 string? datVazVlasnika = GetCellValue(wbPart, row, 11);
                 string? procenatRaw = GetCellValue(wbPart, row, 12);
@@ -174,7 +181,7 @@ namespace OwnerTrack.Infrastructure
                     }
                 }
 
-                
+
                 string? direktorRaw = GetCellValue(wbPart, row, 15);
                 string? datVazDirektora = GetCellValue(wbPart, row, 16);
 
@@ -189,7 +196,7 @@ namespace OwnerTrack.Infrastructure
                     }
                 }
 
-                
+
                 string? statusUgovora = GetCellValue(wbPart, row, 25);
                 string? datumUgovora = GetCellValue(wbPart, row, 26);
                 if (!string.IsNullOrWhiteSpace(statusUgovora))
@@ -418,7 +425,7 @@ namespace OwnerTrack.Infrastructure
             if (string.IsNullOrWhiteSpace(v)) return null;
             string u = v.ToUpper().Trim();
 
-            
+
             var aliasi = new Dictionary<string, VelicinaFirme>(StringComparer.OrdinalIgnoreCase)
             {
                 ["MIKRO"] = VelicinaFirme.MIKRO,
@@ -442,11 +449,11 @@ namespace OwnerTrack.Infrastructure
             if (aliasi.TryGetValue(u, out var rezultat))
                 return rezultat.ToString();
 
-            
+
             if (Enum.TryParse<VelicinaFirme>(u, ignoreCase: true, out var parsed))
                 return parsed.ToString();
 
-            return v.Trim(); 
+            return v.Trim();
         }
 
         private string? NormalizeDaNe(string? v)

@@ -2,6 +2,9 @@
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
+using OwnerTrack.Infrastructure.Services;
+using OwnerTrack.Infrastructure.Validators;
 using System;
 using System.Linq;
 using System.Windows.Forms;
@@ -128,6 +131,8 @@ namespace OwnerTrack.App
 
 
             string idBroj = txtIdBroj.Text.Trim();
+            string naziv = txtNaziv.Text.Trim();
+
             string? jibGreska = JibValidator.GreškaValidacije(idBroj);
             if (jibGreska != null)
             {
@@ -147,8 +152,10 @@ namespace OwnerTrack.App
                 return;
             }
 
-            string naziv = txtNaziv.Text.Trim();
-            if (_db.Klijenti.Any(k => k.Naziv == naziv && k.Id != trenutniId))
+            // Fix #4 — ignoriši arhivirane firme pri provjeri duplikata naziva
+            // Koristimo Set<>().IgnoreQueryFilters() da zaobiđemo global query filter
+            if (_db.Set<OwnerTrack.Data.Entities.Klijent>().IgnoreQueryFilters()
+                    .Any(k => k.Naziv == naziv && k.Id != trenutniId && k.Obrisan == null))
             {
                 MessageBox.Show($"Klijent s nazivom '{naziv}' već postoji!",
                     "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);

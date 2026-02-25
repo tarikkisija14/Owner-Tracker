@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Enums;
-using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Database;
 using System;
 using System.Collections.Generic;
 using System.Drawing;

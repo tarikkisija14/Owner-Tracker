@@ -38,6 +38,7 @@ namespace OwnerTrack.Infrastructure
             if (ver < 5) ApplyV5(conn);
             if (ver < 6) ApplyV6(conn);
             if (ver < 7) ApplyV7(conn);
+            if (ver < 8) ApplyV8(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -197,13 +198,137 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
+
+        /// <summary>
+        /// Poziva se nakon reseta baze da vrati djelatnosti (INSERT OR IGNORE).
+        /// </summary>
+        public void ReseedDjelatnosti()
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                InsertDjelatnosti(conn, tx);
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException($"ReseedDjelatnosti neuspješan: {ex.Message}", ex);
+            }
+        }
+
+        private void ApplyV8(SqliteConnection conn)
+        {
+            Debug.WriteLine("[SCHEMA] V8 — kreiranje Djelatnosti tabele i seed KD BiH šifara...");
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                ExecSql(conn, tx, @"
+                    CREATE TABLE IF NOT EXISTS Djelatnosti (
+                        Sifra TEXT PRIMARY KEY NOT NULL,
+                        Naziv TEXT NOT NULL
+                    )");
+
+                InsertDjelatnosti(conn, tx);
+
+                SetVersion(conn, 8, tx);
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException($"V8 neuspješna: {ex.Message}", ex);
+            }
+        }
+
+        private void InsertDjelatnosti(SqliteConnection conn, SqliteTransaction tx)
+        {
+            var djelatnosti = new (string Sifra, string Naziv)[]
+                {
+                    ("01.13", "Uzgoj povrća, dinja i lubenica, korjenastog i gomoljastog povrća"),
+                    ("01.25", "Uzgoj bobičastog, orašastog i ostalog voća"),
+                    ("01.41", "Uzgoj muznih krava"),
+                    ("03.22", "Slatkovodna akvakultura"),
+                    ("10.51", "Proizvodnja mlijeka, mliječnih proizvoda i sira"),
+                    ("10.71", "Proizvodnja hljeba; svježih peciva i kolača"),
+                    ("13.20", "Tkanje tekstila"),
+                    ("13.92", "Proizvodnja gotovih tekstilnih proizvoda, osim odjeće"),
+                    ("14.13", "Proizvodnja ostale vanjske odjeće"),
+                    ("15.11", "Štavljenje i obrada kože; dorada i bojenje krzna"),
+                    ("15.20", "Proizvodnja obuće"),
+                    ("16.10", "Piljenje i blanjanje drva (proizvodnja rezane građe); impregnacija drveta"),
+                    ("16.23", "Proizvodnja ostale građevne stolarije i elemenata"),
+                    ("16.24", "Proizvodnja ambalaže od drva"),
+                    ("20.42", "Proizvodnja parfema i toaletno-kozmetičkih preparata"),
+                    ("22.22", "Proizvodnja ambalaže od plastičnih masa"),
+                    ("22.23", "Proizvodnja proizvoda od plastičnih masa za građevinarstvo"),
+                    ("25.11", "Proizvodnja metalnih konstrukcija i njihovih dijelova"),
+                    ("25.62", "Mašinska obrada metala"),
+                    ("35.11", "Proizvodnja električne energije"),
+                    ("35.30", "Proizvodnja i snabdijevanje parom i klimatizacija"),
+                    ("45.11", "Trgovina automobilima i motornim vozilima lake kategorije"),
+                    ("45.20", "Održavanje i popravak motornih vozila"),
+                    ("45.32", "Trgovina na malo dijelovima i priborom za motorna vozila"),
+                    ("46.12", "Posredovanje u trgovini gorivima, rudama, metalima i industrijskim hemikalijama"),
+                    ("46.39", "Nespecijalizirana trgovina na veliko hranom, pićima i duhanskim proizvodima"),
+                    ("46.69", "Trgovina na veliko ostalim strojevima i opremom"),
+                    ("46.73", "Trgovina na veliko drvom, građevinskim materijalom i sanitarnom opremom"),
+                    ("46.74", "Trgovina na veliko željeznom robom, instalacijskim materijalom i opremom za vodovod i grijanje"),
+                    ("46.90", "Nespecijalizirana trgovina na veliko"),
+                    ("47.19", "Ostala trgovina na malo u nespecijaliziranim prodavaonicama"),
+                    ("47.30", "Trgovina na malo motornim gorivima u specijaliziranim prodavnicama"),
+                    ("47.52", "Trgovina na malo željeznom robom, bojama i staklom u specijaliziranim prodavaonicama"),
+                    ("47.59", "Trgovina na malo namještajem, opremom za rasvjetu i ostalim proizvodima za domaćinstvo u specijaliziranim prodavnicama"),
+                    ("47.73", "Ljekarne"),
+                    ("47.76", "Trgovina na malo cvijećem, sadnicama, sjemenjem, gnojivom"),
+                    ("47.78", "Ostala trgovina na malo novom robom u specijaliziranim prodavnicama"),
+                    ("47.91", "Trgovina na malo putem pošte ili interneta"),
+                    ("49.39", "Ostali kopneni prijevoz putnika, d. n."),
+                    ("49.41", "Cestovni prijevoz robe"),
+                    ("55.10", "Hoteli i sličan smještaj"),
+                    ("56.10", "Djelatnosti restorana i ostalih objekata za pripremu i usluživanje hrane"),
+                    ("62.01", "Računarsko programiranje"),
+                    ("68.10", "Kupovina i prodaja vlastitih nekretnina"),
+                    ("69.10", "PRAVNE DJELATNOSTI"),
+                    ("69.20", "Računovodstvene, knjigovodstvene i revizijske djelatnosti; porezno savjetovanje"),
+                    ("74.12", "Računovodstveni, knjigovodstveni poslovi, porezno savjetovanje"),
+                    ("75.00", "Veterinarske djelatnosti"),
+                    ("77.11", "Iznajmljivanje i davanje u zakup (leasing) automobila i motornih vozila lake kategorije"),
+                    ("79.90", "Udruženje građana KOŠARKAŠKI KLUB"),
+                    ("80.10", "Djelatnosti privatne zaštite"),
+                    ("87.10", "Djelatnosti ustanova za njegu"),
+                    ("93.19", "Udruženje građana"),
+                    ("94.12", "Djelatnosti strukovnih članskih organizacija"),
+                    ("94.91", "Djelatnosti vjerskih organizacija"),
+                    ("94.99", "Okupljanje oboljelih od dijabetesa"),
+                    ("96.03", "Pogrebne i srodne djelatnosti")
+                };
+
+            var insertCmd = conn.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText = "INSERT OR IGNORE INTO Djelatnosti (Sifra, Naziv) VALUES (@s, @n)";
+            insertCmd.Parameters.Add(new SqliteParameter("@s", ""));
+            insertCmd.Parameters.Add(new SqliteParameter("@n", ""));
+
+            foreach (var d in djelatnosti)
+            {
+                insertCmd.Parameters["@s"].Value = d.Sifra;
+                insertCmd.Parameters["@n"].Value = d.Naziv;
+                insertCmd.ExecuteNonQuery();
+            }
+
+            Debug.WriteLine($"[SCHEMA] InsertDjelatnosti — obrađeno {djelatnosti.Length} šifara.");
+        }
+
         private void ApplyV7(SqliteConnection conn)
         {
             Debug.WriteLine("[SCHEMA] V7 — uklanjanje unique indexa koji blokiraju soft-delete...");
             using var tx = conn.BeginTransaction();
             try
             {
-                
+
                 DropIndexIfExists(conn, tx, "IX_Klijenti_Naziv");
                 DropIndexIfExists(conn, tx, "IX_Klijenti_IdBroj");
                 DropIndexIfExists(conn, tx, "IX_Vlasnici_KlijentId_ImePrezime");

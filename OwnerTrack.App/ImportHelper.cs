@@ -1,4 +1,5 @@
 ﻿using OwnerTrack.Infrastructure;
+using OwnerTrack.Infrastructure.Models;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -19,9 +20,23 @@ namespace OwnerTrack.App
             using var frm = KreirajProgressFormu(
                 out var progressBar, out var lblStatus, out var btnZatvori);
 
+            bool importZavršen = false;
+
+            // Fix #3 — spriječi zatvaranje X dugmetom dok import traje
+            frm.FormClosing += (s, args) =>
+            {
+                if (!importZavršen)
+                {
+                    args.Cancel = true;
+                    MessageBox.Show(
+                        "Import je u toku. Molimo sačekajte da se završi.",
+                        "Import u toku", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+
             var progress = new Progress<ImportProgress>(p =>
             {
-                if (!frm.IsHandleCreated) return;
+                if (!frm.IsHandleCreated || frm.IsDisposed) return;
                 frm.Invoke((Action)(() =>
                 {
                     if (p.TotalRows > 0)
@@ -45,6 +60,7 @@ namespace OwnerTrack.App
                     var result = await System.Threading.Tasks.Task.Run(
                         () => svc.ImportFromExcel(filePath, progress));
 
+                    importZavršen = true;
                     btnZatvori.Enabled = true;
                     lblStatus.Text =
                         $"Import završen!\n" +
@@ -56,13 +72,21 @@ namespace OwnerTrack.App
                             $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(10))}",
                             "Upozorenje", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-                    onZavrsetak?.Invoke();
+                    // Fix #2 — onZavrsetak se poziva tek nakon što korisnik zatvori formu
+                    // da nema race conditiona između refresh glavne forme i progress forme
+                    btnZatvori.Click += (bs, be) =>
+                    {
+                        frm.Close();
+                        onZavrsetak?.Invoke();
+                    };
                 }
                 catch (Exception ex)
                 {
+                    importZavršen = true;
                     MessageBox.Show($"Greška: {ex.Message}", "Greška",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     frm.Close();
+                    onZavrsetak?.Invoke();
                 }
             };
 

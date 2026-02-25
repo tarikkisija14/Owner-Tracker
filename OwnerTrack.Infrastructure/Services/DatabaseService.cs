@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Infrastructure.Database;
 using System;
 using System.IO;
 
@@ -26,7 +27,7 @@ namespace OwnerTrack.Infrastructure
         private void NapraviBackup()
         {
             if (!File.Exists(_dbPath))
-                return; 
+                return;
 
             string backupPath = _dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
             try
@@ -47,17 +48,16 @@ namespace OwnerTrack.Infrastructure
             using var tx = db.Database.BeginTransaction();
             try
             {
+                
                 db.Database.ExecuteSqlRaw("DELETE FROM AuditLogs");
                 db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
                 db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
                 db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
                 db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
-                db.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
 
-                
                 db.Database.ExecuteSqlRaw(
                     "DELETE FROM sqlite_sequence WHERE name IN " +
-                    "('AuditLogs','Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
+                    "('AuditLogs','Ugovori','Vlasnici','Direktori','Klijenti')");
 
                 tx.Commit();
             }
@@ -66,6 +66,10 @@ namespace OwnerTrack.Infrastructure
                 tx.Rollback();
                 throw;
             }
+
+            
+            var schema = new SchemaManager(_connectionString);
+            schema.ReseedDjelatnosti();
         }
     }
 }

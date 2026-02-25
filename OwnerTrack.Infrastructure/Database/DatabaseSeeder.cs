@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Database
 {
     public class DatabaseSeeder
     {
@@ -26,6 +26,24 @@ namespace OwnerTrack.Infrastructure
             }
 
             Console.WriteLine("Dodajem test podatke u bazu...");
+
+           
+            var sifre = new[]
+            {
+                ("69.20", "Računovodstvene, knjigovodstvene i revizorske djelatnosti"),
+                ("47.11", "Maloprodaja u nespecijaliziranim prodavnicama pretežno hrane"),
+                ("41.20", "Gradnja stambenih i nestambenih zgrada"),
+                ("56.10", "Restorani i ostali objekti za pripremu hrane"),
+                ("62.01", "Računalno programiranje")
+            };
+            foreach (var (sifra, naziv) in sifre)
+            {
+                if (!_db.Djelatnosti.Any(d => d.Sifra == sifra))
+                {
+                    _db.Djelatnosti.Add(new Djelatnost { Sifra = sifra, Naziv = naziv });
+                }
+            }
+            _db.SaveChanges();
 
 
             var klijent1 = new Klijent
