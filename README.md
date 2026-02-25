@@ -7,15 +7,15 @@
 
 ## Tehnologije
 
-| Tehnologija | Verzija | Svrha |
+| Tehnologija | Verzija |
 |---|---|---|
-| .NET | 8.0 | Framework |
-| C# | 12 | Programski jezik |
-| Windows Forms | net8.0-windows | UI |
-| Entity Framework Core | latest | ORM |
-| SQLite | — | Lokalna baza podataka |
-| EPPlus | 5.0.0 | Čitanje Excel fajlova |
-| QuestPDF | 2026.2.1 | Generisanje PDF izvještaja |
+| .NET | 8.0 |
+| C# | 12 | 
+| Windows Forms | net8.0-windows |
+| Entity Framework Core | latest |
+| SQLite | — | 
+| EPPlus | 5.0.0 | 
+| QuestPDF | 2026.2.1 | 
 
 ---
 
