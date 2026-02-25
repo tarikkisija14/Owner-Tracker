@@ -37,7 +37,7 @@ namespace OwnerTrack.Infrastructure
             if (ver < 4) ApplyV4(conn);
             if (ver < 5) ApplyV5(conn);
             if (ver < 6) ApplyV6(conn);
-
+            if (ver < 7) ApplyV7(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -98,7 +98,7 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-        
+
         private void ApplyV3(SqliteConnection conn)
         {
             Debug.WriteLine("[SCHEMA] V3 — rename ProcetatVlasnistva → ProcenatVlasnistva...");
@@ -122,14 +122,14 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-       
+
         private void ApplyV4(SqliteConnection conn)
         {
             Debug.WriteLine("[SCHEMA] V4 — dodavanje Obrisan kolona...");
             using var tx = conn.BeginTransaction();
             try
             {
-                
+
                 if (TableExists(conn, tx, "Klijenti"))
                     AddColumnIfMissing(conn, tx, "Klijenti", "Obrisan", "TEXT");
                 if (TableExists(conn, tx, "Vlasnici"))
@@ -197,7 +197,28 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
-        
+        private void ApplyV7(SqliteConnection conn)
+        {
+            Debug.WriteLine("[SCHEMA] V7 — uklanjanje unique indexa koji blokiraju soft-delete...");
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                
+                DropIndexIfExists(conn, tx, "IX_Klijenti_Naziv");
+                DropIndexIfExists(conn, tx, "IX_Klijenti_IdBroj");
+                DropIndexIfExists(conn, tx, "IX_Vlasnici_KlijentId_ImePrezime");
+
+                SetVersion(conn, 7, tx);
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException($"V7 neuspješna: {ex.Message}", ex);
+            }
+        }
+
+
 
         private void ExecSql(SqliteConnection conn, SqliteTransaction tx, string sql)
         {
@@ -232,6 +253,17 @@ namespace OwnerTrack.Infrastructure
         {
             if (!ColumnExists(conn, tx, table, column))
                 ExecSql(conn, tx, $"ALTER TABLE {table} ADD COLUMN {column} {type}");
+        }
+
+        private void DropIndexIfExists(SqliteConnection conn, SqliteTransaction tx, string indexName)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=@n";
+            cmd.Parameters.AddWithValue("@n", indexName);
+            bool exists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            if (exists)
+                ExecSql(conn, tx, $"DROP INDEX IF EXISTS \"{indexName}\"");
         }
 
         private int GetCurrentVersion(SqliteConnection conn)

@@ -50,7 +50,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-        /
+
 
         private void LoadVelicinaFilter()
         {
@@ -134,28 +134,35 @@ namespace OwnerTrack.App
 
         private void KonfigurirajKolone()
         {
-            if (dataGridKlijenti.Columns.Count == 0) return;
-            void K(string n, int w, string h, string? f = null)
+            // Koristimo istu PostaviKolone metodu umjesto lokalnog void K() bloka
+            PostaviKolone(dataGridKlijenti, new[]
             {
-                if (!dataGridKlijenti.Columns.Contains(n)) return;
-                dataGridKlijenti.Columns[n].Width = w;
-                dataGridKlijenti.Columns[n].HeaderText = h;
-                if (f != null) dataGridKlijenti.Columns[n].DefaultCellStyle.Format = f;
-            }
-            K("Id", 40, "ID"); K("Naziv", 220, "Naziv preduzeća"); K("IdBroj", 130, "ID broj");
-            K("Adresa", 200, "Adresa"); K("SifraDjelatnosti", 70, "Šifra"); K("Djelatnost", 220, "Djelatnost");
-            K("DatumUspostaveOdnosa", 120, "Datum uspostave odnosa", "dd.MM.yyyy");
-            K("VrstaKlijenta", 110, "Vrsta klijenta");
-            K("DatumOsnivanjaFirme", 120, "Datum osnivanja", "dd.MM.yyyy");
-            K("Velicina", 80, "Veličina"); K("PepRizik", 70, "PEP"); K("UboRizik", 70, "UBO");
-            K("GotovinaRizik", 90, "Gotovina rizik"); K("GeografskiRizik", 100, "Geografski rizik");
-            K("UkupnaProcjena", 120, "Ukupna procjena");
-            K("DatumProcjeneRizika", 120, "Datum procjene rizika", "dd.MM.yyyy");
-            K("OvjeraCr", 150, "Ovjera/CR"); K("StatusUgovora", 110, "Status ugovora");
-            K("DatumPotpisaUgovora", 120, "Datum potpisa ugovora", "dd.MM.yyyy");
-            K("BrojVlasnika", 80, "Vlasnici"); K("BrojDirektora", 80, "Direktori");
-            K("StatusKlijenta", 90, "Status klijenta"); K("Napomena", 200, "Napomena");
+                ("Id", 40, "ID", (string?)null),
+                ("Naziv", 220, "Naziv preduzeća", (string?)null),
+                ("IdBroj", 130, "ID broj", (string?)null),
+                ("Adresa", 200, "Adresa", (string?)null),
+                ("SifraDjelatnosti", 70, "Šifra", (string?)null),
+                ("Djelatnost", 220, "Djelatnost", (string?)null),
+                ("DatumUspostaveOdnosa", 120, "Datum uspostave odnosa", "dd.MM.yyyy"),
+                ("VrstaKlijenta", 110, "Vrsta klijenta", (string?)null),
+                ("DatumOsnivanjaFirme", 120, "Datum osnivanja", "dd.MM.yyyy"),
+                ("Velicina", 80, "Veličina", (string?)null),
+                ("PepRizik", 70, "PEP", (string?)null),
+                ("UboRizik", 70, "UBO", (string?)null),
+                ("GotovinaRizik", 90, "Gotovina rizik", (string?)null),
+                ("GeografskiRizik", 100, "Geografski rizik", (string?)null),
+                ("UkupnaProcjena", 120, "Ukupna procjena", (string?)null),
+                ("DatumProcjeneRizika", 120, "Datum procjene rizika", "dd.MM.yyyy"),
+                ("OvjeraCr", 150, "Ovjera/CR", (string?)null),
+                ("StatusUgovora", 110, "Status ugovora", (string?)null),
+                ("DatumPotpisaUgovora", 120, "Datum potpisa ugovora", "dd.MM.yyyy"),
+                ("BrojVlasnika", 80, "Vlasnici", (string?)null),
+                ("BrojDirektora", 80, "Direktori", (string?)null),
+                ("StatusKlijenta", 90, "Status klijenta", (string?)null),
+                ("Napomena", 200, "Napomena", (string?)null),
+            });
         }
+
 
         private void LoadVlasnici(int klijentId)
         {
@@ -171,21 +178,16 @@ namespace OwnerTrack.App
                 StatusVlasnika = v.Status
             }).ToList();
 
-            if (dataGridVlasnici.Rows.Count > 0 && dataGridVlasnici.Columns.Count > 0)
+            PostaviKolone(dataGridVlasnici, new[]
             {
-                void K(string n, int w, string h, string? f = null)
-                {
-                    if (!dataGridVlasnici.Columns.Contains(n)) return;
-                    dataGridVlasnici.Columns[n].Width = w;
-                    dataGridVlasnici.Columns[n].HeaderText = h;
-                    if (f != null) dataGridVlasnici.Columns[n].DefaultCellStyle.Format = f;
-                }
-                K("Id", 40, "ID"); K("ImePrezime", 180, "Ime i prezime");
-                K("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy");
-                K("ProcenatVlasnistva", 100, "% vlasništva");
-                K("DatumUtvrdjivanja", 130, "Datum utvrđivanja", "dd.MM.yyyy");
-                K("IzvorPodatka", 150, "Izvor podatka"); K("StatusVlasnika", 90, "Status");
-            }
+                ("Id", 40, "ID", (string?)null),
+                ("ImePrezime", 180, "Ime i prezime", (string?)null),
+                ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
+                ("ProcenatVlasnistva", 100, "% vlasništva", (string?)null),
+                ("DatumUtvrdjivanja", 130, "Datum utvrđivanja", "dd.MM.yyyy"),
+                ("IzvorPodatka", 150, "Izvor podatka", (string?)null),
+                ("StatusVlasnika", 90, "Status", (string?)null),
+            });
             dataGridVlasnici.ClearSelection();
         }
 
@@ -201,23 +203,34 @@ namespace OwnerTrack.App
                 StatusDirektora = d.Status
             }).ToList();
 
-            if (dataGridDirektori.Rows.Count > 0 && dataGridDirektori.Columns.Count > 0)
+            PostaviKolone(dataGridDirektori, new[]
             {
-                void K(string n, int w, string h, string? f = null)
-                {
-                    if (!dataGridDirektori.Columns.Contains(n)) return;
-                    dataGridDirektori.Columns[n].Width = w;
-                    dataGridDirektori.Columns[n].HeaderText = h;
-                    if (f != null) dataGridDirektori.Columns[n].DefaultCellStyle.Format = f;
-                }
-                K("Id", 40, "ID"); K("ImePrezime", 200, "Ime i prezime");
-                K("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy");
-                K("TipValjanosti", 120, "Tip valjanosti"); K("StatusDirektora", 90, "Status");
-            }
+                ("Id", 40, "ID", (string?)null),
+                ("ImePrezime", 200, "Ime i prezime", (string?)null),
+                ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
+                ("TipValjanosti", 120, "Tip valjanosti", (string?)null),
+                ("StatusDirektora", 90, "Status", (string?)null),
+            });
             dataGridDirektori.ClearSelection();
         }
 
         
+        private static void PostaviKolone(DataGridView grid,
+            (string Ime, int Sirina, string Zaglavlje, string? Format)[] kolone)
+        {
+            if (grid.Columns.Count == 0) return;
+            foreach (var (ime, sirina, zaglavlje, format) in kolone)
+            {
+                if (!grid.Columns.Contains(ime)) continue;
+                grid.Columns[ime].Width = sirina;
+                grid.Columns[ime].HeaderText = zaglavlje;
+                if (format != null)
+                    grid.Columns[ime].DefaultCellStyle.Format = format;
+            }
+        }
+
+
+
 
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
@@ -232,7 +245,7 @@ namespace OwnerTrack.App
         private void ApplyCurrentFilters() =>
             LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
 
-        
+
 
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
@@ -273,7 +286,7 @@ namespace OwnerTrack.App
                 if (klijent == null) return;
 
                 _audit.SoftDelete(klijent, "Klijenti", id, $"Arhivirana firma: '{klijent.Naziv}'");
-                klijent.Status = "ARHIVIRAN";
+                klijent.Status = StatusKonstante.Arhiviran;
                 _db.SaveChanges();
 
                 MessageBox.Show("Firma je arhivirana.");
@@ -282,7 +295,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        
+
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
@@ -316,7 +329,7 @@ namespace OwnerTrack.App
                 if (vlasnik == null) return;
                 int klijentId = vlasnik.KlijentId;
                 _audit.SoftDelete(vlasnik, "Vlasnici", vlasnikId, $"Arhiviran: '{vlasnik.ImePrezime}'");
-                vlasnik.Status = "ARHIVIRAN";
+                vlasnik.Status = StatusKonstante.Arhiviran;
                 _db.SaveChanges();
                 MessageBox.Show("Vlasnik arhiviran.");
                 LoadVlasnici(klijentId);
@@ -324,7 +337,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        
+
 
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
@@ -358,7 +371,7 @@ namespace OwnerTrack.App
                 if (direktor == null) return;
                 int klijentId = direktor.KlijentId;
                 _audit.SoftDelete(direktor, "Direktori", direktorId, $"Arhiviran: '{direktor.ImePrezime}'");
-                direktor.Status = "ARHIVIRAN";
+                direktor.Status = StatusKonstante.Arhiviran;
                 _db.SaveChanges();
                 MessageBox.Show("Direktor arhiviran.");
                 LoadDirektori(klijentId);
@@ -366,7 +379,7 @@ namespace OwnerTrack.App
             catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
         }
 
-        
+
 
         private string GetSelectedDjelatnostSifra()
         {
@@ -399,7 +412,7 @@ namespace OwnerTrack.App
             LoadKlijenti();
         }
 
-       
+
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
@@ -425,7 +438,15 @@ namespace OwnerTrack.App
 
             try
             {
-                ResetujBazu();
+                
+                var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
+                dbService.ResetirajBazu();
+
+                _db.Dispose();
+                _db = DbContextFactory.Kreiraj();
+                _db.Database.EnsureCreated();
+                _audit = new AuditService(_db);
+
                 var helper = new ImportHelper(DbContextFactory.ConnectionString);
                 helper.PokreniImport(dialog.FileName, this, () =>
                 {
@@ -439,51 +460,8 @@ namespace OwnerTrack.App
             }
         }
 
-        private void ResetujBazu()
-        {
-            string dbPath = DbContextFactory.DbPath;
-            string backupPath = dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
 
-            try
-            {
-                File.Copy(dbPath, backupPath, overwrite: true);
-            }
-            catch (Exception ex)
-            {
-                if (MessageBox.Show(
-                        $"Backup baze nije uspio:\n{ex.Message}\n\n" +
-                        "Nastavi bez backupa? (Podaci mogu biti trajno izgubljeni!)",
-                        "Backup nije uspio", MessageBoxButtons.YesNo, MessageBoxIcon.Warning)
-                    == DialogResult.No)
-                    throw new Exception("Reset otkazan — backup nije uspio.");
-            }
 
-            _db.Dispose();
-
-            using var tmpDb = DbContextFactory.Kreiraj();
-            using var tx = tmpDb.Database.BeginTransaction();
-            try
-            {
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM AuditLogs");
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM Direktori");
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
-                tmpDb.Database.ExecuteSqlRaw("DELETE FROM Djelatnosti");
-                tmpDb.Database.ExecuteSqlRaw(
-                    "DELETE FROM sqlite_sequence WHERE name IN " +
-                    "('AuditLogs','Ugovori','Vlasnici','Direktori','Klijenti','Djelatnosti')");
-                tx.Commit();
-            }
-            catch { tx.Rollback(); throw; }
-
-            _db.Dispose();
-            _db = DbContextFactory.Kreiraj();
-            _db.Database.EnsureCreated();
-            _audit = new AuditService(_db);
-        }
-
-       
 
         private void OsvjeziUpozerenjaBadge()
         {
@@ -493,28 +471,44 @@ namespace OwnerTrack.App
                 var granica = danas.AddDays(60);
 
                 bool imaIsteklih = _db.Vlasnici.AsNoTracking()
-                    .Any(v => v.DatumValjanostiDokumenta < danas && v.Status == "AKTIVAN")
+                    .Any(v => v.DatumValjanostiDokumenta < danas
+                           && v.Status == StatusKonstante.Aktivan
+                           && v.Klijent.Status != StatusKonstante.Arhiviran)
                     || _db.Direktori.AsNoTracking()
-                    .Any(d => d.DatumValjanosti < danas && d.TipValjanosti == "VREMENSKI" && d.Status == "AKTIVAN");
+                    .Any(d => d.DatumValjanosti < danas
+                           && d.TipValjanosti == "VREMENSKI"
+                           && d.Status == StatusKonstante.Aktivan
+                           && d.Klijent.Status != StatusKonstante.Arhiviran);
 
                 int count = _db.Vlasnici.AsNoTracking()
-                    .Count(v => v.DatumValjanostiDokumenta <= granica && v.Status == "AKTIVAN")
+                    .Count(v => v.DatumValjanostiDokumenta <= granica
+                             && v.Status == StatusKonstante.Aktivan
+                             && v.Klijent.Status != StatusKonstante.Arhiviran)
                     + _db.Direktori.AsNoTracking()
-                    .Count(d => d.DatumValjanosti <= granica && d.TipValjanosti == "VREMENSKI" && d.Status == "AKTIVAN");
+                    .Count(d => d.DatumValjanosti <= granica
+                             && d.TipValjanosti == "VREMENSKI"
+                             && d.Status == StatusKonstante.Aktivan
+                             && d.Klijent.Status != StatusKonstante.Arhiviran);
+
+                
+                var targetStyle = count > 0
+                    ? System.Drawing.FontStyle.Bold
+                    : System.Drawing.FontStyle.Regular;
+
+                if (btnUpozorenja.Font.Style != targetStyle)
+                    btnUpozorenja.Font = new System.Drawing.Font(btnUpozorenja.Font, targetStyle);
 
                 if (count > 0)
                 {
                     btnUpozorenja.Text = $"🔔 Upozorenja ({count})";
                     btnUpozorenja.BackColor = imaIsteklih ? Color.Firebrick : Color.FromArgb(220, 120, 20);
                     btnUpozorenja.ForeColor = Color.White;
-                    btnUpozorenja.Font = new System.Drawing.Font(btnUpozorenja.Font, System.Drawing.FontStyle.Bold);
                 }
                 else
                 {
                     btnUpozorenja.Text = "🔔 Upozorenja";
                     btnUpozorenja.BackColor = SystemColors.Control;
                     btnUpozorenja.ForeColor = SystemColors.ControlText;
-                    btnUpozorenja.Font = new System.Drawing.Font(btnUpozorenja.Font, System.Drawing.FontStyle.Regular);
                 }
             }
             catch (Exception ex) { Debug.WriteLine($"[BADGE] Greška: {ex.Message}"); }
@@ -523,14 +517,14 @@ namespace OwnerTrack.App
         private void btnUpozorenja_Click(object sender, EventArgs e) =>
             new FrmUpozorenja(_db).ShowDialog(this);
 
-       
+
 
         private void btnExportTabelaPdf_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.Rows.Count == 0)
             { MessageBox.Show("Nema klijenata za export."); return; }
 
-            
+
             var ids = dataGridKlijenti.Rows
                 .Cast<DataGridViewRow>()
                 .Where(r => r.DataBoundItem != null)

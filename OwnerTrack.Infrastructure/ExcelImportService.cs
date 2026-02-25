@@ -13,7 +13,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace OwnerTrack.App
+namespace OwnerTrack.Infrastructure
 {
     public class ExcelImportService
     {
@@ -68,7 +68,7 @@ namespace OwnerTrack.App
                             continue;
                         }
 
-                        // Svaki red u vlastitoj transakciji — parcijalni upis nije moguć
+                        
                         ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
 
                         result.SuccessCount++;

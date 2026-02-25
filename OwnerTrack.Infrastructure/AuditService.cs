@@ -12,6 +12,7 @@ namespace OwnerTrack.Infrastructure
             _db = db;
         }
 
+        
         public void Zabilježi(string tabela, int? entitetId, string akcija, string opis)
         {
             _db.AuditLogs.Add(new AuditLog
@@ -22,7 +23,7 @@ namespace OwnerTrack.Infrastructure
                 Opis = opis,
                 Vrijeme = DateTime.Now
             });
-            
+           
         }
 
         public void Dodano(string tabela, int id, string opis)
@@ -31,7 +32,7 @@ namespace OwnerTrack.Infrastructure
         public void Izmijenjeno(string tabela, int id, string opis)
             => Zabilježi(tabela, id, "IZMIJENJENO", opis);
 
-       
+        
         public void SoftDelete(ISoftDeletable entitet, string tabela, int id, string opis)
         {
             entitet.Obrisan = DateTime.Now;

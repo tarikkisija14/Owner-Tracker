@@ -58,20 +58,20 @@ namespace OwnerTrack.Infrastructure
                 .HasForeignKey<Ugovor>(u => u.KlijentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // UNIQUE constraints
-            modelBuilder.Entity<Klijent>()
-                 .HasIndex(k => k.Naziv).IsUnique();
-            modelBuilder.Entity<Klijent>()
-                .HasIndex(k => k.IdBroj).IsUnique();
-            modelBuilder.Entity<Vlasnik>()
-                .HasIndex(v => new { v.KlijentId, v.ImePrezime }).IsUnique();
             
+            modelBuilder.Entity<Klijent>()
+                .HasIndex(k => k.Naziv);
+            modelBuilder.Entity<Klijent>()
+                .HasIndex(k => k.IdBroj);
+            modelBuilder.Entity<Vlasnik>()
+                .HasIndex(v => new { v.KlijentId, v.ImePrezime });
+
             modelBuilder.Entity<Direktor>()
                 .HasIndex(d => d.KlijentId);
-            modelBuilder.Entity<Ugovor>() 
+            modelBuilder.Entity<Ugovor>()
                 .HasIndex(u => u.KlijentId).IsUnique();
 
-            //soft-delete
+            
             modelBuilder.Entity<Klijent>()
                 .HasQueryFilter(k => k.Obrisan == null);
             modelBuilder.Entity<Vlasnik>()

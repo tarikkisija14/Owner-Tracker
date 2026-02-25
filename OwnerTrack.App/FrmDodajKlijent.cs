@@ -51,7 +51,7 @@ namespace OwnerTrack.App
             cbStatusUgovora.Items.Clear();
             cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "ANEKS", "OTKAZAN", "NEMA UGOVOR", "NEAKTIVAN" });
             cbStatus.Items.Clear();
-            cbStatus.Items.AddRange(new[] { "AKTIVAN", "NEAKTIVAN", "ARHIVIRAN" });
+            cbStatus.Items.AddRange(new[] { StatusKonstante.Aktivan, StatusKonstante.Neaktivan, StatusKonstante.Arhiviran });
 
             if (!_klijentId.HasValue)
             {
@@ -114,7 +114,8 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrEmpty(value)) { cb.SelectedIndex = 0; return; }
             int idx = cb.FindStringExact(value);
-            if (idx >= 0) cb.SelectedIndex = idx;
+
+            cb.SelectedIndex = idx >= 0 ? idx : 0;
         }
 
         private void btnSpremi_Click(object sender, EventArgs e)
@@ -125,7 +126,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-            
+
             string idBroj = txtIdBroj.Text.Trim();
             string? jibGreska = JibValidator.GreškaValidacije(idBroj);
             if (jibGreska != null)
@@ -196,11 +197,7 @@ namespace OwnerTrack.App
             k.Napomena = txtNapomena.Text;
             k.Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim();
             k.Telefon = string.IsNullOrWhiteSpace(txtTelefon.Text) ? null : txtTelefon.Text.Trim();
-
             k.Azuriran = DateTime.Now;
-
-            _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'");
-            _db.SaveChanges();
 
             var ugovor = _db.Ugovori.FirstOrDefault(u => u.KlijentId == id);
             if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
@@ -215,7 +212,20 @@ namespace OwnerTrack.App
                 _db.Ugovori.Remove(ugovor);
             }
 
-            _db.SaveChanges();
+            _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'");
+
+            using var tx = _db.Database.BeginTransaction();
+            try
+            {
+                _db.SaveChanges();
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+
             MessageBox.Show("Klijent ažuriran!");
         }
 
@@ -243,25 +253,34 @@ namespace OwnerTrack.App
                 Kreiran = DateTime.Now,
                 Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim(),
                 Telefon = string.IsNullOrWhiteSpace(txtTelefon.Text) ? null : txtTelefon.Text.Trim(),
-
             };
 
-            _db.Klijenti.Add(k);
-            _db.Klijenti.Add(k);
-            _db.SaveChanges();
-            _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
-            _db.SaveChanges();
-
-            if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
+            using var tx = _db.Database.BeginTransaction();
+            try
             {
-                _db.Ugovori.Add(new Ugovor
-                {
-                    KlijentId = k.Id,
-                    VrstaUgovora = txtVrstaUgovora.Text,
-                    StatusUgovora = cbStatusUgovora.Text,
-                    DatumUgovora = dtDatumUgovora.Value
-                });
+                _db.Klijenti.Add(k);
                 _db.SaveChanges();
+
+                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
+
+                if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
+                {
+                    _db.Ugovori.Add(new Ugovor
+                    {
+                        KlijentId = k.Id,
+                        VrstaUgovora = txtVrstaUgovora.Text,
+                        StatusUgovora = cbStatusUgovora.Text,
+                        DatumUgovora = dtDatumUgovora.Value
+                    });
+                }
+
+                _db.SaveChanges();
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
             }
 
             MessageBox.Show("Klijent dodan!");
@@ -274,6 +293,11 @@ namespace OwnerTrack.App
         {
             DialogResult = DialogResult.Cancel;
             Close();
+        }
+
+        private void txtTelefon_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OwnerTrack.Data.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -57,7 +58,7 @@ namespace OwnerTrack.Data.Entities
         public string? OvjeraCr { get; set; }
 
         [StringLength(50)]
-        public string? Status { get; set; } = "AKTIVAN";
+        public string? Status { get; set; } = StatusKonstante.Aktivan;
 
         [StringLength(1000)]
         public string? Napomena { get; set; }

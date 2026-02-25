@@ -131,7 +131,7 @@ namespace OwnerTrack.Infrastructure
             _db.Klijenti.AddRange(klijent1, klijent2, klijent3, klijent4, klijent5);
             _db.SaveChanges();
 
-            
+
             _db.Vlasnici.AddRange(
                 new Vlasnik
                 {
@@ -208,7 +208,7 @@ namespace OwnerTrack.Infrastructure
             );
             _db.SaveChanges();
 
-            
+
             _db.Direktori.AddRange(
                 new Direktor
                 {
@@ -253,36 +253,36 @@ namespace OwnerTrack.Infrastructure
             );
             _db.SaveChanges();
 
-            
+
             _db.Ugovori.AddRange(
                 new Ugovor
                 {
                     KlijentId = klijent1.Id,
-                    StatusUgovora = "AKTIVAN",
+                    StatusUgovora = "POTPISAN",
                     DatumUgovora = new DateTime(2015, 4, 1)
                 },
                 new Ugovor
                 {
                     KlijentId = klijent2.Id,
-                    StatusUgovora = "AKTIVAN",
+                    StatusUgovora = "POTPISAN",
                     DatumUgovora = new DateTime(2018, 7, 1)
                 },
                 new Ugovor
                 {
                     KlijentId = klijent3.Id,
-                    StatusUgovora = "AKTIVAN",
+                    StatusUgovora = "POTPISAN",
                     DatumUgovora = new DateTime(2010, 2, 1)
                 },
                 new Ugovor
                 {
                     KlijentId = klijent4.Id,
-                    StatusUgovora = "AKTIVAN",
+                    StatusUgovora = "POTPISAN",
                     DatumUgovora = new DateTime(2020, 6, 1)
                 },
                 new Ugovor
                 {
                     KlijentId = klijent5.Id,
-                    StatusUgovora = "AKTIVAN",
+                    StatusUgovora = "POTPISAN",
                     DatumUgovora = new DateTime(2019, 10, 1)
                 }
             );
@@ -295,4 +295,4 @@ namespace OwnerTrack.Infrastructure
             Console.WriteLine($"Dodato ugovora: {_db.Ugovori.Count()}");
         }
     }
-    }
+}

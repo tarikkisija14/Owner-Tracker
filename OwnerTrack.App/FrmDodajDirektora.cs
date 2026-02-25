@@ -1,4 +1,5 @@
 ﻿using OwnerTrack.Data.Entities;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using System;
 using System.Windows.Forms;
@@ -23,7 +24,7 @@ namespace OwnerTrack.App
         {
             cbTipValjanosti.Items.AddRange(new[] { "TRAJNO", "VREMENSKI" });
             cbTipValjanosti.SelectedIndex = 0;
-            
+
 
 
             if (_direktorId.HasValue)
@@ -84,7 +85,7 @@ namespace OwnerTrack.App
                         ImePrezime = txtImePrezime.Text.Trim(),
                         DatumValjanosti = cbTipValjanosti.Text == "TRAJNO" ? null : dtDatumValjanosti.Value,
                         TipValjanosti = cbTipValjanosti.Text,
-                        Status = "AKTIVAN",
+                        Status = StatusKonstante.Aktivan,
                         Jmbg = string.IsNullOrWhiteSpace(txtJmbg.Text) ? null : txtJmbg.Text.Trim(),
 
                     };

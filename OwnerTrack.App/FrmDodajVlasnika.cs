@@ -1,4 +1,5 @@
 ﻿using OwnerTrack.Data.Entities;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using System;
 using System.Windows.Forms;
@@ -55,20 +56,46 @@ namespace OwnerTrack.App
                 return;
             }
 
-            if (!decimal.TryParse(txtProcetat.Text, out decimal procetat))
+            if (!decimal.TryParse(
+                    txtProcetat.Text.Replace(",", ".").Trim(),
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out decimal procetat))
             {
-                MessageBox.Show("Procetat mora biti broj!");
+                MessageBox.Show("Procenat mora biti broj (npr. 25 ili 33.5)!");
+                return;
+            }
+
+            if (procetat < 0 || procetat > 100)
+            {
+                MessageBox.Show("Procenat vlasništva mora biti između 0 i 100!", "Greška validacije",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtProcetat.Focus();
                 return;
             }
 
             try
             {
+                string imePrezime = txtImePrezime.Text.Trim();
+                int trenutniId = _vlasnikId ?? 0;
+
+               
+                if (_db.Vlasnici.Any(v => v.KlijentId == _klijentId
+                                       && v.ImePrezime == imePrezime
+                                       && v.Id != trenutniId))
+                {
+                    MessageBox.Show($"Vlasnik '{imePrezime}' već postoji za ovu firmu!",
+                        "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtImePrezime.Focus();
+                    return;
+                }
+
                 if (_vlasnikId.HasValue)
                 {
                     var vlasnik = _db.Vlasnici.Find(_vlasnikId.Value);
                     if (vlasnik != null)
                     {
-                        vlasnik.ImePrezime = txtImePrezime.Text.Trim();
+                        vlasnik.ImePrezime = imePrezime;
                         vlasnik.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
                         vlasnik.ProcenatVlasnistva = procetat;
                         vlasnik.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
@@ -82,12 +109,12 @@ namespace OwnerTrack.App
                     var vlasnik = new Vlasnik
                     {
                         KlijentId = _klijentId,
-                        ImePrezime = txtImePrezime.Text.Trim(),
+                        ImePrezime = imePrezime,
                         DatumValjanostiDokumenta = dtDatumValjanosti.Value,
                         ProcenatVlasnistva = procetat,
                         DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value,
                         IzvorPodatka = txtIzvorPodatka.Text ?? "",
-                        Status = "AKTIVAN"
+                        Status = StatusKonstante.Aktivan
                     };
 
                     _db.Vlasnici.Add(vlasnik);

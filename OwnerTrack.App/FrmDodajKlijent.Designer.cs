@@ -15,338 +15,601 @@
 
         private void InitializeComponent()
         {
-            // OSNOVNI PODACI
-            this.groupBoxOsnovni = new System.Windows.Forms.GroupBox();
-            this.lblNaziv = new System.Windows.Forms.Label();
-            this.txtNaziv = new System.Windows.Forms.TextBox();
-            this.lblIdBroj = new System.Windows.Forms.Label();
-            this.txtIdBroj = new System.Windows.Forms.TextBox();
-            this.lblAdresa = new System.Windows.Forms.Label();
-            this.txtAdresa = new System.Windows.Forms.TextBox();
-            this.lblSifra = new System.Windows.Forms.Label();
-            this.cbSifra = new System.Windows.Forms.ComboBox();
-            this.lblDatumUspostave = new System.Windows.Forms.Label();
-            this.dtDatumUspostave = new System.Windows.Forms.DateTimePicker();
-            this.lblVrstaKlijenta = new System.Windows.Forms.Label();
-            this.cbVrstaKlijenta = new System.Windows.Forms.ComboBox();
-            this.lblDatumOsnivanja = new System.Windows.Forms.Label();
-            this.dtDatumOsnivanja = new System.Windows.Forms.DateTimePicker();
-            this.lblVelicina = new System.Windows.Forms.Label();
-            this.cbVelicina = new System.Windows.Forms.ComboBox();
-
-            // RIZICI
-            this.groupBoxRizici = new System.Windows.Forms.GroupBox();
-            this.lblPepRizik = new System.Windows.Forms.Label();
-            this.cbPepRizik = new System.Windows.Forms.ComboBox();
-            this.lblUboRizik = new System.Windows.Forms.Label();
-            this.cbUboRizik = new System.Windows.Forms.ComboBox();
-            this.lblGotovinaRizik = new System.Windows.Forms.Label();
-            this.cbGotovinaRizik = new System.Windows.Forms.ComboBox();
-            this.lblGeografskiRizik = new System.Windows.Forms.Label();
-            this.cbGeografskiRizik = new System.Windows.Forms.ComboBox();
-            this.lblUkupnaProcjena = new System.Windows.Forms.Label();
-            this.txtUkupnaProcjena = new System.Windows.Forms.TextBox();
-            this.lblDatumProcjene = new System.Windows.Forms.Label();
-            this.dtDatumProcjene = new System.Windows.Forms.DateTimePicker();
-            this.lblOvjeraCr = new System.Windows.Forms.Label();
-            this.txtOvjeraCr = new System.Windows.Forms.TextBox();
-
-            // UGOVOR
-            this.groupBoxUgovor = new System.Windows.Forms.GroupBox();
-            this.lblStatusUgovora = new System.Windows.Forms.Label();
-            this.cbStatusUgovora = new System.Windows.Forms.ComboBox();
-            this.lblDatumUgovora = new System.Windows.Forms.Label();
-            this.dtDatumUgovora = new System.Windows.Forms.DateTimePicker();
-
-            // PANEL ZA BUTTONE
-            this.panelButtons = new System.Windows.Forms.Panel();
-            this.btnSpremi = new System.Windows.Forms.Button();
-            this.btnOtkazi = new System.Windows.Forms.Button();
-            this.groupBoxKontakti = new System.Windows.Forms.GroupBox();
-            this.lblEmail = new System.Windows.Forms.Label();
-            this.txtEmail = new System.Windows.Forms.TextBox();
-            this.lblTelefon = new System.Windows.Forms.Label();
-            this.txtTelefon = new System.Windows.Forms.TextBox();
-
-            this.SuspendLayout();
-
-            // ========== FORMA ==========
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 750);
-            this.Text = "Dodaj firmu";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Load += FrmDodajKlijent_Load;
-
-            // ========== SCROLL PANEL ==========
-            var scrollPanel = new System.Windows.Forms.Panel();
+            groupBoxOsnovni = new GroupBox();
+            lblNaziv = new Label();
+            txtNaziv = new TextBox();
+            lblIdBroj = new Label();
+            txtIdBroj = new TextBox();
+            lblAdresa = new Label();
+            txtAdresa = new TextBox();
+            lblSifra = new Label();
+            cbSifra = new ComboBox();
+            lblDatumUspostave = new Label();
+            dtDatumUspostave = new DateTimePicker();
+            lblVrstaKlijenta = new Label();
+            cbVrstaKlijenta = new ComboBox();
+            lblDatumOsnivanja = new Label();
+            dtDatumOsnivanja = new DateTimePicker();
+            lblVelicina = new Label();
+            cbVelicina = new ComboBox();
+            lblStatus = new Label();
+            cbStatus = new ComboBox();
+            groupBoxRizici = new GroupBox();
+            lblPepRizik = new Label();
+            cbPepRizik = new ComboBox();
+            lblUboRizik = new Label();
+            cbUboRizik = new ComboBox();
+            lblGotovinaRizik = new Label();
+            cbGotovinaRizik = new ComboBox();
+            lblGeografskiRizik = new Label();
+            cbGeografskiRizik = new ComboBox();
+            lblUkupnaProcjena = new Label();
+            txtUkupnaProcjena = new TextBox();
+            lblDatumProcjene = new Label();
+            dtDatumProcjene = new DateTimePicker();
+            lblOvjeraCr = new Label();
+            txtOvjeraCr = new TextBox();
+            groupBoxUgovor = new GroupBox();
+            lblVrstaUgovora = new Label();
+            txtVrstaUgovora = new TextBox();
+            lblStatusUgovora = new Label();
+            cbStatusUgovora = new ComboBox();
+            lblDatumUgovora = new Label();
+            dtDatumUgovora = new DateTimePicker();
+            panelButtons = new Panel();
+            btnSpremi = new Button();
+            btnOtkazi = new Button();
+            groupBoxKontakti = new GroupBox();
+            lblEmail = new Label();
+            txtEmail = new TextBox();
+            lblTelefon = new Label();
+            txtTelefon = new TextBox();
+            scrollPanel = new Panel();
+            groupBoxNapomena = new GroupBox();
+            lblNapomena = new Label();
+            txtNapomena = new TextBox();
+            groupBoxOsnovni.SuspendLayout();
+            groupBoxRizici.SuspendLayout();
+            groupBoxUgovor.SuspendLayout();
+            panelButtons.SuspendLayout();
+            groupBoxKontakti.SuspendLayout();
+            scrollPanel.SuspendLayout();
+            groupBoxNapomena.SuspendLayout();
+            SuspendLayout();
+            // 
+            // groupBoxOsnovni
+            // 
+            groupBoxOsnovni.Controls.Add(lblNaziv);
+            groupBoxOsnovni.Controls.Add(txtNaziv);
+            groupBoxOsnovni.Controls.Add(lblIdBroj);
+            groupBoxOsnovni.Controls.Add(txtIdBroj);
+            groupBoxOsnovni.Controls.Add(lblAdresa);
+            groupBoxOsnovni.Controls.Add(txtAdresa);
+            groupBoxOsnovni.Controls.Add(lblSifra);
+            groupBoxOsnovni.Controls.Add(cbSifra);
+            groupBoxOsnovni.Controls.Add(lblDatumUspostave);
+            groupBoxOsnovni.Controls.Add(dtDatumUspostave);
+            groupBoxOsnovni.Controls.Add(lblVrstaKlijenta);
+            groupBoxOsnovni.Controls.Add(cbVrstaKlijenta);
+            groupBoxOsnovni.Controls.Add(lblDatumOsnivanja);
+            groupBoxOsnovni.Controls.Add(dtDatumOsnivanja);
+            groupBoxOsnovni.Controls.Add(lblVelicina);
+            groupBoxOsnovni.Controls.Add(cbVelicina);
+            groupBoxOsnovni.Controls.Add(lblStatus);
+            groupBoxOsnovni.Controls.Add(cbStatus);
+            groupBoxOsnovni.Location = new Point(9, 9);
+            groupBoxOsnovni.Name = "groupBoxOsnovni";
+            groupBoxOsnovni.Size = new Size(665, 197);
+            groupBoxOsnovni.TabIndex = 0;
+            groupBoxOsnovni.TabStop = false;
+            groupBoxOsnovni.Text = "📋 Osnovni podaci";
+            // 
+            // lblNaziv
+            // 
+            lblNaziv.AutoSize = true;
+            lblNaziv.Location = new Point(9, 23);
+            lblNaziv.Name = "lblNaziv";
+            lblNaziv.Size = new Size(70, 15);
+            lblNaziv.TabIndex = 0;
+            lblNaziv.Text = "Naziv firme:";
+            // 
+            // txtNaziv
+            // 
+            txtNaziv.Location = new Point(105, 23);
+            txtNaziv.MaxLength = 200;
+            txtNaziv.Name = "txtNaziv";
+            txtNaziv.Size = new Size(263, 23);
+            txtNaziv.TabIndex = 1;
+            // 
+            // lblIdBroj
+            // 
+            lblIdBroj.AutoSize = true;
+            lblIdBroj.Location = new Point(376, 23);
+            lblIdBroj.Name = "lblIdBroj";
+            lblIdBroj.Size = new Size(45, 15);
+            lblIdBroj.TabIndex = 2;
+            lblIdBroj.Text = "ID Broj:";
+            // 
+            // txtIdBroj
+            // 
+            txtIdBroj.Location = new Point(464, 23);
+            txtIdBroj.MaxLength = 13;
+            txtIdBroj.Name = "txtIdBroj";
+            txtIdBroj.Size = new Size(184, 23);
+            txtIdBroj.TabIndex = 3;
+            // 
+            // lblAdresa
+            // 
+            lblAdresa.AutoSize = true;
+            lblAdresa.Location = new Point(9, 56);
+            lblAdresa.Name = "lblAdresa";
+            lblAdresa.Size = new Size(46, 15);
+            lblAdresa.TabIndex = 4;
+            lblAdresa.Text = "Adresa:";
+            // 
+            // txtAdresa
+            // 
+            txtAdresa.Location = new Point(105, 56);
+            txtAdresa.Name = "txtAdresa";
+            txtAdresa.Size = new Size(543, 23);
+            txtAdresa.TabIndex = 5;
+            // 
+            // lblSifra
+            // 
+            lblSifra.AutoSize = true;
+            lblSifra.Location = new Point(9, 89);
+            lblSifra.Name = "lblSifra";
+            lblSifra.Size = new Size(91, 15);
+            lblSifra.TabIndex = 6;
+            lblSifra.Text = "Šifra djelatnosti:";
+            // 
+            // cbSifra
+            // 
+            cbSifra.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbSifra.Location = new Point(105, 89);
+            cbSifra.Name = "cbSifra";
+            cbSifra.Size = new Size(263, 23);
+            cbSifra.TabIndex = 7;
+            // 
+            // lblDatumUspostave
+            // 
+            lblDatumUspostave.AutoSize = true;
+            lblDatumUspostave.Location = new Point(376, 89);
+            lblDatumUspostave.Name = "lblDatumUspostave";
+            lblDatumUspostave.Size = new Size(102, 15);
+            lblDatumUspostave.TabIndex = 8;
+            lblDatumUspostave.Text = "Datum uspostave:";
+            // 
+            // dtDatumUspostave
+            // 
+            dtDatumUspostave.Location = new Point(490, 89);
+            dtDatumUspostave.Name = "dtDatumUspostave";
+            dtDatumUspostave.Size = new Size(158, 23);
+            dtDatumUspostave.TabIndex = 9;
+            // 
+            // lblVrstaKlijenta
+            // 
+            lblVrstaKlijenta.AutoSize = true;
+            lblVrstaKlijenta.Location = new Point(9, 122);
+            lblVrstaKlijenta.Name = "lblVrstaKlijenta";
+            lblVrstaKlijenta.Size = new Size(77, 15);
+            lblVrstaKlijenta.TabIndex = 10;
+            lblVrstaKlijenta.Text = "Vrsta klijenta:";
+            // 
+            // cbVrstaKlijenta
+            // 
+            cbVrstaKlijenta.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbVrstaKlijenta.Location = new Point(105, 122);
+            cbVrstaKlijenta.Name = "cbVrstaKlijenta";
+            cbVrstaKlijenta.Size = new Size(158, 23);
+            cbVrstaKlijenta.TabIndex = 11;
+            // 
+            // lblDatumOsnivanja
+            // 
+            lblDatumOsnivanja.AutoSize = true;
+            lblDatumOsnivanja.Location = new Point(271, 122);
+            lblDatumOsnivanja.Name = "lblDatumOsnivanja";
+            lblDatumOsnivanja.Size = new Size(99, 15);
+            lblDatumOsnivanja.TabIndex = 12;
+            lblDatumOsnivanja.Text = "Datum osnivanja:";
+            // 
+            // dtDatumOsnivanja
+            // 
+            dtDatumOsnivanja.Location = new Point(376, 122);
+            dtDatumOsnivanja.Name = "dtDatumOsnivanja";
+            dtDatumOsnivanja.Size = new Size(158, 23);
+            dtDatumOsnivanja.TabIndex = 13;
+            // 
+            // lblVelicina
+            // 
+            lblVelicina.AutoSize = true;
+            lblVelicina.Location = new Point(9, 155);
+            lblVelicina.Name = "lblVelicina";
+            lblVelicina.Size = new Size(50, 15);
+            lblVelicina.TabIndex = 14;
+            lblVelicina.Text = "Veličina:";
+            // 
+            // cbVelicina
+            // 
+            cbVelicina.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbVelicina.Location = new Point(105, 155);
+            cbVelicina.Name = "cbVelicina";
+            cbVelicina.Size = new Size(158, 23);
+            cbVelicina.TabIndex = 15;
+            // 
+            // lblStatus
+            // 
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(289, 155);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(42, 15);
+            lblStatus.TabIndex = 16;
+            lblStatus.Text = "Status:";
+            // 
+            // cbStatus
+            // 
+            cbStatus.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbStatus.Location = new Point(376, 155);
+            cbStatus.Name = "cbStatus";
+            cbStatus.Size = new Size(158, 23);
+            cbStatus.TabIndex = 17;
+            // 
+            // groupBoxRizici
+            // 
+            groupBoxRizici.Controls.Add(lblPepRizik);
+            groupBoxRizici.Controls.Add(cbPepRizik);
+            groupBoxRizici.Controls.Add(lblUboRizik);
+            groupBoxRizici.Controls.Add(cbUboRizik);
+            groupBoxRizici.Controls.Add(lblGotovinaRizik);
+            groupBoxRizici.Controls.Add(cbGotovinaRizik);
+            groupBoxRizici.Controls.Add(lblGeografskiRizik);
+            groupBoxRizici.Controls.Add(cbGeografskiRizik);
+            groupBoxRizici.Controls.Add(lblUkupnaProcjena);
+            groupBoxRizici.Controls.Add(txtUkupnaProcjena);
+            groupBoxRizici.Controls.Add(lblDatumProcjene);
+            groupBoxRizici.Controls.Add(dtDatumProcjene);
+            groupBoxRizici.Controls.Add(lblOvjeraCr);
+            groupBoxRizici.Controls.Add(txtOvjeraCr);
+            groupBoxRizici.Location = new Point(9, 216);
+            groupBoxRizici.Name = "groupBoxRizici";
+            groupBoxRizici.Size = new Size(665, 131);
+            groupBoxRizici.TabIndex = 1;
+            groupBoxRizici.TabStop = false;
+            groupBoxRizici.Text = "⚠️ Procjena rizika";
+            // 
+            // lblPepRizik
+            // 
+            lblPepRizik.AutoSize = true;
+            lblPepRizik.Location = new Point(9, 23);
+            lblPepRizik.Name = "lblPepRizik";
+            lblPepRizik.Size = new Size(30, 15);
+            lblPepRizik.TabIndex = 0;
+            lblPepRizik.Text = "PEP:";
+            // 
+            // cbPepRizik
+            // 
+            cbPepRizik.Location = new Point(70, 23);
+            cbPepRizik.Name = "cbPepRizik";
+            cbPepRizik.Size = new Size(70, 23);
+            cbPepRizik.TabIndex = 1;
+            // 
+            // lblUboRizik
+            // 
+            lblUboRizik.AutoSize = true;
+            lblUboRizik.Location = new Point(158, 23);
+            lblUboRizik.Name = "lblUboRizik";
+            lblUboRizik.Size = new Size(34, 15);
+            lblUboRizik.TabIndex = 2;
+            lblUboRizik.Text = "UBO:";
+            // 
+            // cbUboRizik
+            // 
+            cbUboRizik.Location = new Point(219, 23);
+            cbUboRizik.Name = "cbUboRizik";
+            cbUboRizik.Size = new Size(70, 23);
+            cbUboRizik.TabIndex = 3;
+            // 
+            // lblGotovinaRizik
+            // 
+            lblGotovinaRizik.AutoSize = true;
+            lblGotovinaRizik.Location = new Point(306, 23);
+            lblGotovinaRizik.Name = "lblGotovinaRizik";
+            lblGotovinaRizik.Size = new Size(58, 15);
+            lblGotovinaRizik.TabIndex = 4;
+            lblGotovinaRizik.Text = "Gotovina:";
+            // 
+            // cbGotovinaRizik
+            // 
+            cbGotovinaRizik.Location = new Point(385, 23);
+            cbGotovinaRizik.Name = "cbGotovinaRizik";
+            cbGotovinaRizik.Size = new Size(70, 23);
+            cbGotovinaRizik.TabIndex = 5;
+            // 
+            // lblGeografskiRizik
+            // 
+            lblGeografskiRizik.AutoSize = true;
+            lblGeografskiRizik.Location = new Point(499, 23);
+            lblGeografskiRizik.Name = "lblGeografskiRizik";
+            lblGeografskiRizik.Size = new Size(66, 15);
+            lblGeografskiRizik.TabIndex = 6;
+            lblGeografskiRizik.Text = "Geografski:";
+            // 
+            // cbGeografskiRizik
+            // 
+            cbGeografskiRizik.Location = new Point(578, 23);
+            cbGeografskiRizik.Name = "cbGeografskiRizik";
+            cbGeografskiRizik.Size = new Size(70, 23);
+            cbGeografskiRizik.TabIndex = 7;
+            // 
+            // lblUkupnaProcjena
+            // 
+            lblUkupnaProcjena.AutoSize = true;
+            lblUkupnaProcjena.Location = new Point(9, 56);
+            lblUkupnaProcjena.Name = "lblUkupnaProcjena";
+            lblUkupnaProcjena.Size = new Size(100, 15);
+            lblUkupnaProcjena.TabIndex = 8;
+            lblUkupnaProcjena.Text = "Ukupna procjena:";
+            // 
+            // txtUkupnaProcjena
+            // 
+            txtUkupnaProcjena.Location = new Point(105, 56);
+            txtUkupnaProcjena.Name = "txtUkupnaProcjena";
+            txtUkupnaProcjena.Size = new Size(263, 23);
+            txtUkupnaProcjena.TabIndex = 9;
+            // 
+            // lblDatumProcjene
+            // 
+            lblDatumProcjene.AutoSize = true;
+            lblDatumProcjene.Location = new Point(376, 56);
+            lblDatumProcjene.Name = "lblDatumProcjene";
+            lblDatumProcjene.Size = new Size(95, 15);
+            lblDatumProcjene.TabIndex = 10;
+            lblDatumProcjene.Text = "Datum procjene:";
+            // 
+            // dtDatumProcjene
+            // 
+            dtDatumProcjene.Location = new Point(490, 56);
+            dtDatumProcjene.Name = "dtDatumProcjene";
+            dtDatumProcjene.Size = new Size(158, 23);
+            dtDatumProcjene.TabIndex = 11;
+            // 
+            // lblOvjeraCr
+            // 
+            lblOvjeraCr.AutoSize = true;
+            lblOvjeraCr.Location = new Point(9, 89);
+            lblOvjeraCr.Name = "lblOvjeraCr";
+            lblOvjeraCr.Size = new Size(64, 15);
+            lblOvjeraCr.TabIndex = 12;
+            lblOvjeraCr.Text = "Ovjera/CR:";
+            // 
+            // txtOvjeraCr
+            // 
+            txtOvjeraCr.Location = new Point(105, 89);
+            txtOvjeraCr.Name = "txtOvjeraCr";
+            txtOvjeraCr.Size = new Size(263, 23);
+            txtOvjeraCr.TabIndex = 13;
+            // 
+            // groupBoxUgovor
+            // 
+            groupBoxUgovor.Controls.Add(lblVrstaUgovora);
+            groupBoxUgovor.Controls.Add(txtVrstaUgovora);
+            groupBoxUgovor.Controls.Add(lblStatusUgovora);
+            groupBoxUgovor.Controls.Add(cbStatusUgovora);
+            groupBoxUgovor.Controls.Add(lblDatumUgovora);
+            groupBoxUgovor.Controls.Add(dtDatumUgovora);
+            groupBoxUgovor.Location = new Point(9, 356);
+            groupBoxUgovor.Name = "groupBoxUgovor";
+            groupBoxUgovor.Size = new Size(665, 108);
+            groupBoxUgovor.TabIndex = 2;
+            groupBoxUgovor.TabStop = false;
+            groupBoxUgovor.Text = "📜 Ugovor";
+            // 
+            // lblVrstaUgovora
+            // 
+            lblVrstaUgovora.AutoSize = true;
+            lblVrstaUgovora.Location = new Point(9, 28);
+            lblVrstaUgovora.Name = "lblVrstaUgovora";
+            lblVrstaUgovora.Size = new Size(83, 15);
+            lblVrstaUgovora.TabIndex = 0;
+            lblVrstaUgovora.Text = "Vrsta ugovora:";
+            // 
+            // txtVrstaUgovora
+            // 
+            txtVrstaUgovora.Location = new Point(105, 28);
+            txtVrstaUgovora.Name = "txtVrstaUgovora";
+            txtVrstaUgovora.Size = new Size(176, 23);
+            txtVrstaUgovora.TabIndex = 1;
+            // 
+            // lblStatusUgovora
+            // 
+            lblStatusUgovora.AutoSize = true;
+            lblStatusUgovora.Location = new Point(289, 28);
+            lblStatusUgovora.Name = "lblStatusUgovora";
+            lblStatusUgovora.Size = new Size(89, 15);
+            lblStatusUgovora.TabIndex = 2;
+            lblStatusUgovora.Text = "Status ugovora:";
+            // 
+            // cbStatusUgovora
+            // 
+            cbStatusUgovora.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbStatusUgovora.Location = new Point(394, 28);
+            cbStatusUgovora.Name = "cbStatusUgovora";
+            cbStatusUgovora.Size = new Size(176, 23);
+            cbStatusUgovora.TabIndex = 3;
+            // 
+            // lblDatumUgovora
+            // 
+            lblDatumUgovora.AutoSize = true;
+            lblDatumUgovora.Location = new Point(9, 61);
+            lblDatumUgovora.Name = "lblDatumUgovora";
+            lblDatumUgovora.Size = new Size(93, 15);
+            lblDatumUgovora.TabIndex = 4;
+            lblDatumUgovora.Text = "Datum ugovora:";
+            // 
+            // dtDatumUgovora
+            // 
+            dtDatumUgovora.Location = new Point(105, 61);
+            dtDatumUgovora.Name = "dtDatumUgovora";
+            dtDatumUgovora.Size = new Size(158, 23);
+            dtDatumUgovora.TabIndex = 5;
+            // 
+            // panelButtons
+            // 
+            panelButtons.BackColor = Color.WhiteSmoke;
+            panelButtons.BorderStyle = BorderStyle.FixedSingle;
+            panelButtons.Controls.Add(btnSpremi);
+            panelButtons.Controls.Add(btnOtkazi);
+            panelButtons.Dock = DockStyle.Bottom;
+            panelButtons.Location = new Point(0, 647);
+            panelButtons.Name = "panelButtons";
+            panelButtons.Size = new Size(700, 56);
+            panelButtons.TabIndex = 1;
+            // 
+            // btnSpremi
+            // 
+            btnSpremi.BackColor = Color.LightGreen;
+            btnSpremi.FlatStyle = FlatStyle.Flat;
+            btnSpremi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnSpremi.Location = new Point(420, 14);
+            btnSpremi.Name = "btnSpremi";
+            btnSpremi.Size = new Size(131, 33);
+            btnSpremi.TabIndex = 0;
+            btnSpremi.Text = "💾 Spremi";
+            btnSpremi.UseVisualStyleBackColor = false;
+            btnSpremi.Click += btnSpremi_Click;
+            // 
+            // btnOtkazi
+            // 
+            btnOtkazi.BackColor = Color.LightCoral;
+            btnOtkazi.FlatStyle = FlatStyle.Flat;
+            btnOtkazi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnOtkazi.Location = new Point(560, 14);
+            btnOtkazi.Name = "btnOtkazi";
+            btnOtkazi.Size = new Size(131, 33);
+            btnOtkazi.TabIndex = 1;
+            btnOtkazi.Text = "❌ Otkazi";
+            btnOtkazi.UseVisualStyleBackColor = false;
+            btnOtkazi.Click += btnOtkazi_Click;
+            // 
+            // groupBoxKontakti
+            // 
+            groupBoxKontakti.Controls.Add(lblEmail);
+            groupBoxKontakti.Controls.Add(txtEmail);
+            groupBoxKontakti.Controls.Add(lblTelefon);
+            groupBoxKontakti.Controls.Add(txtTelefon);
+            groupBoxKontakti.Location = new Point(9, 473);
+            groupBoxKontakti.Name = "groupBoxKontakti";
+            groupBoxKontakti.Size = new Size(665, 108);
+            groupBoxKontakti.TabIndex = 3;
+            groupBoxKontakti.TabStop = false;
+            groupBoxKontakti.Text = "📞 Kontakti";
+            // 
+            // lblEmail
+            // 
+            lblEmail.AutoSize = true;
+            lblEmail.Location = new Point(12, 28);
+            lblEmail.Name = "lblEmail";
+            lblEmail.Size = new Size(39, 15);
+            lblEmail.TabIndex = 0;
+            lblEmail.Text = "Email:";
+            // 
+            // txtEmail
+            // 
+            txtEmail.Location = new Point(57, 22);
+            txtEmail.MaxLength = 255;
+            txtEmail.Name = "txtEmail";
+            txtEmail.Size = new Size(263, 23);
+            txtEmail.TabIndex = 1;
+            // 
+            // lblTelefon
+            // 
+            lblTelefon.AutoSize = true;
+            lblTelefon.Location = new Point(394, 28);
+            lblTelefon.Name = "lblTelefon";
+            lblTelefon.Size = new Size(49, 15);
+            lblTelefon.TabIndex = 2;
+            lblTelefon.Text = "Telefon:";
+            // 
+            // txtTelefon
+            // 
+            txtTelefon.Location = new Point(464, 22);
+            txtTelefon.MaxLength = 50;
+            txtTelefon.Name = "txtTelefon";
+            txtTelefon.Size = new Size(176, 23);
+            txtTelefon.TabIndex = 3;
+            txtTelefon.TextChanged += txtTelefon_TextChanged;
+            // 
+            // scrollPanel
+            // 
             scrollPanel.AutoScroll = true;
-            scrollPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            scrollPanel.Padding = new System.Windows.Forms.Padding(0, 0, 0, 60);
-
-            // ========== OSNOVNI PODACI ==========
-            this.groupBoxOsnovni.Text = "📋 Osnovni podaci";
-            this.groupBoxOsnovni.Location = new System.Drawing.Point(10, 10);
-            this.groupBoxOsnovni.Size = new System.Drawing.Size(760, 210);
-
-            this.lblNaziv.Text = "Naziv firme:";
-            this.lblNaziv.Location = new System.Drawing.Point(10, 25);
-            this.lblNaziv.AutoSize = true;
-            this.txtNaziv.Location = new System.Drawing.Point(120, 25);
-            this.txtNaziv.Size = new System.Drawing.Size(300, 20);
-
-            this.lblIdBroj.Text = "ID Broj:";
-            this.lblIdBroj.Location = new System.Drawing.Point(430, 25);
-            this.lblIdBroj.AutoSize = true;
-            this.txtIdBroj.Location = new System.Drawing.Point(530, 25);
-            this.txtIdBroj.Size = new System.Drawing.Size(210, 20);
-
-            this.lblAdresa.Text = "Adresa:";
-            this.lblAdresa.Location = new System.Drawing.Point(10, 60);
-            this.lblAdresa.AutoSize = true;
-            this.txtAdresa.Location = new System.Drawing.Point(120, 60);
-            this.txtAdresa.Size = new System.Drawing.Size(620, 20);
-
-            this.lblSifra.Text = "Šifra djelatnosti:";
-            this.lblSifra.Location = new System.Drawing.Point(10, 95);
-            this.lblSifra.AutoSize = true;
-            this.cbSifra.Location = new System.Drawing.Point(120, 95);
-            this.cbSifra.Size = new System.Drawing.Size(300, 21);
-            this.cbSifra.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-
-            this.lblDatumUspostave.Text = "Datum uspostave:";
-            this.lblDatumUspostave.Location = new System.Drawing.Point(430, 95);
-            this.lblDatumUspostave.AutoSize = true;
-            this.dtDatumUspostave.Location = new System.Drawing.Point(560, 95);
-            this.dtDatumUspostave.Size = new System.Drawing.Size(180, 20);
-
-            this.lblVrstaKlijenta.Text = "Vrsta klijenta:";
-            this.lblVrstaKlijenta.Location = new System.Drawing.Point(10, 130);
-            this.lblVrstaKlijenta.AutoSize = true;
-            this.cbVrstaKlijenta.Location = new System.Drawing.Point(120, 130);
-            this.cbVrstaKlijenta.Size = new System.Drawing.Size(180, 21);
-
-            this.lblDatumOsnivanja.Text = "Datum osnivanja:";
-            this.lblDatumOsnivanja.Location = new System.Drawing.Point(310, 130);
-            this.lblDatumOsnivanja.AutoSize = true;
-            this.dtDatumOsnivanja.Location = new System.Drawing.Point(430, 130);
-            this.dtDatumOsnivanja.Size = new System.Drawing.Size(180, 20);
-
-            this.lblVelicina.Text = "Veličina:";
-            this.lblVelicina.Location = new System.Drawing.Point(10, 165);
-            this.lblVelicina.AutoSize = true;
-            this.cbVelicina.Location = new System.Drawing.Point(120, 165);
-            this.cbVelicina.Size = new System.Drawing.Size(180, 21);
-
-            // STATUS
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.cbStatus = new System.Windows.Forms.ComboBox();
-            this.lblStatus.Text = "Status:";
-            this.lblStatus.Location = new System.Drawing.Point(330, 165);
-            this.lblStatus.AutoSize = true;
-            this.cbStatus.Location = new System.Drawing.Point(430, 165);
-            this.cbStatus.Size = new System.Drawing.Size(180, 21);
-
-            this.groupBoxOsnovni.Controls.Add(this.lblNaziv);
-            this.groupBoxOsnovni.Controls.Add(this.txtNaziv);
-            this.groupBoxOsnovni.Controls.Add(this.lblIdBroj);
-            this.groupBoxOsnovni.Controls.Add(this.txtIdBroj);
-            this.groupBoxOsnovni.Controls.Add(this.lblAdresa);
-            this.groupBoxOsnovni.Controls.Add(this.txtAdresa);
-            this.groupBoxOsnovni.Controls.Add(this.lblSifra);
-            this.groupBoxOsnovni.Controls.Add(this.cbSifra);
-            this.groupBoxOsnovni.Controls.Add(this.lblDatumUspostave);
-            this.groupBoxOsnovni.Controls.Add(this.dtDatumUspostave);
-            this.groupBoxOsnovni.Controls.Add(this.lblVrstaKlijenta);
-            this.groupBoxOsnovni.Controls.Add(this.cbVrstaKlijenta);
-            this.groupBoxOsnovni.Controls.Add(this.lblDatumOsnivanja);
-            this.groupBoxOsnovni.Controls.Add(this.dtDatumOsnivanja);
-            this.groupBoxOsnovni.Controls.Add(this.lblVelicina);
-            this.groupBoxOsnovni.Controls.Add(this.cbVelicina);
-            this.groupBoxOsnovni.Controls.Add(this.lblStatus);
-            this.groupBoxOsnovni.Controls.Add(this.cbStatus);
-
-            // ========== RIZICI ==========
-            this.groupBoxRizici.Text = "⚠️ Procjena rizika";
-            this.groupBoxRizici.Location = new System.Drawing.Point(10, 230);
-            this.groupBoxRizici.Size = new System.Drawing.Size(760, 140);
-
-            this.lblPepRizik.Text = "PEP:";
-            this.lblPepRizik.Location = new System.Drawing.Point(10, 25);
-            this.lblPepRizik.AutoSize = true;
-            this.cbPepRizik.Location = new System.Drawing.Point(80, 25);
-            this.cbPepRizik.Size = new System.Drawing.Size(80, 21);
-
-            this.lblUboRizik.Text = "UBO:";
-            this.lblUboRizik.Location = new System.Drawing.Point(180, 25);
-            this.lblUboRizik.AutoSize = true;
-            this.cbUboRizik.Location = new System.Drawing.Point(250, 25);
-            this.cbUboRizik.Size = new System.Drawing.Size(80, 21);
-
-            this.lblGotovinaRizik.Text = "Gotovina:";
-            this.lblGotovinaRizik.Location = new System.Drawing.Point(350, 25);
-            this.lblGotovinaRizik.AutoSize = true;
-            this.cbGotovinaRizik.Location = new System.Drawing.Point(440, 25);
-            this.cbGotovinaRizik.Size = new System.Drawing.Size(80, 21);
-
-            this.lblGeografskiRizik.Text = "Geografski:";
-            this.lblGeografskiRizik.Location = new System.Drawing.Point(570, 25);
-            this.lblGeografskiRizik.AutoSize = true;
-            this.cbGeografskiRizik.Location = new System.Drawing.Point(660, 25);
-            this.cbGeografskiRizik.Size = new System.Drawing.Size(80, 21);
-
-            this.lblUkupnaProcjena.Text = "Ukupna procjena:";
-            this.lblUkupnaProcjena.Location = new System.Drawing.Point(10, 60);
-            this.lblUkupnaProcjena.AutoSize = true;
-            this.txtUkupnaProcjena.Location = new System.Drawing.Point(120, 60);
-            this.txtUkupnaProcjena.Size = new System.Drawing.Size(300, 20);
-
-            this.lblDatumProcjene.Text = "Datum procjene:";
-            this.lblDatumProcjene.Location = new System.Drawing.Point(430, 60);
-            this.lblDatumProcjene.AutoSize = true;
-            this.dtDatumProcjene.Location = new System.Drawing.Point(560, 60);
-            this.dtDatumProcjene.Size = new System.Drawing.Size(180, 20);
-
-            this.lblOvjeraCr.Text = "Ovjera/CR:";
-            this.lblOvjeraCr.Location = new System.Drawing.Point(10, 95);
-            this.lblOvjeraCr.AutoSize = true;
-            this.txtOvjeraCr.Location = new System.Drawing.Point(120, 95);
-            this.txtOvjeraCr.Size = new System.Drawing.Size(300, 20);
-
-            this.groupBoxRizici.Controls.Add(this.lblPepRizik);
-            this.groupBoxRizici.Controls.Add(this.cbPepRizik);
-            this.groupBoxRizici.Controls.Add(this.lblUboRizik);
-            this.groupBoxRizici.Controls.Add(this.cbUboRizik);
-            this.groupBoxRizici.Controls.Add(this.lblGotovinaRizik);
-            this.groupBoxRizici.Controls.Add(this.cbGotovinaRizik);
-            this.groupBoxRizici.Controls.Add(this.lblGeografskiRizik);
-            this.groupBoxRizici.Controls.Add(this.cbGeografskiRizik);
-            this.groupBoxRizici.Controls.Add(this.lblUkupnaProcjena);
-            this.groupBoxRizici.Controls.Add(this.txtUkupnaProcjena);
-            this.groupBoxRizici.Controls.Add(this.lblDatumProcjene);
-            this.groupBoxRizici.Controls.Add(this.dtDatumProcjene);
-            this.groupBoxRizici.Controls.Add(this.lblOvjeraCr);
-            this.groupBoxRizici.Controls.Add(this.txtOvjeraCr);
-
-            // ========== UGOVOR ==========
-            this.groupBoxUgovor.Text = "📜 Ugovor";
-            this.groupBoxUgovor.Location = new System.Drawing.Point(10, 380);
-            this.groupBoxUgovor.Size = new System.Drawing.Size(760, 115);
-
-            this.lblVrstaUgovora = new System.Windows.Forms.Label();
-            this.txtVrstaUgovora = new System.Windows.Forms.TextBox();
-            this.lblVrstaUgovora.Text = "Vrsta ugovora:";
-            this.lblVrstaUgovora.Location = new System.Drawing.Point(10, 30);
-            this.lblVrstaUgovora.AutoSize = true;
-            this.txtVrstaUgovora.Location = new System.Drawing.Point(120, 30);
-            this.txtVrstaUgovora.Size = new System.Drawing.Size(200, 20);
-
-            this.lblStatusUgovora.Text = "Status ugovora:";
-            this.lblStatusUgovora.Location = new System.Drawing.Point(330, 30);
-            this.lblStatusUgovora.AutoSize = true;
-            this.cbStatusUgovora.Location = new System.Drawing.Point(450, 30);
-            this.cbStatusUgovora.Size = new System.Drawing.Size(200, 21);
-
-            this.lblDatumUgovora.Text = "Datum ugovora:";
-            this.lblDatumUgovora.Location = new System.Drawing.Point(10, 65);
-            this.lblDatumUgovora.AutoSize = true;
-            this.dtDatumUgovora.Location = new System.Drawing.Point(120, 65);
-            this.dtDatumUgovora.Size = new System.Drawing.Size(180, 20);
-
-            this.groupBoxUgovor.Controls.Add(this.lblVrstaUgovora);
-            this.groupBoxUgovor.Controls.Add(this.txtVrstaUgovora);
-            this.groupBoxUgovor.Controls.Add(this.lblStatusUgovora);
-            this.groupBoxUgovor.Controls.Add(this.cbStatusUgovora);
-            this.groupBoxUgovor.Controls.Add(this.lblDatumUgovora);
-            this.groupBoxUgovor.Controls.Add(this.dtDatumUgovora);
-
-            this.groupBoxKontakti.Text = "📞 Kontakti";
-            this.groupBoxKontakti.Location = new System.Drawing.Point(10, 505);
-            this.groupBoxKontakti.Size = new System.Drawing.Size(760, 115);
-
-            this.lblEmail.Text = "Email:";
-            this.lblEmail.Location = new System.Drawing.Point(10, 30);
-            this.lblEmail.AutoSize = true;
-            this.txtEmail.Location = new System.Drawing.Point(120, 30);
-            this.txtEmail.Size = new System.Drawing.Size(300, 20);
-            this.txtEmail.MaxLength = 255;
-
-            this.lblTelefon.Text = "Telefon:";
-            this.lblTelefon.Location = new System.Drawing.Point(430, 30);
-            this.lblTelefon.AutoSize = true;
-            this.txtTelefon.Location = new System.Drawing.Point(530, 30);
-            this.txtTelefon.Size = new System.Drawing.Size(200, 20);
-            this.txtTelefon.MaxLength = 50;
-
-            this.groupBoxKontakti.Controls.Add(this.lblEmail);
-            this.groupBoxKontakti.Controls.Add(this.txtEmail);
-            this.groupBoxKontakti.Controls.Add(this.lblTelefon);
-            this.groupBoxKontakti.Controls.Add(this.txtTelefon);
-
-
-            // ========== NAPOMENA ==========
-            this.groupBoxNapomena = new System.Windows.Forms.GroupBox();
-            this.groupBoxNapomena.Text = "📝 Napomena";
-            this.groupBoxNapomena.Location = new System.Drawing.Point(10, 630);
-
-            this.groupBoxNapomena.Size = new System.Drawing.Size(760, 120);
-
-            this.lblNapomena = new System.Windows.Forms.Label();
-            this.txtNapomena = new System.Windows.Forms.TextBox();
-            this.lblNapomena.Text = "Napomena:";
-            this.lblNapomena.Location = new System.Drawing.Point(10, 25);
-            this.lblNapomena.AutoSize = true;
-            this.txtNapomena.Location = new System.Drawing.Point(10, 45);
-            this.txtNapomena.Size = new System.Drawing.Size(730, 60);
-            this.txtNapomena.Multiline = true;
-            this.txtNapomena.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-
-            this.groupBoxNapomena.Controls.Add(this.lblNapomena);
-            this.groupBoxNapomena.Controls.Add(this.txtNapomena);
-
-            // ========== PANEL ZA BUTTONE (FIKSIRAN NA DNU) ==========
-            this.panelButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelButtons.Height = 60;
-            this.panelButtons.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.panelButtons.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-
-            this.btnSpremi.Location = new System.Drawing.Point(480, 15);
-            this.btnSpremi.Size = new System.Drawing.Size(150, 35);
-            this.btnSpremi.Text = "💾 Spremi";
-            this.btnSpremi.UseVisualStyleBackColor = true;
-            this.btnSpremi.BackColor = System.Drawing.Color.LightGreen;
-            this.btnSpremi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSpremi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSpremi.Click += btnSpremi_Click;
-
-            this.btnOtkazi.Location = new System.Drawing.Point(640, 15);
-            this.btnOtkazi.Size = new System.Drawing.Size(150, 35);
-            this.btnOtkazi.Text = "❌ Otkazi";
-            this.btnOtkazi.UseVisualStyleBackColor = true;
-            this.btnOtkazi.BackColor = System.Drawing.Color.LightCoral;
-            this.btnOtkazi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnOtkazi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnOtkazi.Click += btnOtkazi_Click;
-
-            this.panelButtons.Controls.Add(this.btnSpremi);
-            this.panelButtons.Controls.Add(this.btnOtkazi);
-
-            // ========== DODAVANJE NA SCROLL PANEL ==========
-            scrollPanel.Controls.Add(this.groupBoxOsnovni);
-            scrollPanel.Controls.Add(this.groupBoxRizici);
-            scrollPanel.Controls.Add(this.groupBoxUgovor);
-            scrollPanel.Controls.Add(this.groupBoxKontakti);
-            scrollPanel.Controls.Add(this.groupBoxNapomena);
-
-
-            // ========== DODAJ SVE NA FORMU ==========
-            this.Controls.Add(scrollPanel);
-            this.Controls.Add(this.panelButtons);
-
-            this.ResumeLayout(false);
+            scrollPanel.Controls.Add(groupBoxOsnovni);
+            scrollPanel.Controls.Add(groupBoxRizici);
+            scrollPanel.Controls.Add(groupBoxUgovor);
+            scrollPanel.Controls.Add(groupBoxKontakti);
+            scrollPanel.Controls.Add(groupBoxNapomena);
+            scrollPanel.Dock = DockStyle.Fill;
+            scrollPanel.Location = new Point(0, 0);
+            scrollPanel.Name = "scrollPanel";
+            scrollPanel.Padding = new Padding(0, 0, 0, 56);
+            scrollPanel.Size = new Size(700, 647);
+            scrollPanel.TabIndex = 0;
+            // 
+            // groupBoxNapomena
+            // 
+            groupBoxNapomena.Controls.Add(lblNapomena);
+            groupBoxNapomena.Controls.Add(txtNapomena);
+            groupBoxNapomena.Location = new Point(9, 591);
+            groupBoxNapomena.Name = "groupBoxNapomena";
+            groupBoxNapomena.Size = new Size(665, 112);
+            groupBoxNapomena.TabIndex = 4;
+            groupBoxNapomena.TabStop = false;
+            groupBoxNapomena.Text = "📝 Napomena";
+            // 
+            // lblNapomena
+            // 
+            lblNapomena.AutoSize = true;
+            lblNapomena.Location = new Point(9, 23);
+            lblNapomena.Name = "lblNapomena";
+            lblNapomena.Size = new Size(69, 15);
+            lblNapomena.TabIndex = 0;
+            lblNapomena.Text = "Napomena:";
+            // 
+            // txtNapomena
+            // 
+            txtNapomena.Location = new Point(9, 42);
+            txtNapomena.Multiline = true;
+            txtNapomena.Name = "txtNapomena";
+            txtNapomena.ScrollBars = ScrollBars.Vertical;
+            txtNapomena.Size = new Size(639, 56);
+            txtNapomena.TabIndex = 1;
+            // 
+            // FrmDodajKlijent
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(700, 703);
+            Controls.Add(scrollPanel);
+            Controls.Add(panelButtons);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "FrmDodajKlijent";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Dodaj firmu";
+            Load += FrmDodajKlijent_Load;
+            groupBoxOsnovni.ResumeLayout(false);
+            groupBoxOsnovni.PerformLayout();
+            groupBoxRizici.ResumeLayout(false);
+            groupBoxRizici.PerformLayout();
+            groupBoxUgovor.ResumeLayout(false);
+            groupBoxUgovor.PerformLayout();
+            panelButtons.ResumeLayout(false);
+            groupBoxKontakti.ResumeLayout(false);
+            groupBoxKontakti.PerformLayout();
+            scrollPanel.ResumeLayout(false);
+            groupBoxNapomena.ResumeLayout(false);
+            groupBoxNapomena.PerformLayout();
+            ResumeLayout(false);
         }
 
         private System.Windows.Forms.GroupBox groupBoxOsnovni;
@@ -401,5 +664,6 @@
         private System.Windows.Forms.Panel panelButtons;
         public System.Windows.Forms.Button btnSpremi;
         public System.Windows.Forms.Button btnOtkazi;
+        private Panel scrollPanel;
     }
 }

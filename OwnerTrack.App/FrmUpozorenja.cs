@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,7 @@ namespace OwnerTrack.App
             UcitajUpozorenja();
         }
 
-        
+
         private void UcitajUpozorenja()
         {
             var danas = DateTime.Today;
@@ -32,7 +33,8 @@ namespace OwnerTrack.App
                 .AsNoTracking()
                 .Where(v => v.DatumValjanostiDokumenta != null
                          && v.DatumValjanostiDokumenta <= granica
-                         && v.Status == "AKTIVAN")
+                         && v.Status == StatusKonstante.Aktivan
+                         && v.Klijent.Status != StatusKonstante.Arhiviran)
                 .Include(v => v.Klijent)
                 .Select(v => new UpozorenjeDetalj
                 {
@@ -49,7 +51,8 @@ namespace OwnerTrack.App
                 .Where(d => d.DatumValjanosti != null
                          && d.DatumValjanosti <= granica
                          && d.TipValjanosti == "VREMENSKI"
-                         && d.Status == "AKTIVAN")
+                         && d.Status == StatusKonstante.Aktivan
+                         && d.Klijent.Status != StatusKonstante.Arhiviran)
                 .Include(d => d.Klijent)
                 .Select(d => new UpozorenjeDetalj
                 {
@@ -66,7 +69,7 @@ namespace OwnerTrack.App
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
 
-            
+
             int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
             int kriticni = _svaUpozorenja.Count(x => x.DatumIsteka >= danas && x.DatumIsteka <= danas.AddDays(14));
             int ostali = _svaUpozorenja.Count(x => x.DatumIsteka > danas.AddDays(14));
@@ -84,7 +87,7 @@ namespace OwnerTrack.App
                     ? Color.FromArgb(255, 220, 170)
                     : Color.FromArgb(255, 248, 220);
 
-           
+
             var poFirmama = _svaUpozorenja
                 .GroupBy(x => new { x.KlijentId, x.NazivFirme })
                 .Select(g => new
@@ -98,10 +101,10 @@ namespace OwnerTrack.App
                 .OrderBy(x => x.NajbliziDatum)
                 .ToList();
 
-            
+
             gridFirme.SelectionChanged -= gridFirme_SelectionChanged;
             gridFirme.DataSource = poFirmama;
-            gridFirme.ClearSelection(); 
+            gridFirme.ClearSelection();
             gridFirme.SelectionChanged += gridFirme_SelectionChanged;
 
             if (gridFirme.Columns.Count > 0)
@@ -121,7 +124,7 @@ namespace OwnerTrack.App
             }
         }
 
-        
+
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
             if (gridFirme.SelectedRows.Count == 0)
@@ -169,7 +172,7 @@ namespace OwnerTrack.App
             }
         }
 
-        
+
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (e.RowIndex < 0 || gridFirme.Rows[e.RowIndex].DataBoundItem == null) return;
@@ -185,12 +188,12 @@ namespace OwnerTrack.App
         }
 
         private static Color BojaZaDane(int dana) => dana < 0
-            ? Color.FromArgb(255, 180, 180)   
+            ? Color.FromArgb(255, 180, 180)
             : dana <= 14
-                ? Color.FromArgb(255, 210, 150) 
-                : Color.FromArgb(255, 255, 180); 
+                ? Color.FromArgb(255, 210, 150)
+                : Color.FromArgb(255, 255, 180);
 
-        
+
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
     }
 }

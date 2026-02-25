@@ -1,4 +1,4 @@
-﻿namespace OwnerTrack.App
+﻿namespace OwnerTrack.Infrastructure
 {
     public class ImportResult
     {
