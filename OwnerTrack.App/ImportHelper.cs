@@ -22,7 +22,7 @@ namespace OwnerTrack.App
 
             bool importZavršen = false;
 
-            
+
             frm.FormClosing += (s, args) =>
             {
                 if (!importZavršen)
@@ -64,7 +64,7 @@ namespace OwnerTrack.App
                     btnZatvori.Enabled = true;
                     lblStatus.Text =
                         $"Import završen!\n" +
-                        $"Dodano: {result.SuccessCount}\n" +
+                        $"Dodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\n" +
                         $"Greške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
 
                     if (result.Errors.Count > 0)
@@ -72,7 +72,7 @@ namespace OwnerTrack.App
                             $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(10))}",
                             "Upozorenje", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-                    
+
                     btnZatvori.Click += (bs, be) =>
                     {
                         frm.Close();

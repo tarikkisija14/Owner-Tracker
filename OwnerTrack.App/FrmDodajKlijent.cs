@@ -162,7 +162,8 @@ namespace OwnerTrack.App
 
             int trenutniId = _klijentId ?? 0;
 
-            if (_db.Klijenti.Any(k => k.IdBroj == idBroj && k.Id != trenutniId))
+            if (_db.Set<OwnerTrack.Data.Entities.Klijent>().IgnoreQueryFilters()
+                    .Any(k => k.IdBroj == idBroj && k.Id != trenutniId && k.Obrisan == null))
             {
                 MessageBox.Show($"Klijent s ID brojem '{idBroj}' već postoji!",
                     "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -170,8 +171,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-            // Fix #4 — ignoriši arhivirane firme pri provjeri duplikata naziva
-            // Koristimo Set<>().IgnoreQueryFilters() da zaobiđemo global query filter
+            
             if (_db.Set<OwnerTrack.Data.Entities.Klijent>().IgnoreQueryFilters()
                     .Any(k => k.Naziv == naziv && k.Id != trenutniId && k.Obrisan == null))
             {

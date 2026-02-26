@@ -11,6 +11,9 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using DocumentFormat.OpenXml.Packaging;
+using OpenXmlSheet = DocumentFormat.OpenXml.Spreadsheet.Sheet;
+
 
 namespace OwnerTrack.App
 {
@@ -52,7 +55,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-       
+
         private void OsvjeziDb()
         {
             _db?.Dispose();
@@ -144,7 +147,7 @@ namespace OwnerTrack.App
 
         private void KonfigurirajKolone()
         {
-            
+
             PostaviKolone(dataGridKlijenti, new[]
             {
                 ("Id", 40, "ID", (string?)null),
@@ -447,9 +450,35 @@ namespace OwnerTrack.App
             var dialog = new OpenFileDialog { Filter = "Excel Files (*.xlsx)|*.xlsx", Title = "Odaberi Excel fajl za reimport" };
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
+            // Validacija fajla PRIJE brisanja baze
+            if (!System.IO.File.Exists(dialog.FileName))
+            {
+                MessageBox.Show("Odabrani fajl nije pronađen.", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             try
             {
+                // Provjeri da li je validan Excel fajl pokušajem otvaranja
+                using (var testDoc = SpreadsheetDocument.Open(dialog.FileName, false))
+                {
+                    var wbPart = testDoc.WorkbookPart
+                        ?? throw new Exception("Fajl nema validan WorkbookPart.");
+                    var sheet = wbPart.Workbook.Sheets?.Cast<OpenXmlSheet>()
+                        .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
+                        ?? throw new Exception("Fajl ne sadrži list sa 'ZBIRNA'. Provjeri da li je odabran ispravan Excel.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Odabrani fajl nije validan za import:\n\n{ex.Message}",
+                    "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
+            // Tek sad resetuj bazu
+            try
+            {
                 var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
                 dbService.ResetirajBazu();
 

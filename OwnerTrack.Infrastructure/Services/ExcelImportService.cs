@@ -70,11 +70,17 @@ namespace OwnerTrack.Infrastructure
                             continue;
                         }
 
+                        bool preskocen = ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
 
-                        ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
-
-                        result.SuccessCount++;
-                        prog.SuccessCount = result.SuccessCount;
+                        if (!preskocen)
+                        {
+                            result.SuccessCount++;
+                            prog.SuccessCount = result.SuccessCount;
+                        }
+                        else
+                        {
+                            result.SkipCount++;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -102,7 +108,7 @@ namespace OwnerTrack.Infrastructure
             return result;
         }
 
-        private void ImportajRed(WorkbookPart wbPart, Row row, int i,
+        private bool ImportajRed(WorkbookPart wbPart, Row row, int i,
                                    string naziv, string idBroj,
                                    ImportResult result, Action<string> Log)
         {
@@ -126,7 +132,7 @@ namespace OwnerTrack.Infrastructure
                 if (db.Klijenti.AsNoTracking().Any(k => k.IdBroj == idBroj))
                 {
                     Log($"[SKIP-DUPLICATE-ID] Red={i + 3} ID='{idBroj}'");
-                    return;
+                    return true;
                 }
 
                 if (db.Klijenti.AsNoTracking().Any(k => k.Naziv == naziv))
@@ -214,6 +220,7 @@ namespace OwnerTrack.Infrastructure
                 result.VlasnikCount += privremeniVlasnikCount;
 
                 Log($"[OK] Red={i + 3} KlijentId={klijent.Id} '{naziv}'");
+                return false;
             }
             catch
             {

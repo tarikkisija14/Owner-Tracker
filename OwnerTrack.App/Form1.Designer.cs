@@ -353,13 +353,13 @@
 
             btnDodajDirektora.Location = new Point(9, 8);
             btnDodajDirektora.Name = "btnDodajDirektora";
-            btnDodajDirektora.Size = new Size(118, 24);
+            btnDodajDirektora.Size = new Size(138, 24);
             btnDodajDirektora.TabIndex = 0;
             btnDodajDirektora.Text = "➕ Dodaj direktora";
             StyleSubBtn(btnDodajDirektora, Color.FromArgb(39, 174, 96));
             btnDodajDirektora.Click += btnDodajDirektora_Click;
 
-            btnIzmijeniDirektora.Location = new Point(135, 8);
+            btnIzmijeniDirektora.Location = new Point(155, 8);
             btnIzmijeniDirektora.Name = "btnIzmijeniDirektora";
             btnIzmijeniDirektora.Size = new Size(90, 24);
             btnIzmijeniDirektora.TabIndex = 1;
@@ -367,7 +367,7 @@
             StyleSubBtn(btnIzmijeniDirektora, Color.FromArgb(52, 120, 200));
             btnIzmijeniDirektora.Click += btnIzmijeniDirektora_Click;
 
-            btnObrisiDirektora.Location = new Point(233, 8);
+            btnObrisiDirektora.Location = new Point(253, 8);
             btnObrisiDirektora.Name = "btnObrisiDirektora";
             btnObrisiDirektora.Size = new Size(90, 24);
             btnObrisiDirektora.TabIndex = 2;
