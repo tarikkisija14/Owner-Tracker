@@ -1,10 +1,8 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
-using OwnerTrack.Infrastructure;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Models;
 using System;
@@ -26,7 +24,10 @@ namespace OwnerTrack.Infrastructure
             _connectionString = connectionString;
         }
 
-        public ImportResult ImportFromExcel(string filePath, IProgress<ImportProgress>? progress = null)
+        public ImportResult ImportFromExcel(
+            string filePath,
+            IProgress<ImportProgress>? progress = null,
+            CancellationToken cancellationToken = default)
         {
             var result = new ImportResult();
             var prog = new ImportProgress();
@@ -52,6 +53,13 @@ namespace OwnerTrack.Infrastructure
 
                 for (int i = 0; i < allRows.Count; i++)
                 {
+                    
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        Log("[IMPORT-CANCELLED] Korisnik otkazao import.");
+                        break;
+                    }
+
                     var row = allRows[i];
                     string naziv = "";
                     string idBroj = "";
@@ -97,6 +105,11 @@ namespace OwnerTrack.Infrastructure
                     progress?.Report(prog);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                result.Success = true; 
+                return result;
+            }
             catch (Exception ex)
             {
                 result.Success = false;
@@ -112,9 +125,6 @@ namespace OwnerTrack.Infrastructure
                                    string naziv, string idBroj,
                                    ImportResult result, Action<string> Log)
         {
-
-            // Fix #3 — EnsureDjelatnostExists mora biti VAN glavne transakcije
-            // jer SQLite ne podržava nested transakcije i SaveChanges unutar tx može failati
             string sifraDjelatnostiPre = GetCellValue(wbPart, row, 5)?.Trim() ?? "69.20";
             string? nazivDjelatnostiPre = GetCellValue(wbPart, row, 6)?.Trim();
             if (string.IsNullOrWhiteSpace(sifraDjelatnostiPre))
@@ -164,7 +174,6 @@ namespace OwnerTrack.Infrastructure
                 db.Klijenti.Add(klijent);
                 db.SaveChanges();
 
-
                 string? vlasnikRaw = GetCellValue(wbPart, row, 10);
                 string? datVazVlasnika = GetCellValue(wbPart, row, 11);
                 string? procenatRaw = GetCellValue(wbPart, row, 12);
@@ -174,8 +183,6 @@ namespace OwnerTrack.Infrastructure
                 if (!string.IsNullOrWhiteSpace(vlasnikRaw))
                 {
                     var vlasnici = ParseVlasnici(vlasnikRaw, datVazVlasnika, procenatRaw);
-
-
                     foreach (var v in vlasnici)
                     {
                         v.KlijentId = klijent.Id;
@@ -186,7 +193,6 @@ namespace OwnerTrack.Infrastructure
                         privremeniVlasnikCount++;
                     }
                 }
-
 
                 string? direktorRaw = GetCellValue(wbPart, row, 15);
                 string? datVazDirektora = GetCellValue(wbPart, row, 16);
@@ -201,7 +207,6 @@ namespace OwnerTrack.Infrastructure
                         db.Direktori.Add(d);
                     }
                 }
-
 
                 string? statusUgovora = GetCellValue(wbPart, row, 25);
                 string? datumUgovora = GetCellValue(wbPart, row, 26);
@@ -432,7 +437,6 @@ namespace OwnerTrack.Infrastructure
             if (string.IsNullOrWhiteSpace(v)) return null;
             string u = v.ToUpper().Trim();
 
-
             var aliasi = new Dictionary<string, VelicinaFirme>(StringComparer.OrdinalIgnoreCase)
             {
                 ["MIKRO"] = VelicinaFirme.MIKRO,
@@ -455,7 +459,6 @@ namespace OwnerTrack.Infrastructure
 
             if (aliasi.TryGetValue(u, out var rezultat))
                 return rezultat.ToString();
-
 
             if (Enum.TryParse<VelicinaFirme>(u, ignoreCase: true, out var parsed))
                 return parsed.ToString();

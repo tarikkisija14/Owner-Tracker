@@ -135,7 +135,6 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrEmpty(value)) { cb.SelectedIndex = 0; return; }
             int idx = cb.FindStringExact(value);
-
             cb.SelectedIndex = idx >= 0 ? idx : 0;
         }
 
@@ -146,7 +145,6 @@ namespace OwnerTrack.App
                 MessageBox.Show("Popuni obavezna polja: Naziv i ID Broj!");
                 return;
             }
-
 
             string idBroj = txtIdBroj.Text.Trim();
             string naziv = txtNaziv.Text.Trim();
@@ -162,7 +160,7 @@ namespace OwnerTrack.App
 
             int trenutniId = _klijentId ?? 0;
 
-            if (_db.Set<OwnerTrack.Data.Entities.Klijent>().IgnoreQueryFilters()
+            if (_db.Set<Klijent>().IgnoreQueryFilters()
                     .Any(k => k.IdBroj == idBroj && k.Id != trenutniId && k.Obrisan == null))
             {
                 MessageBox.Show($"Klijent s ID brojem '{idBroj}' već postoji!",
@@ -171,8 +169,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-            
-            if (_db.Set<OwnerTrack.Data.Entities.Klijent>().IgnoreQueryFilters()
+            if (_db.Set<Klijent>().IgnoreQueryFilters()
                     .Any(k => k.Naziv == naziv && k.Id != trenutniId && k.Obrisan == null))
             {
                 MessageBox.Show($"Klijent s nazivom '{naziv}' već postoji!",
@@ -193,7 +190,8 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Greška: {ex.Message}");
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri snimanju: {ex.Message}");
             }
         }
 
@@ -203,6 +201,7 @@ namespace OwnerTrack.App
             if (k == null) return;
 
             string stariNaziv = k.Naziv;
+
             k.Naziv = naziv;
             k.IdBroj = idBroj;
             k.Adresa = txtAdresa.Text;
@@ -237,12 +236,12 @@ namespace OwnerTrack.App
                 _db.Ugovori.Remove(ugovor);
             }
 
-            _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'");
-
             using var tx = _db.Database.BeginTransaction();
             try
             {
-                _db.SaveChanges();
+                _db.SaveChanges(); 
+                _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'"); 
+                _db.SaveChanges(); 
                 tx.Commit();
             }
             catch
@@ -284,9 +283,9 @@ namespace OwnerTrack.App
             try
             {
                 _db.Klijenti.Add(k);
-                _db.SaveChanges();
+                _db.SaveChanges(); 
 
-                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
+                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})"); 
 
                 if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
                 {
@@ -299,7 +298,7 @@ namespace OwnerTrack.App
                     });
                 }
 
-                _db.SaveChanges();
+                _db.SaveChanges(); 
                 tx.Commit();
             }
             catch
@@ -320,9 +319,6 @@ namespace OwnerTrack.App
             Close();
         }
 
-        private void txtTelefon_TextChanged(object sender, EventArgs e)
-        {
-
-        }
+        private void txtTelefon_TextChanged(object sender, EventArgs e) { }
     }
 }

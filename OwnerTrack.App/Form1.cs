@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using DocumentFormat.OpenXml.Packaging;
 using OpenXmlSheet = DocumentFormat.OpenXml.Spreadsheet.Sheet;
@@ -19,21 +20,12 @@ namespace OwnerTrack.App
 {
     public partial class Form1 : Form
     {
-        private OwnerTrackDbContext _db;
-        private AuditService _audit;
-
         private readonly System.Windows.Forms.Timer _searchTimer;
+        private bool _koloneKonfigurisane = false;
 
         public Form1()
         {
             InitializeComponent();
-
-            var schema = new SchemaManager(DbContextFactory.ConnectionString);
-            schema.ApplyMigrations();
-
-            _db = DbContextFactory.Kreiraj();
-            _db.Database.EnsureCreated();
-            _audit = new AuditService(_db);
 
             _searchTimer = new System.Windows.Forms.Timer { Interval = 300 };
             _searchTimer.Tick += (s, e) =>
@@ -42,28 +34,47 @@ namespace OwnerTrack.App
                 LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
             };
 
-            LoadDjelatnostiFilter();
-            LoadVelicinaFilter();
-            LoadKlijenti();
-            OsvjeziUpozerenjaBadge();
+            this.Load += Form1_Load;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                var schema = new SchemaManager(DbContextFactory.ConnectionString);
+                schema.ApplyMigrations();
+
+                LoadDjelatnostiFilter();
+                LoadVelicinaFilter();
+                LoadKlijenti();
+                OsvjeziUpozerenjaBadge();
+
+                Text = $"OwnerTrack v{Application.ProductVersion}";
+            }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show(
+                    $"Greška pri pokretanju aplikacije:\n\n{ex.Message}\n\n" +
+                    $"Baza podataka: {DbContextFactory.DbPath}\n\n" +
+                    $"Detalji su sačuvani u log fajlu:\n{Program.GetLogPath()}\n\n" +
+                    "Ako problem ostane, kontaktiraj podršku.",
+                    "Greška pokretanja",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                Application.Exit();
+            }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            _db?.Dispose();
             _searchTimer?.Dispose();
             base.OnFormClosed(e);
         }
 
-
-        private void OsvjeziDb()
-        {
-            _db?.Dispose();
-            _db = DbContextFactory.Kreiraj();
-            _audit = new AuditService(_db);
-        }
-
-
+        // -------------------------------------------------------------------
+        // LOAD METODE
+        // -------------------------------------------------------------------
 
         private void LoadVelicinaFilter()
         {
@@ -80,7 +91,8 @@ namespace OwnerTrack.App
         {
             try
             {
-                var djelatnosti = _db.Djelatnosti.OrderBy(d => d.Naziv).ToList();
+                using var db = DbContextFactory.Kreiraj();
+                var djelatnosti = db.Djelatnosti.OrderBy(d => d.Naziv).ToList();
                 cmbFilterDjelatnost.Items.Clear();
                 cmbFilterDjelatnost.Items.Add(new { Sifra = "", Naziv = "-- Sve djelatnosti --" });
                 foreach (var d in djelatnosti)
@@ -89,14 +101,19 @@ namespace OwnerTrack.App
                 cmbFilterDjelatnost.ValueMember = "Sifra";
                 cmbFilterDjelatnost.SelectedIndex = 0;
             }
-            catch (Exception ex) { MessageBox.Show($"Greška pri učitavanju djelatnosti: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri učitavanju djelatnosti: {ex.Message}");
+            }
         }
 
         private void LoadKlijenti(string filter = "", string sifraDjelatnosti = "", string velicina = "")
         {
             try
             {
-                var klijenti = _db.Klijenti
+                using var db = DbContextFactory.Kreiraj();
+                var klijenti = db.Klijenti
                     .AsNoTracking()
                     .Where(k =>
                         (string.IsNullOrWhiteSpace(filter) ||
@@ -108,31 +125,31 @@ namespace OwnerTrack.App
                         &&
                         (string.IsNullOrWhiteSpace(velicina) ||
                          k.Velicina == velicina))
-                    .Select(k => new
+                    .Select(k => new KlijentViewModel
                     {
-                        k.Id,
-                        k.Naziv,
-                        k.IdBroj,
-                        k.Adresa,
+                        Id = k.Id,
+                        Naziv = k.Naziv,
+                        IdBroj = k.IdBroj,
+                        Adresa = k.Adresa,
                         SifraDjelatnosti = k.SifraDjelatnosti,
                         Djelatnost = k.Djelatnost != null ? k.Djelatnost.Naziv : "",
                         DatumUspostaveOdnosa = k.DatumUspostave,
-                        k.VrstaKlijenta,
+                        VrstaKlijenta = k.VrstaKlijenta,
                         DatumOsnivanjaFirme = k.DatumOsnivanja,
-                        k.Velicina,
-                        k.PepRizik,
-                        k.UboRizik,
-                        k.GotovinaRizik,
-                        k.GeografskiRizik,
-                        k.UkupnaProcjena,
+                        Velicina = k.Velicina,
+                        PepRizik = k.PepRizik,
+                        UboRizik = k.UboRizik,
+                        GotovinaRizik = k.GotovinaRizik,
+                        GeografskiRizik = k.GeografskiRizik,
+                        UkupnaProcjena = k.UkupnaProcjena,
                         DatumProcjeneRizika = k.DatumProcjene,
-                        k.OvjeraCr,
+                        OvjeraCr = k.OvjeraCr,
                         StatusUgovora = k.Ugovor != null ? k.Ugovor.StatusUgovora : "",
-                        DatumPotpisaUgovora = k.Ugovor != null ? k.Ugovor.DatumUgovora : (DateTime?)null,
+                        DatumPotpisaUgovora = k.Ugovor != null ? k.Ugovor.DatumUgovora : null,
                         BrojVlasnika = k.Vlasnici.Count(),
                         BrojDirektora = k.Direktori.Count(),
                         StatusKlijenta = k.Status,
-                        k.Napomena
+                        Napomena = k.Napomena
                     })
                     .ToList();
 
@@ -140,14 +157,22 @@ namespace OwnerTrack.App
                 dataGridKlijenti.DataSource = klijenti;
                 dataGridKlijenti.ClearSelection();
                 dataGridKlijenti.SelectionChanged += dataGridKlijenti_SelectionChanged;
-                KonfigurirajKolone();
+
+                if (!_koloneKonfigurisane)
+                {
+                    KonfigurirajKolone();
+                    _koloneKonfigurisane = true;
+                }
             }
-            catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri učitavanju klijenata: {ex.Message}");
+            }
         }
 
         private void KonfigurirajKolone()
         {
-
             PostaviKolone(dataGridKlijenti, new[]
             {
                 ("Id", 40, "ID", (string?)null),
@@ -176,57 +201,83 @@ namespace OwnerTrack.App
             });
         }
 
-
         private void LoadVlasnici(int klijentId)
         {
-            var vlasnici = _db.Vlasnici.Where(v => v.KlijentId == klijentId).AsNoTracking().ToList();
-            dataGridVlasnici.DataSource = vlasnici.Select(v => new
+            try
             {
-                v.Id,
-                v.ImePrezime,
-                DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,
-                ProcenatVlasnistva = v.ProcenatVlasnistva,
-                DatumUtvrdjivanja = v.DatumUtvrdjivanja,
-                v.IzvorPodatka,
-                StatusVlasnika = v.Status
-            }).ToList();
+                using var db = DbContextFactory.Kreiraj();
+                var vlasnici = db.Vlasnici
+                    .Where(v => v.KlijentId == klijentId)
+                    .AsNoTracking()
+                    .Select(v => new VlasnikViewModel
+                    {
+                        Id = v.Id,
+                        ImePrezime = v.ImePrezime,
+                        DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,
+                        ProcenatVlasnistva = v.ProcenatVlasnistva,
+                        DatumUtvrdjivanja = v.DatumUtvrdjivanja,
+                        IzvorPodatka = v.IzvorPodatka,
+                        StatusVlasnika = v.Status
+                    })
+                    .ToList();
 
-            PostaviKolone(dataGridVlasnici, new[]
+                dataGridVlasnici.DataSource = vlasnici;
+
+                PostaviKolone(dataGridVlasnici, new[]
+                {
+                    ("Id", 40, "ID", (string?)null),
+                    ("ImePrezime", 180, "Ime i prezime", (string?)null),
+                    ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
+                    ("ProcenatVlasnistva", 100, "% vlasništva", (string?)null),
+                    ("DatumUtvrdjivanja", 130, "Datum utvrđivanja", "dd.MM.yyyy"),
+                    ("IzvorPodatka", 150, "Izvor podatka", (string?)null),
+                    ("StatusVlasnika", 90, "Status", (string?)null),
+                });
+                dataGridVlasnici.ClearSelection();
+            }
+            catch (Exception ex)
             {
-                ("Id", 40, "ID", (string?)null),
-                ("ImePrezime", 180, "Ime i prezime", (string?)null),
-                ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
-                ("ProcenatVlasnistva", 100, "% vlasništva", (string?)null),
-                ("DatumUtvrdjivanja", 130, "Datum utvrđivanja", "dd.MM.yyyy"),
-                ("IzvorPodatka", 150, "Izvor podatka", (string?)null),
-                ("StatusVlasnika", 90, "Status", (string?)null),
-            });
-            dataGridVlasnici.ClearSelection();
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri učitavanju vlasnika: {ex.Message}");
+            }
         }
 
         private void LoadDirektori(int klijentId)
         {
-            var direktori = _db.Direktori.Where(d => d.KlijentId == klijentId).AsNoTracking().ToList();
-            dataGridDirektori.DataSource = direktori.Select(d => new
+            try
             {
-                d.Id,
-                d.ImePrezime,
-                DatumValjanostiDokumenta = d.DatumValjanosti,
-                d.TipValjanosti,
-                StatusDirektora = d.Status
-            }).ToList();
+                using var db = DbContextFactory.Kreiraj();
+                var direktori = db.Direktori
+                    .Where(d => d.KlijentId == klijentId)
+                    .AsNoTracking()
+                    .Select(d => new DirektorViewModel
+                    {
+                        Id = d.Id,
+                        ImePrezime = d.ImePrezime,
+                        DatumValjanostiDokumenta = d.DatumValjanosti,
+                        TipValjanosti = d.TipValjanosti,
+                        StatusDirektora = d.Status
+                    })
+                    .ToList();
 
-            PostaviKolone(dataGridDirektori, new[]
+                dataGridDirektori.DataSource = direktori;
+
+                PostaviKolone(dataGridDirektori, new[]
+                {
+                    ("Id", 40, "ID", (string?)null),
+                    ("ImePrezime", 200, "Ime i prezime", (string?)null),
+                    ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
+                    ("TipValjanosti", 120, "Tip valjanosti", (string?)null),
+                    ("StatusDirektora", 90, "Status", (string?)null),
+                });
+                dataGridDirektori.ClearSelection();
+            }
+            catch (Exception ex)
             {
-                ("Id", 40, "ID", (string?)null),
-                ("ImePrezime", 200, "Ime i prezime", (string?)null),
-                ("DatumValjanostiDokumenta", 140, "Datum važenja dok.", "dd.MM.yyyy"),
-                ("TipValjanosti", 120, "Tip valjanosti", (string?)null),
-                ("StatusDirektora", 90, "Status", (string?)null),
-            });
-            dataGridDirektori.ClearSelection();
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri učitavanju direktora: {ex.Message}");
+            }
         }
-
 
         private static void PostaviKolone(DataGridView grid,
             (string Ime, int Sirina, string Zaglavlje, string? Format)[] kolone)
@@ -242,23 +293,25 @@ namespace OwnerTrack.App
             }
         }
 
-
-
+        // -------------------------------------------------------------------
+        // GRID EVENTI
+        // -------------------------------------------------------------------
 
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
-            if (dataGridKlijenti.SelectedRows.Count > 0)
-            {
-                int id = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
-                LoadVlasnici(id);
-                LoadDirektori(id);
-            }
+            if (dataGridKlijenti.SelectedRows.Count == 0) return;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int id) return;
+
+            LoadVlasnici(id);
+            LoadDirektori(id);
         }
 
         private void ApplyCurrentFilters() =>
             LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
 
-
+        // -------------------------------------------------------------------
+        // KLIJENTI — CRUD
+        // -------------------------------------------------------------------
 
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
@@ -266,25 +319,31 @@ namespace OwnerTrack.App
             var forma = new FrmDodajKlijent(null, db);
             if (forma.ShowDialog() == DialogResult.OK)
             {
-                LoadDjelatnostiFilter(); ApplyCurrentFilters(); OsvjeziUpozerenjaBadge();
+                LoadDjelatnostiFilter();
+                ApplyCurrentFilters();
+                OsvjeziUpozerenjaBadge();
             }
         }
 
         private void btnIzmijeniKlijent_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Odaberi firmu!"); return; }
-            int id = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int id) return;
+
             using var db = DbContextFactory.Kreiraj();
             var forma = new FrmDodajKlijent(id, db);
             if (forma.ShowDialog() == DialogResult.OK)
             {
-                LoadDjelatnostiFilter(); ApplyCurrentFilters(); OsvjeziUpozerenjaBadge();
+                LoadDjelatnostiFilter();
+                ApplyCurrentFilters();
+                OsvjeziUpozerenjaBadge();
             }
         }
 
         private void btnObrisiKlijent_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Odaberi firmu!"); return; }
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int id) return;
 
             if (MessageBox.Show(
                     "Firma će biti arhivirana i neće biti vidljiva.\n" +
@@ -294,26 +353,48 @@ namespace OwnerTrack.App
 
             try
             {
-                int id = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
-                var klijent = _db.Klijenti.Find(id);
+                using var db = DbContextFactory.Kreiraj();
+                var audit = new AuditService(db);
+
+                var klijent = db.Klijenti.Find(id);
                 if (klijent == null) return;
 
-                _audit.SoftDelete(klijent, "Klijenti", id, $"Arhivirana firma: '{klijent.Naziv}'");
-                klijent.Status = StatusKonstante.Arhiviran;
-                _db.SaveChanges();
+                using var tx = db.Database.BeginTransaction();
+                try
+                {
+                    klijent.Status = StatusKonstante.Arhiviran;
+                    klijent.Obrisan = DateTime.Now;
+                    audit.ZabiljeziBesSave(klijent, "Klijenti", id, $"Arhivirana firma: '{klijent.Naziv}'", "OBRISANO");
+                    db.SaveChanges();
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
 
                 MessageBox.Show("Firma je arhivirana.");
-                LoadDjelatnostiFilter(); ApplyCurrentFilters(); OsvjeziUpozerenjaBadge();
+                LoadDjelatnostiFilter();
+                ApplyCurrentFilters();
+                OsvjeziUpozerenjaBadge();
             }
-            catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška: {ex.Message}");
+            }
         }
 
-
+        // -------------------------------------------------------------------
+        // VLASNICI — CRUD
+        // -------------------------------------------------------------------
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Prvo odaberi firmu!"); return; }
-            int klijentId = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int klijentId) return;
+
             using var db = DbContextFactory.Kreiraj();
             var forma = new FrmDodajVlasnika(klijentId, null, db);
             if (forma.ShowDialog() == DialogResult.OK) LoadVlasnici(klijentId);
@@ -323,8 +404,9 @@ namespace OwnerTrack.App
         {
             if (dataGridVlasnici.SelectedRows.Count == 0) { MessageBox.Show("Odaberi vlasnika!"); return; }
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Odaberi firmu!"); return; }
-            int vlasnikId = (int)dataGridVlasnici.SelectedRows[0].Cells["Id"].Value;
-            int klijentId = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
+            if (dataGridVlasnici.SelectedRows[0].Cells["Id"].Value is not int vlasnikId) return;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int klijentId) return;
+
             using var db = DbContextFactory.Kreiraj();
             var forma = new FrmDodajVlasnika(klijentId, vlasnikId, db);
             if (forma.ShowDialog() == DialogResult.OK) LoadVlasnici(klijentId);
@@ -334,28 +416,51 @@ namespace OwnerTrack.App
         {
             if (dataGridVlasnici.SelectedRows.Count == 0) { MessageBox.Show("Odaberi vlasnika!"); return; }
             if (MessageBox.Show("Arhivirati vlasnika?", "Potvrda", MessageBoxButtons.YesNo) == DialogResult.No) return;
+            if (dataGridVlasnici.SelectedRows[0].Cells["Id"].Value is not int vlasnikId) return;
 
             try
             {
-                int vlasnikId = (int)dataGridVlasnici.SelectedRows[0].Cells["Id"].Value;
-                var vlasnik = _db.Vlasnici.Find(vlasnikId);
+                using var db = DbContextFactory.Kreiraj();
+                var audit = new AuditService(db);
+
+                var vlasnik = db.Vlasnici.Find(vlasnikId);
                 if (vlasnik == null) return;
                 int klijentId = vlasnik.KlijentId;
-                _audit.SoftDelete(vlasnik, "Vlasnici", vlasnikId, $"Arhiviran: '{vlasnik.ImePrezime}'");
-                vlasnik.Status = StatusKonstante.Arhiviran;
-                _db.SaveChanges();
+
+                using var tx = db.Database.BeginTransaction();
+                try
+                {
+                    vlasnik.Status = StatusKonstante.Arhiviran;
+                    vlasnik.Obrisan = DateTime.Now;
+                    audit.ZabiljeziBesSave(vlasnik, "Vlasnici", vlasnikId, $"Arhiviran: '{vlasnik.ImePrezime}'", "OBRISANO");
+                    db.SaveChanges();
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
+
                 MessageBox.Show("Vlasnik arhiviran.");
                 LoadVlasnici(klijentId);
             }
-            catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška: {ex.Message}");
+            }
         }
 
-
+        // -------------------------------------------------------------------
+        // DIREKTORI — CRUD
+        // -------------------------------------------------------------------
 
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Prvo odaberi firmu!"); return; }
-            int klijentId = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int klijentId) return;
+
             using var db = DbContextFactory.Kreiraj();
             var forma = new FrmDodajDirektora(klijentId, null, db);
             if (forma.ShowDialog() == DialogResult.OK) LoadDirektori(klijentId);
@@ -365,8 +470,9 @@ namespace OwnerTrack.App
         {
             if (dataGridDirektori.SelectedRows.Count == 0) { MessageBox.Show("Odaberi direktora!"); return; }
             if (dataGridKlijenti.SelectedRows.Count == 0) { MessageBox.Show("Odaberi firmu!"); return; }
-            int direktorId = (int)dataGridDirektori.SelectedRows[0].Cells["Id"].Value;
-            int klijentId = (int)dataGridKlijenti.SelectedRows[0].Cells["Id"].Value;
+            if (dataGridDirektori.SelectedRows[0].Cells["Id"].Value is not int direktorId) return;
+            if (dataGridKlijenti.SelectedRows[0].Cells["Id"].Value is not int klijentId) return;
+
             using var db = DbContextFactory.Kreiraj();
             var forma = new FrmDodajDirektora(klijentId, direktorId, db);
             if (forma.ShowDialog() == DialogResult.OK) LoadDirektori(klijentId);
@@ -376,23 +482,45 @@ namespace OwnerTrack.App
         {
             if (dataGridDirektori.SelectedRows.Count == 0) { MessageBox.Show("Odaberi direktora!"); return; }
             if (MessageBox.Show("Arhivirati direktora?", "Potvrda", MessageBoxButtons.YesNo) == DialogResult.No) return;
+            if (dataGridDirektori.SelectedRows[0].Cells["Id"].Value is not int direktorId) return;
 
             try
             {
-                int direktorId = (int)dataGridDirektori.SelectedRows[0].Cells["Id"].Value;
-                var direktor = _db.Direktori.Find(direktorId);
+                using var db = DbContextFactory.Kreiraj();
+                var audit = new AuditService(db);
+
+                var direktor = db.Direktori.Find(direktorId);
                 if (direktor == null) return;
                 int klijentId = direktor.KlijentId;
-                _audit.SoftDelete(direktor, "Direktori", direktorId, $"Arhiviran: '{direktor.ImePrezime}'");
-                direktor.Status = StatusKonstante.Arhiviran;
-                _db.SaveChanges();
+
+                using var tx = db.Database.BeginTransaction();
+                try
+                {
+                    direktor.Status = StatusKonstante.Arhiviran;
+                    direktor.Obrisan = DateTime.Now;
+                    audit.ZabiljeziBesSave(direktor, "Direktori", direktorId, $"Arhiviran: '{direktor.ImePrezime}'", "OBRISANO");
+                    db.SaveChanges();
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
+
                 MessageBox.Show("Direktor arhiviran.");
                 LoadDirektori(klijentId);
             }
-            catch (Exception ex) { MessageBox.Show($"Greška: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška: {ex.Message}");
+            }
         }
 
-
+        // -------------------------------------------------------------------
+        // FILTERI
+        // -------------------------------------------------------------------
 
         private string GetSelectedDjelatnostSifra()
         {
@@ -425,7 +553,9 @@ namespace OwnerTrack.App
             LoadKlijenti();
         }
 
-
+        // -------------------------------------------------------------------
+        // IMPORT
+        // -------------------------------------------------------------------
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
@@ -435,8 +565,9 @@ namespace OwnerTrack.App
             var helper = new ImportHelper(DbContextFactory.ConnectionString);
             helper.PokreniImport(dialog.FileName, this, () =>
             {
-                OsvjeziDb();
-                LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
+                LoadDjelatnostiFilter();
+                LoadKlijenti();
+                OsvjeziUpozerenjaBadge();
             });
         }
 
@@ -447,11 +578,14 @@ namespace OwnerTrack.App
                     "RESET BAZE", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            var dialog = new OpenFileDialog { Filter = "Excel Files (*.xlsx)|*.xlsx", Title = "Odaberi Excel fajl za reimport" };
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                Title = "Odaberi Excel fajl za reimport"
+            };
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
-            // Validacija fajla PRIJE brisanja baze
-            if (!System.IO.File.Exists(dialog.FileName))
+            if (!File.Exists(dialog.FileName))
             {
                 MessageBox.Show("Odabrani fajl nije pronađen.", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -459,12 +593,11 @@ namespace OwnerTrack.App
 
             try
             {
-                // Provjeri da li je validan Excel fajl pokušajem otvaranja
                 using (var testDoc = SpreadsheetDocument.Open(dialog.FileName, false))
                 {
                     var wbPart = testDoc.WorkbookPart
                         ?? throw new Exception("Fajl nema validan WorkbookPart.");
-                    var sheet = wbPart.Workbook.Sheets?.Cast<OpenXmlSheet>()
+                    _ = wbPart.Workbook.Sheets?.Cast<OpenXmlSheet>()
                         .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
                         ?? throw new Exception("Fajl ne sadrži list sa 'ZBIRNA'. Provjeri da li je odabran ispravan Excel.");
                 }
@@ -476,58 +609,58 @@ namespace OwnerTrack.App
                 return;
             }
 
-            // Tek sad resetuj bazu
             try
             {
                 var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
                 dbService.ResetirajBazu();
 
-                OsvjeziDb();
-
                 var helper = new ImportHelper(DbContextFactory.ConnectionString);
                 helper.PokreniImport(dialog.FileName, this, () =>
                 {
-                    OsvjeziDb();
-                    LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
+                    LoadDjelatnostiFilter();
+                    LoadKlijenti();
+                    OsvjeziUpozerenjaBadge();
                 });
             }
             catch (Exception ex)
             {
+                Program.LogException(ex);
                 MessageBox.Show($"Greška pri resetu baze:\n{ex.Message}", "Greška",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-
-
+        // -------------------------------------------------------------------
+        // UPOZORENJA
+        // -------------------------------------------------------------------
 
         private void OsvjeziUpozerenjaBadge()
         {
             try
             {
+                using var db = DbContextFactory.Kreiraj();
                 var danas = DateTime.Today;
                 var granica = danas.AddDays(60);
 
-                bool imaIsteklih = _db.Vlasnici.AsNoTracking()
+                bool imaIsteklih = db.Vlasnici.AsNoTracking()
                     .Any(v => v.DatumValjanostiDokumenta < danas
                            && v.Status == StatusKonstante.Aktivan
                            && v.Klijent.Status != StatusKonstante.Arhiviran)
-                    || _db.Direktori.AsNoTracking()
+                    || db.Direktori.AsNoTracking()
                     .Any(d => d.DatumValjanosti < danas
                            && d.TipValjanosti == "VREMENSKI"
                            && d.Status == StatusKonstante.Aktivan
                            && d.Klijent.Status != StatusKonstante.Arhiviran);
 
-                int count = _db.Vlasnici.AsNoTracking()
+                int count = db.Vlasnici.AsNoTracking()
                     .Count(v => v.DatumValjanostiDokumenta <= granica
                              && v.Status == StatusKonstante.Aktivan
                              && v.Klijent.Status != StatusKonstante.Arhiviran)
-                    + _db.Direktori.AsNoTracking()
+                    + db.Direktori.AsNoTracking()
                     .Count(d => d.DatumValjanosti <= granica
                              && d.TipValjanosti == "VREMENSKI"
                              && d.Status == StatusKonstante.Aktivan
                              && d.Klijent.Status != StatusKonstante.Arhiviran);
-
 
                 var targetStyle = count > 0
                     ? System.Drawing.FontStyle.Bold
@@ -549,24 +682,33 @@ namespace OwnerTrack.App
                     btnUpozorenja.ForeColor = SystemColors.ControlText;
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"[BADGE] Greška: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[BADGE] Greška: {ex.Message}");
+                Program.LogException(ex);
+            }
         }
 
-        private void btnUpozorenja_Click(object sender, EventArgs e) =>
-            new FrmUpozorenja(_db).ShowDialog(this);
+        private void btnUpozorenja_Click(object sender, EventArgs e)
+        {
+            using var db = DbContextFactory.Kreiraj();
+            new FrmUpozorenja(db).ShowDialog(this);
+        }
 
+        // -------------------------------------------------------------------
+        // PDF EXPORT — async da ne zamrzava UI
+        // -------------------------------------------------------------------
 
-
-        private void btnExportTabelaPdf_Click(object sender, EventArgs e)
+        private async void btnExportTabelaPdf_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.Rows.Count == 0)
             { MessageBox.Show("Nema klijenata za export."); return; }
 
-
             var ids = dataGridKlijenti.Rows
                 .Cast<DataGridViewRow>()
                 .Where(r => r.DataBoundItem != null)
-                .Select(r => (int)r.Cells["Id"].Value)
+                .Select(r => r.Cells["Id"].Value is int id ? id : 0)
+                .Where(id => id > 0)
                 .ToList();
 
             using var dlg = new SaveFileDialog
@@ -585,14 +727,21 @@ namespace OwnerTrack.App
 
             try
             {
-                var svc = new PdfExportService(_db);
-                string path = svc.GenerirajTabeluKlijenata(ids, dlg.FileName);
+                string savedFileName = dlg.FileName;
+                string path = await Task.Run(() =>
+                {
+                    using var db = DbContextFactory.Kreiraj();
+                    var svc = new PdfExportService(db);
+                    return svc.GenerirajTabeluKlijenata(ids, savedFileName);
+                });
+
                 if (MessageBox.Show($"PDF je sačuvan:\n{path}\n\nŽeliš li ga otvoriti?",
                         "PDF kreiran", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
+                Program.LogException(ex);
                 MessageBox.Show($"Greška pri generisanju PDF-a:\n\n{ex.Message}",
                     "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -604,18 +753,16 @@ namespace OwnerTrack.App
             }
         }
 
-        private void btnSacuvajPdf_Click(object sender, EventArgs e)
+        private async void btnSacuvajPdf_Click(object sender, EventArgs e)
         {
             if (dataGridKlijenti.SelectedRows.Count == 0)
             { MessageBox.Show("Odaberi firmu iz liste prije eksporta."); return; }
 
-            int klijentId; string naziv;
-            try
-            {
-                dynamic row = dataGridKlijenti.SelectedRows[0].DataBoundItem;
-                klijentId = row.Id; naziv = row.Naziv;
-            }
-            catch { MessageBox.Show("Nije moguće pročitati odabranu firmu."); return; }
+            if (dataGridKlijenti.SelectedRows[0].DataBoundItem is not KlijentViewModel row)
+            { MessageBox.Show("Nije moguće pročitati odabranu firmu."); return; }
+
+            int klijentId = row.Id;
+            string naziv = row.Naziv ?? "";
 
             using var dlg = new SaveFileDialog
             {
@@ -628,19 +775,26 @@ namespace OwnerTrack.App
             if (dlg.ShowDialog() != DialogResult.OK) return;
 
             btnSacuvajPdf.Enabled = false;
-            btnSacuvajPdf.Text = " Generišem...";
+            btnSacuvajPdf.Text = "Generišem...";
             Cursor = Cursors.WaitCursor;
 
             try
             {
-                var svc = new PdfExportService(_db);
-                string path = svc.GenerirajPdf(klijentId, dlg.FileName);
+                string savedFileName = dlg.FileName;
+                string path = await Task.Run(() =>
+                {
+                    using var db = DbContextFactory.Kreiraj();
+                    var svc = new PdfExportService(db);
+                    return svc.GenerirajPdf(klijentId, savedFileName);
+                });
+
                 if (MessageBox.Show($"PDF je sačuvan:\n{path}\n\nŽeliš li ga otvoriti?",
                         "PDF kreiran", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
+                Program.LogException(ex);
                 MessageBox.Show($"Greška pri generisanju PDF-a:\n\n{ex.Message}",
                     "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }

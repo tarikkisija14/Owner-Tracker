@@ -13,117 +13,135 @@ namespace OwnerTrack.App
     {
         private const int DANA_UPOZORENJE = 60;
 
+        
         private readonly OwnerTrackDbContext _db;
         private List<UpozorenjeDetalj> _svaUpozorenja = new();
 
-        public FrmUpozorenja(OwnerTrackDbContext db)
+        public FrmUpozorenja()
         {
-            _db = db;
+            _db = DbContextFactory.Kreiraj();
             InitializeComponent();
             UcitajUpozorenja();
         }
 
+        
+        public FrmUpozorenja(OwnerTrackDbContext _ignored)
+        {
+            _db = DbContextFactory.Kreiraj();
+            InitializeComponent();
+            UcitajUpozorenja();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _db?.Dispose();
+            base.OnFormClosed(e);
+        }
 
         private void UcitajUpozorenja()
         {
-            var danas = DateTime.Today;
-            var granica = danas.AddDays(DANA_UPOZORENJE);
-
-            var vlasnici = _db.Vlasnici
-                .AsNoTracking()
-                .Where(v => v.DatumValjanostiDokumenta != null
-                         && v.DatumValjanostiDokumenta <= granica
-                         && v.Status == StatusKonstante.Aktivan
-                         && v.Klijent.Status != StatusKonstante.Arhiviran)
-                .Include(v => v.Klijent)
-                .Select(v => new UpozorenjeDetalj
-                {
-                    KlijentId = v.KlijentId,
-                    NazivFirme = v.Klijent.Naziv,
-                    ImePrezime = v.ImePrezime,
-                    Tip = "Vlasnik",
-                    DatumIsteka = v.DatumValjanostiDokumenta.Value
-                })
-                .ToList();
-
-            var direktori = _db.Direktori
-                .AsNoTracking()
-                .Where(d => d.DatumValjanosti != null
-                         && d.DatumValjanosti <= granica
-                         && d.TipValjanosti == "VREMENSKI"
-                         && d.Status == StatusKonstante.Aktivan
-                         && d.Klijent.Status != StatusKonstante.Arhiviran)
-                .Include(d => d.Klijent)
-                .Select(d => new UpozorenjeDetalj
-                {
-                    KlijentId = d.KlijentId,
-                    NazivFirme = d.Klijent.Naziv,
-                    ImePrezime = d.ImePrezime,
-                    Tip = "Direktor",
-                    DatumIsteka = d.DatumValjanosti.Value
-                })
-                .ToList();
-
-            _svaUpozorenja = vlasnici
-                .Concat(direktori)
-                .OrderBy(x => x.DatumIsteka)
-                .ToList();
-
-
-            int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
-            int kriticni = _svaUpozorenja.Count(x => x.DatumIsteka >= danas && x.DatumIsteka <= danas.AddDays(14));
-            int ostali = _svaUpozorenja.Count(x => x.DatumIsteka > danas.AddDays(14));
-            int firmi = _svaUpozorenja.Select(x => x.KlijentId).Distinct().Count();
-
-            lblSumarij.Text =
-                $"Ukupno {firmi} firma s upozorenjima   |   " +
-                $" Isteklo: {istekli}   " +
-                $" Kritično (≤14 dana): {kriticni}   " +
-                $" Uskoro (15–60 dana): {ostali}";
-
-            panelTop.BackColor = istekli > 0
-                ? Color.FromArgb(160, 30, 30)
-                : kriticni > 0
-                    ? Color.FromArgb(180, 90, 20)
-                    : Color.FromArgb(130, 110, 20);
-
-
-            var poFirmama = _svaUpozorenja
-                .GroupBy(x => new { x.KlijentId, x.NazivFirme })
-                .Select(g => new
-                {
-                    KlijentId = g.Key.KlijentId,
-                    Firma = g.Key.NazivFirme,
-                    Upozorenja = g.Count(),
-                    NajbliziDatum = g.Min(x => x.DatumIsteka),
-                    DanaDoIsteka = (int)(g.Min(x => x.DatumIsteka) - danas).TotalDays
-                })
-                .OrderBy(x => x.NajbliziDatum)
-                .ToList();
-
-
-            gridFirme.SelectionChanged -= gridFirme_SelectionChanged;
-            gridFirme.DataSource = poFirmama;
-            gridFirme.ClearSelection();
-            gridFirme.SelectionChanged += gridFirme_SelectionChanged;
-
-            if (gridFirme.Columns.Count > 0)
+            try
             {
-                if (gridFirme.Columns.Contains("KlijentId"))
-                    gridFirme.Columns["KlijentId"].Visible = false;
+                var danas = DateTime.Today;
+                var granica = danas.AddDays(DANA_UPOZORENJE);
 
-                gridFirme.Columns["Firma"].HeaderText = "Naziv firme";
-                gridFirme.Columns["Firma"].FillWeight = 50;
-                gridFirme.Columns["Upozorenja"].HeaderText = "Br. upozorenja";
-                gridFirme.Columns["Upozorenja"].FillWeight = 15;
-                gridFirme.Columns["NajbliziDatum"].HeaderText = "Najbliži datum isteka";
-                gridFirme.Columns["NajbliziDatum"].FillWeight = 20;
-                gridFirme.Columns["NajbliziDatum"].DefaultCellStyle.Format = "dd.MM.yyyy";
-                gridFirme.Columns["DanaDoIsteka"].HeaderText = "Dana do isteka";
-                gridFirme.Columns["DanaDoIsteka"].FillWeight = 15;
+                var vlasnici = _db.Vlasnici
+                    .AsNoTracking()
+                    .Where(v => v.DatumValjanostiDokumenta != null
+                             && v.DatumValjanostiDokumenta <= granica
+                             && v.Status == StatusKonstante.Aktivan
+                             && v.Klijent.Status != StatusKonstante.Arhiviran)
+                    .Include(v => v.Klijent)
+                    .Select(v => new UpozorenjeDetalj
+                    {
+                        KlijentId = v.KlijentId,
+                        NazivFirme = v.Klijent.Naziv,
+                        ImePrezime = v.ImePrezime,
+                        Tip = "Vlasnik",
+                        DatumIsteka = v.DatumValjanostiDokumenta!.Value
+                    })
+                    .ToList();
+
+                var direktori = _db.Direktori
+                    .AsNoTracking()
+                    .Where(d => d.DatumValjanosti != null
+                             && d.DatumValjanosti <= granica
+                             && d.TipValjanosti == "VREMENSKI"
+                             && d.Status == StatusKonstante.Aktivan
+                             && d.Klijent.Status != StatusKonstante.Arhiviran)
+                    .Include(d => d.Klijent)
+                    .Select(d => new UpozorenjeDetalj
+                    {
+                        KlijentId = d.KlijentId,
+                        NazivFirme = d.Klijent.Naziv,
+                        ImePrezime = d.ImePrezime,
+                        Tip = "Direktor",
+                        DatumIsteka = d.DatumValjanosti!.Value
+                    })
+                    .ToList();
+
+                _svaUpozorenja = vlasnici
+                    .Concat(direktori)
+                    .OrderBy(x => x.DatumIsteka)
+                    .ToList();
+
+                int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
+                int kriticni = _svaUpozorenja.Count(x => x.DatumIsteka >= danas && x.DatumIsteka <= danas.AddDays(14));
+                int ostali = _svaUpozorenja.Count(x => x.DatumIsteka > danas.AddDays(14));
+                int firmi = _svaUpozorenja.Select(x => x.KlijentId).Distinct().Count();
+
+                lblSumarij.Text =
+                    $"Ukupno {firmi} firma s upozorenjima   |   " +
+                    $" Isteklo: {istekli}   " +
+                    $" Kritično (≤14 dana): {kriticni}   " +
+                    $" Uskoro (15–60 dana): {ostali}";
+
+                panelTop.BackColor = istekli > 0
+                    ? Color.FromArgb(160, 30, 30)
+                    : kriticni > 0
+                        ? Color.FromArgb(180, 90, 20)
+                        : Color.FromArgb(130, 110, 20);
+
+                var poFirmama = _svaUpozorenja
+                    .GroupBy(x => new { x.KlijentId, x.NazivFirme })
+                    .Select(g => new
+                    {
+                        KlijentId = g.Key.KlijentId,
+                        Firma = g.Key.NazivFirme,
+                        Upozorenja = g.Count(),
+                        NajbliziDatum = g.Min(x => x.DatumIsteka),
+                        DanaDoIsteka = (int)(g.Min(x => x.DatumIsteka) - danas).TotalDays
+                    })
+                    .OrderBy(x => x.NajbliziDatum)
+                    .ToList();
+
+                gridFirme.SelectionChanged -= gridFirme_SelectionChanged;
+                gridFirme.DataSource = poFirmama;
+                gridFirme.ClearSelection();
+                gridFirme.SelectionChanged += gridFirme_SelectionChanged;
+
+                if (gridFirme.Columns.Count > 0)
+                {
+                    if (gridFirme.Columns.Contains("KlijentId"))
+                        gridFirme.Columns["KlijentId"].Visible = false;
+
+                    gridFirme.Columns["Firma"].HeaderText = "Naziv firme";
+                    gridFirme.Columns["Firma"].FillWeight = 50;
+                    gridFirme.Columns["Upozorenja"].HeaderText = "Br. upozorenja";
+                    gridFirme.Columns["Upozorenja"].FillWeight = 15;
+                    gridFirme.Columns["NajbliziDatum"].HeaderText = "Najbliži datum isteka";
+                    gridFirme.Columns["NajbliziDatum"].FillWeight = 20;
+                    gridFirme.Columns["NajbliziDatum"].DefaultCellStyle.Format = "dd.MM.yyyy";
+                    gridFirme.Columns["DanaDoIsteka"].HeaderText = "Dana do isteka";
+                    gridFirme.Columns["DanaDoIsteka"].FillWeight = 15;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri učitavanju upozorenja: {ex.Message}");
             }
         }
-
 
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
@@ -145,10 +163,10 @@ namespace OwnerTrack.App
                     DatumIsteka = x.DatumIsteka,
                     DanaDoIsteka = (int)(x.DatumIsteka - DateTime.Today).TotalDays,
                     Status = x.DatumIsteka < DateTime.Today
-                                    ? " ISTEKLO"
+                                    ? "⛔ ISTEKLO"
                                     : x.DatumIsteka <= DateTime.Today.AddDays(14)
-                                        ? " Kritično"
-                                        : " Uskoro"
+                                        ? "⚠ Kritično"
+                                        : "🕐 Uskoro"
                 })
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
@@ -172,7 +190,6 @@ namespace OwnerTrack.App
             }
         }
 
-
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (e.RowIndex < 0 || gridFirme.Rows[e.RowIndex].DataBoundItem == null) return;
@@ -188,11 +205,10 @@ namespace OwnerTrack.App
         }
 
         private static Color BojaZaDane(int dana) => dana < 0
-            ? Color.FromArgb(220, 80, 80)  
+            ? Color.FromArgb(220, 80, 80)
             : dana <= 14
-                ? Color.FromArgb(255, 200, 120) 
-                : Color.FromArgb(255, 245, 150); 
-
+                ? Color.FromArgb(255, 200, 120)
+                : Color.FromArgb(255, 245, 150);
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
     }

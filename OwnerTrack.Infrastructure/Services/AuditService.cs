@@ -13,8 +13,8 @@ namespace OwnerTrack.Infrastructure.Services
             _db = db;
         }
 
-
-        public void Zabilježi(string tabela, int? entitetId, string akcija, string opis)
+        
+        public void ZabiljeziBesSave(string tabela, int? entitetId, string akcija, string opis)
         {
             _db.AuditLogs.Add(new AuditLog
             {
@@ -24,20 +24,26 @@ namespace OwnerTrack.Infrastructure.Services
                 Opis = opis,
                 Vrijeme = DateTime.Now
             });
-            _db.SaveChanges();
+            
         }
 
+        
+        public void ZabiljeziBesSave(ISoftDeletable entitet, string tabela, int? entitetId, string opis, string akcija = "OBRISANO")
+        {
+            ZabiljeziBesSave(tabela, entitetId, akcija, opis);
+        }
+
+        
         public void Dodano(string tabela, int id, string opis)
-            => Zabilježi(tabela, id, "DODANO", opis);
+            => ZabiljeziBesSave(tabela, id, "DODANO", opis);
 
         public void Izmijenjeno(string tabela, int id, string opis)
-            => Zabilježi(tabela, id, "IZMIJENJENO", opis);
-
+            => ZabiljeziBesSave(tabela, id, "IZMIJENJENO", opis);
 
         public void SoftDelete(ISoftDeletable entitet, string tabela, int id, string opis)
         {
             entitet.Obrisan = DateTime.Now;
-            Zabilježi(tabela, id, "OBRISANO", opis);
+            ZabiljeziBesSave(tabela, id, "OBRISANO", opis);
         }
     }
 }

@@ -1,23 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
 
-  <ItemGroup>
-    <PackageReference Include="EPPlus" Version="5.0.0" />
-    <PackageReference Include="QuestPDF" Version="2026.2.1" />
-  </ItemGroup>
+		
+		<Version>1.0.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<AssemblyTitle>OwnerTrack</AssemblyTitle>
+		<AssemblyDescription>Aplikacija za praćenje vlasnika i direktora</AssemblyDescription>
+		<Company>OwnerTrack</Company>
 
-  <ItemGroup>
-    <ProjectReference Include="..\OwnerTrack.Data\OwnerTrack.Data.csproj" />
-    <ProjectReference Include="..\OwnerTrack.Infrastructure\OwnerTrack.Infrastructure.csproj" />
-  </ItemGroup>
+		<!-- Self-contained publish postavke (koristiti pri publishu: dotnet publish -r win-x64) -->
+		<!--
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    -->
+	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="EPPlus" Version="5.0.0" />
+		<PackageReference Include="QuestPDF" Version="2026.2.1" />
+	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\OwnerTrack.Data\OwnerTrack.Data.csproj" />
+		<ProjectReference Include="..\OwnerTrack.Infrastructure\OwnerTrack.Infrastructure.csproj" />
+	</ItemGroup>
 
 </Project>
