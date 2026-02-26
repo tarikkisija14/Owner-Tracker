@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;
 
@@ -24,9 +25,16 @@ namespace OwnerTrack.Infrastructure.Database
         public static OwnerTrackDbContext Kreiraj()
         {
             var options = new DbContextOptionsBuilder<OwnerTrackDbContext>()
-                .UseSqlite(ConnectionString)
+                .UseSqlite(ConnectionString, sqliteOpts =>
+                    sqliteOpts.CommandTimeout(30))
                 .Options;
-            return new OwnerTrackDbContext(options);
+
+            var ctx = new OwnerTrackDbContext(options);
+
+            
+            ctx.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+
+            return ctx;
         }
     }
 }
