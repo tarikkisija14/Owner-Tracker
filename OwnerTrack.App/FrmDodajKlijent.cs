@@ -40,21 +40,39 @@ namespace OwnerTrack.App
         private void LoadComboValues()
         {
             cbVrstaKlijenta.Items.Clear();
-            cbVrstaKlijenta.Items.AddRange(new[] { "PRAVNO LICE", "FIZIČKO LICE", "UDRUŽENJE", "OBRTNIK" });
+            foreach (VrstaKlijenta v in Enum.GetValues(typeof(VrstaKlijenta)))
+                cbVrstaKlijenta.Items.Add(v.ToString());
+
             cbVelicina.Items.Clear();
-            cbVelicina.Items.AddRange(Enum.GetNames(typeof(VelicinaFirme)));
+            foreach (VelicinaFirme v in Enum.GetValues(typeof(VelicinaFirme)))
+                cbVelicina.Items.Add(v.ToString());
+
             cbPepRizik.Items.Clear();
-            cbPepRizik.Items.AddRange(new[] { "", "DA", "NE" });
+            cbPepRizik.Items.Add("");
+            foreach (DaNe v in Enum.GetValues(typeof(DaNe)))
+                cbPepRizik.Items.Add(v.ToString());
+
             cbUboRizik.Items.Clear();
-            cbUboRizik.Items.AddRange(new[] { "", "DA", "NE" });
+            cbUboRizik.Items.Add("");
+            foreach (DaNe v in Enum.GetValues(typeof(DaNe)))
+                cbUboRizik.Items.Add(v.ToString());
+
             cbGotovinaRizik.Items.Clear();
-            cbGotovinaRizik.Items.AddRange(new[] { "", "DA", "NE" });
+            cbGotovinaRizik.Items.Add("");
+            foreach (DaNe v in Enum.GetValues(typeof(DaNe)))
+                cbGotovinaRizik.Items.Add(v.ToString());
+
             cbGeografskiRizik.Items.Clear();
-            cbGeografskiRizik.Items.AddRange(new[] { "", "DA", "NE" });
+            cbGeografskiRizik.Items.Add("");
+            foreach (DaNe v in Enum.GetValues(typeof(DaNe)))
+                cbGeografskiRizik.Items.Add(v.ToString());
+
             cbStatusUgovora.Items.Clear();
             cbStatusUgovora.Items.AddRange(new[] { "", "POTPISAN", "ANEKS", "OTKAZAN", "NEMA UGOVOR", "NEAKTIVAN" });
+
             cbStatus.Items.Clear();
-            cbStatus.Items.AddRange(new[] { StatusKonstante.Aktivan, StatusKonstante.Neaktivan, StatusKonstante.Arhiviran });
+            foreach (StatusEntiteta v in Enum.GetValues(typeof(StatusEntiteta)))
+                cbStatus.Items.Add(v.ToString());
 
             if (!_klijentId.HasValue)
             {

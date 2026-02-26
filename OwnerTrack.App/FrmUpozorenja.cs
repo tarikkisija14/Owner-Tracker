@@ -82,10 +82,10 @@ namespace OwnerTrack.App
                 $" Uskoro (15–60 dana): {ostali}";
 
             panelTop.BackColor = istekli > 0
-                ? Color.FromArgb(255, 200, 200)
+                ? Color.FromArgb(160, 30, 30)
                 : kriticni > 0
-                    ? Color.FromArgb(255, 220, 170)
-                    : Color.FromArgb(255, 248, 220);
+                    ? Color.FromArgb(180, 90, 20)
+                    : Color.FromArgb(130, 110, 20);
 
 
             var poFirmama = _svaUpozorenja
@@ -188,10 +188,10 @@ namespace OwnerTrack.App
         }
 
         private static Color BojaZaDane(int dana) => dana < 0
-            ? Color.FromArgb(255, 180, 180)
+            ? Color.FromArgb(220, 80, 80)  
             : dana <= 14
-                ? Color.FromArgb(255, 210, 150)
-                : Color.FromArgb(255, 255, 180);
+                ? Color.FromArgb(255, 200, 120) 
+                : Color.FromArgb(255, 245, 150); 
 
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();

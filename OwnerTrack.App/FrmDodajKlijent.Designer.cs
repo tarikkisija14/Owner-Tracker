@@ -76,9 +76,42 @@
             scrollPanel.SuspendLayout();
             groupBoxNapomena.SuspendLayout();
             SuspendLayout();
-            // 
-            // groupBoxOsnovni
-            // 
+
+            // ── Shared styles ─────────────────────────────────────
+            var uiFont = new Font("Segoe UI", 9.5F);
+            var labelColor = Color.FromArgb(45, 55, 75);
+            var accentBlue = Color.FromArgb(28, 40, 65);
+
+            void StyleGroupBox(GroupBox gb, string title)
+            {
+                gb.Text = title;
+                gb.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+                gb.ForeColor = accentBlue;
+                gb.BackColor = Color.White;
+                gb.Padding = new Padding(6);
+            }
+
+            void StyleLabel(Label l)
+            {
+                l.AutoSize = true;
+                l.Font = uiFont;
+                l.ForeColor = labelColor;
+            }
+
+            void StyleTextBox(TextBox t)
+            {
+                t.Font = uiFont;
+                t.BorderStyle = BorderStyle.FixedSingle;
+                t.BackColor = Color.FromArgb(250, 252, 255);
+            }
+
+            void StyleComboBox(ComboBox c)
+            {
+                c.Font = uiFont;
+                c.FlatStyle = FlatStyle.System;
+            }
+
+            // ── groupBoxOsnovni ───────────────────────────────────
             groupBoxOsnovni.Controls.Add(lblNaziv);
             groupBoxOsnovni.Controls.Add(txtNaziv);
             groupBoxOsnovni.Controls.Add(lblIdBroj);
@@ -102,160 +135,123 @@
             groupBoxOsnovni.Size = new Size(665, 197);
             groupBoxOsnovni.TabIndex = 0;
             groupBoxOsnovni.TabStop = false;
-            groupBoxOsnovni.Text = "📋 Osnovni podaci";
-            // 
-            // lblNaziv
-            // 
-            lblNaziv.AutoSize = true;
-            lblNaziv.Location = new Point(9, 23);
+            StyleGroupBox(groupBoxOsnovni, "📋 Osnovni podaci");
+
+            lblNaziv.Location = new Point(9, 26);
             lblNaziv.Name = "lblNaziv";
-            lblNaziv.Size = new Size(70, 15);
             lblNaziv.TabIndex = 0;
             lblNaziv.Text = "Naziv firme:";
-            // 
-            // txtNaziv
-            // 
-            txtNaziv.Location = new Point(105, 23);
+            StyleLabel(lblNaziv);
+
+            txtNaziv.Location = new Point(110, 24);
             txtNaziv.MaxLength = 200;
             txtNaziv.Name = "txtNaziv";
-            txtNaziv.Size = new Size(263, 23);
+            txtNaziv.Size = new Size(258, 24);
             txtNaziv.TabIndex = 1;
-            // 
-            // lblIdBroj
-            // 
-            lblIdBroj.AutoSize = true;
-            lblIdBroj.Location = new Point(376, 23);
+            StyleTextBox(txtNaziv);
+
+            lblIdBroj.Location = new Point(376, 26);
             lblIdBroj.Name = "lblIdBroj";
-            lblIdBroj.Size = new Size(45, 15);
             lblIdBroj.TabIndex = 2;
             lblIdBroj.Text = "ID Broj:";
-            // 
-            // txtIdBroj
-            // 
-            txtIdBroj.Location = new Point(464, 23);
+            StyleLabel(lblIdBroj);
+
+            txtIdBroj.Location = new Point(464, 24);
             txtIdBroj.MaxLength = 13;
             txtIdBroj.Name = "txtIdBroj";
-            txtIdBroj.Size = new Size(184, 23);
+            txtIdBroj.Size = new Size(184, 24);
             txtIdBroj.TabIndex = 3;
-            // 
-            // lblAdresa
-            // 
-            lblAdresa.AutoSize = true;
-            lblAdresa.Location = new Point(9, 56);
+            StyleTextBox(txtIdBroj);
+
+            lblAdresa.Location = new Point(9, 58);
             lblAdresa.Name = "lblAdresa";
-            lblAdresa.Size = new Size(46, 15);
             lblAdresa.TabIndex = 4;
             lblAdresa.Text = "Adresa:";
-            // 
-            // txtAdresa
-            // 
-            txtAdresa.Location = new Point(105, 56);
+            StyleLabel(lblAdresa);
+
+            txtAdresa.Location = new Point(110, 56);
             txtAdresa.Name = "txtAdresa";
-            txtAdresa.Size = new Size(543, 23);
+            txtAdresa.Size = new Size(538, 24);
             txtAdresa.TabIndex = 5;
-            // 
-            // lblSifra
-            // 
-            lblSifra.AutoSize = true;
-            lblSifra.Location = new Point(9, 89);
+            StyleTextBox(txtAdresa);
+
+            lblSifra.Location = new Point(9, 91);
             lblSifra.Name = "lblSifra";
-            lblSifra.Size = new Size(91, 15);
             lblSifra.TabIndex = 6;
             lblSifra.Text = "Šifra djelatnosti:";
-            // 
-            // cbSifra
-            // 
+            StyleLabel(lblSifra);
+
             cbSifra.DropDownStyle = ComboBoxStyle.DropDownList;
-            cbSifra.Location = new Point(105, 89);
+            cbSifra.Location = new Point(110, 89);
             cbSifra.Name = "cbSifra";
-            cbSifra.Size = new Size(263, 23);
+            cbSifra.Size = new Size(258, 24);
             cbSifra.TabIndex = 7;
-            // 
-            // lblDatumUspostave
-            // 
-            lblDatumUspostave.AutoSize = true;
-            lblDatumUspostave.Location = new Point(376, 89);
+            StyleComboBox(cbSifra);
+
+            lblDatumUspostave.Location = new Point(376, 91);
             lblDatumUspostave.Name = "lblDatumUspostave";
-            lblDatumUspostave.Size = new Size(102, 15);
             lblDatumUspostave.TabIndex = 8;
             lblDatumUspostave.Text = "Datum uspostave:";
-            // 
-            // dtDatumUspostave
-            // 
+            StyleLabel(lblDatumUspostave);
+
             dtDatumUspostave.Location = new Point(490, 89);
             dtDatumUspostave.Name = "dtDatumUspostave";
-            dtDatumUspostave.Size = new Size(158, 23);
+            dtDatumUspostave.Size = new Size(158, 24);
             dtDatumUspostave.TabIndex = 9;
-            // 
-            // lblVrstaKlijenta
-            // 
-            lblVrstaKlijenta.AutoSize = true;
-            lblVrstaKlijenta.Location = new Point(9, 122);
+            dtDatumUspostave.Font = uiFont;
+
+            lblVrstaKlijenta.Location = new Point(9, 124);
             lblVrstaKlijenta.Name = "lblVrstaKlijenta";
-            lblVrstaKlijenta.Size = new Size(77, 15);
             lblVrstaKlijenta.TabIndex = 10;
             lblVrstaKlijenta.Text = "Vrsta klijenta:";
-            // 
-            // cbVrstaKlijenta
-            // 
+            StyleLabel(lblVrstaKlijenta);
+
             cbVrstaKlijenta.DropDownStyle = ComboBoxStyle.DropDownList;
-            cbVrstaKlijenta.Location = new Point(105, 122);
+            cbVrstaKlijenta.Location = new Point(110, 122);
             cbVrstaKlijenta.Name = "cbVrstaKlijenta";
-            cbVrstaKlijenta.Size = new Size(158, 23);
+            cbVrstaKlijenta.Size = new Size(158, 24);
             cbVrstaKlijenta.TabIndex = 11;
-            // 
-            // lblDatumOsnivanja
-            // 
-            lblDatumOsnivanja.AutoSize = true;
-            lblDatumOsnivanja.Location = new Point(271, 122);
+            StyleComboBox(cbVrstaKlijenta);
+
+            lblDatumOsnivanja.Location = new Point(276, 124);
             lblDatumOsnivanja.Name = "lblDatumOsnivanja";
-            lblDatumOsnivanja.Size = new Size(99, 15);
             lblDatumOsnivanja.TabIndex = 12;
             lblDatumOsnivanja.Text = "Datum osnivanja:";
-            // 
-            // dtDatumOsnivanja
-            // 
+            StyleLabel(lblDatumOsnivanja);
+
             dtDatumOsnivanja.Location = new Point(376, 122);
             dtDatumOsnivanja.Name = "dtDatumOsnivanja";
-            dtDatumOsnivanja.Size = new Size(158, 23);
+            dtDatumOsnivanja.Size = new Size(158, 24);
             dtDatumOsnivanja.TabIndex = 13;
-            // 
-            // lblVelicina
-            // 
-            lblVelicina.AutoSize = true;
-            lblVelicina.Location = new Point(9, 155);
+            dtDatumOsnivanja.Font = uiFont;
+
+            lblVelicina.Location = new Point(9, 157);
             lblVelicina.Name = "lblVelicina";
-            lblVelicina.Size = new Size(50, 15);
             lblVelicina.TabIndex = 14;
             lblVelicina.Text = "Veličina:";
-            // 
-            // cbVelicina
-            // 
+            StyleLabel(lblVelicina);
+
             cbVelicina.DropDownStyle = ComboBoxStyle.DropDownList;
-            cbVelicina.Location = new Point(105, 155);
+            cbVelicina.Location = new Point(110, 155);
             cbVelicina.Name = "cbVelicina";
-            cbVelicina.Size = new Size(158, 23);
+            cbVelicina.Size = new Size(158, 24);
             cbVelicina.TabIndex = 15;
-            // 
-            // lblStatus
-            // 
-            lblStatus.AutoSize = true;
-            lblStatus.Location = new Point(289, 155);
+            StyleComboBox(cbVelicina);
+
+            lblStatus.Location = new Point(289, 157);
             lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(42, 15);
             lblStatus.TabIndex = 16;
             lblStatus.Text = "Status:";
-            // 
-            // cbStatus
-            // 
+            StyleLabel(lblStatus);
+
             cbStatus.DropDownStyle = ComboBoxStyle.DropDownList;
             cbStatus.Location = new Point(376, 155);
             cbStatus.Name = "cbStatus";
-            cbStatus.Size = new Size(158, 23);
+            cbStatus.Size = new Size(158, 24);
             cbStatus.TabIndex = 17;
-            // 
-            // groupBoxRizici
-            // 
+            StyleComboBox(cbStatus);
+
+            // ── groupBoxRizici ────────────────────────────────────
             groupBoxRizici.Controls.Add(lblPepRizik);
             groupBoxRizici.Controls.Add(cbPepRizik);
             groupBoxRizici.Controls.Add(lblUboRizik);
@@ -275,122 +271,93 @@
             groupBoxRizici.Size = new Size(665, 131);
             groupBoxRizici.TabIndex = 1;
             groupBoxRizici.TabStop = false;
-            groupBoxRizici.Text = "⚠️ Procjena rizika";
-            // 
-            // lblPepRizik
-            // 
-            lblPepRizik.AutoSize = true;
-            lblPepRizik.Location = new Point(9, 23);
+            StyleGroupBox(groupBoxRizici, "⚠️ Procjena rizika");
+
+            lblPepRizik.Location = new Point(9, 26);
             lblPepRizik.Name = "lblPepRizik";
-            lblPepRizik.Size = new Size(30, 15);
             lblPepRizik.TabIndex = 0;
             lblPepRizik.Text = "PEP:";
-            // 
-            // cbPepRizik
-            // 
-            cbPepRizik.Location = new Point(70, 23);
+            StyleLabel(lblPepRizik);
+
+            cbPepRizik.Location = new Point(55, 24);
             cbPepRizik.Name = "cbPepRizik";
-            cbPepRizik.Size = new Size(70, 23);
+            cbPepRizik.Size = new Size(75, 24);
             cbPepRizik.TabIndex = 1;
-            // 
-            // lblUboRizik
-            // 
-            lblUboRizik.AutoSize = true;
-            lblUboRizik.Location = new Point(158, 23);
+            StyleComboBox(cbPepRizik);
+
+            lblUboRizik.Location = new Point(148, 26);
             lblUboRizik.Name = "lblUboRizik";
-            lblUboRizik.Size = new Size(34, 15);
             lblUboRizik.TabIndex = 2;
             lblUboRizik.Text = "UBO:";
-            // 
-            // cbUboRizik
-            // 
-            cbUboRizik.Location = new Point(219, 23);
+            StyleLabel(lblUboRizik);
+
+            cbUboRizik.Location = new Point(195, 24);
             cbUboRizik.Name = "cbUboRizik";
-            cbUboRizik.Size = new Size(70, 23);
+            cbUboRizik.Size = new Size(75, 24);
             cbUboRizik.TabIndex = 3;
-            // 
-            // lblGotovinaRizik
-            // 
-            lblGotovinaRizik.AutoSize = true;
-            lblGotovinaRizik.Location = new Point(306, 23);
+            StyleComboBox(cbUboRizik);
+
+            lblGotovinaRizik.Location = new Point(288, 26);
             lblGotovinaRizik.Name = "lblGotovinaRizik";
-            lblGotovinaRizik.Size = new Size(58, 15);
             lblGotovinaRizik.TabIndex = 4;
             lblGotovinaRizik.Text = "Gotovina:";
-            // 
-            // cbGotovinaRizik
-            // 
-            cbGotovinaRizik.Location = new Point(385, 23);
+            StyleLabel(lblGotovinaRizik);
+
+            cbGotovinaRizik.Location = new Point(362, 24);
             cbGotovinaRizik.Name = "cbGotovinaRizik";
-            cbGotovinaRizik.Size = new Size(70, 23);
+            cbGotovinaRizik.Size = new Size(75, 24);
             cbGotovinaRizik.TabIndex = 5;
-            // 
-            // lblGeografskiRizik
-            // 
-            lblGeografskiRizik.AutoSize = true;
-            lblGeografskiRizik.Location = new Point(499, 23);
+            StyleComboBox(cbGotovinaRizik);
+
+            lblGeografskiRizik.Location = new Point(456, 26);
             lblGeografskiRizik.Name = "lblGeografskiRizik";
-            lblGeografskiRizik.Size = new Size(66, 15);
             lblGeografskiRizik.TabIndex = 6;
             lblGeografskiRizik.Text = "Geografski:";
-            // 
-            // cbGeografskiRizik
-            // 
-            cbGeografskiRizik.Location = new Point(578, 23);
+            StyleLabel(lblGeografskiRizik);
+
+            cbGeografskiRizik.Location = new Point(540, 24);
             cbGeografskiRizik.Name = "cbGeografskiRizik";
-            cbGeografskiRizik.Size = new Size(70, 23);
+            cbGeografskiRizik.Size = new Size(112, 24);
             cbGeografskiRizik.TabIndex = 7;
-            // 
-            // lblUkupnaProcjena
-            // 
-            lblUkupnaProcjena.AutoSize = true;
-            lblUkupnaProcjena.Location = new Point(9, 56);
+            StyleComboBox(cbGeografskiRizik);
+
+            lblUkupnaProcjena.Location = new Point(9, 59);
             lblUkupnaProcjena.Name = "lblUkupnaProcjena";
-            lblUkupnaProcjena.Size = new Size(100, 15);
             lblUkupnaProcjena.TabIndex = 8;
             lblUkupnaProcjena.Text = "Ukupna procjena:";
-            // 
-            // txtUkupnaProcjena
-            // 
-            txtUkupnaProcjena.Location = new Point(105, 56);
+            StyleLabel(lblUkupnaProcjena);
+
+            txtUkupnaProcjena.Location = new Point(120, 57);
             txtUkupnaProcjena.Name = "txtUkupnaProcjena";
-            txtUkupnaProcjena.Size = new Size(263, 23);
+            txtUkupnaProcjena.Size = new Size(248, 24);
             txtUkupnaProcjena.TabIndex = 9;
-            // 
-            // lblDatumProcjene
-            // 
-            lblDatumProcjene.AutoSize = true;
-            lblDatumProcjene.Location = new Point(376, 56);
+            StyleTextBox(txtUkupnaProcjena);
+
+            lblDatumProcjene.Location = new Point(376, 59);
             lblDatumProcjene.Name = "lblDatumProcjene";
-            lblDatumProcjene.Size = new Size(95, 15);
             lblDatumProcjene.TabIndex = 10;
             lblDatumProcjene.Text = "Datum procjene:";
-            // 
-            // dtDatumProcjene
-            // 
-            dtDatumProcjene.Location = new Point(490, 56);
+            StyleLabel(lblDatumProcjene);
+
+            dtDatumProcjene.Location = new Point(490, 57);
             dtDatumProcjene.Name = "dtDatumProcjene";
-            dtDatumProcjene.Size = new Size(158, 23);
+            dtDatumProcjene.Size = new Size(158, 24);
             dtDatumProcjene.TabIndex = 11;
-            // 
-            // lblOvjeraCr
-            // 
-            lblOvjeraCr.AutoSize = true;
-            lblOvjeraCr.Location = new Point(9, 89);
+            dtDatumProcjene.Font = uiFont;
+
+            lblOvjeraCr.Location = new Point(9, 92);
             lblOvjeraCr.Name = "lblOvjeraCr";
-            lblOvjeraCr.Size = new Size(64, 15);
             lblOvjeraCr.TabIndex = 12;
             lblOvjeraCr.Text = "Ovjera/CR:";
-            // 
-            // txtOvjeraCr
-            // 
-            txtOvjeraCr.Location = new Point(105, 89);
+            StyleLabel(lblOvjeraCr);
+
+            txtOvjeraCr.Location = new Point(120, 90);
             txtOvjeraCr.Name = "txtOvjeraCr";
-            txtOvjeraCr.Size = new Size(263, 23);
+            txtOvjeraCr.Size = new Size(248, 24);
             txtOvjeraCr.TabIndex = 13;
-            // 
-            // groupBoxUgovor
-            // 
+            StyleTextBox(txtOvjeraCr);
+
+            // ── groupBoxUgovor ────────────────────────────────────
             groupBoxUgovor.Controls.Add(lblVrstaUgovora);
             groupBoxUgovor.Controls.Add(txtVrstaUgovora);
             groupBoxUgovor.Controls.Add(lblStatusUgovora);
@@ -402,97 +369,46 @@
             groupBoxUgovor.Size = new Size(665, 108);
             groupBoxUgovor.TabIndex = 2;
             groupBoxUgovor.TabStop = false;
-            groupBoxUgovor.Text = "📜 Ugovor";
-            // 
-            // lblVrstaUgovora
-            // 
-            lblVrstaUgovora.AutoSize = true;
-            lblVrstaUgovora.Location = new Point(9, 28);
+            StyleGroupBox(groupBoxUgovor, "📜 Ugovor");
+
+            lblVrstaUgovora.Location = new Point(9, 30);
             lblVrstaUgovora.Name = "lblVrstaUgovora";
-            lblVrstaUgovora.Size = new Size(83, 15);
             lblVrstaUgovora.TabIndex = 0;
             lblVrstaUgovora.Text = "Vrsta ugovora:";
-            // 
-            // txtVrstaUgovora
-            // 
-            txtVrstaUgovora.Location = new Point(105, 28);
+            StyleLabel(lblVrstaUgovora);
+
+            txtVrstaUgovora.Location = new Point(110, 28);
             txtVrstaUgovora.Name = "txtVrstaUgovora";
-            txtVrstaUgovora.Size = new Size(176, 23);
+            txtVrstaUgovora.Size = new Size(172, 24);
             txtVrstaUgovora.TabIndex = 1;
-            // 
-            // lblStatusUgovora
-            // 
-            lblStatusUgovora.AutoSize = true;
-            lblStatusUgovora.Location = new Point(289, 28);
+            StyleTextBox(txtVrstaUgovora);
+
+            lblStatusUgovora.Location = new Point(289, 30);
             lblStatusUgovora.Name = "lblStatusUgovora";
-            lblStatusUgovora.Size = new Size(89, 15);
             lblStatusUgovora.TabIndex = 2;
             lblStatusUgovora.Text = "Status ugovora:";
-            // 
-            // cbStatusUgovora
-            // 
+            StyleLabel(lblStatusUgovora);
+
             cbStatusUgovora.DropDownStyle = ComboBoxStyle.DropDownList;
             cbStatusUgovora.Location = new Point(394, 28);
             cbStatusUgovora.Name = "cbStatusUgovora";
-            cbStatusUgovora.Size = new Size(176, 23);
+            cbStatusUgovora.Size = new Size(172, 24);
             cbStatusUgovora.TabIndex = 3;
-            // 
-            // lblDatumUgovora
-            // 
-            lblDatumUgovora.AutoSize = true;
-            lblDatumUgovora.Location = new Point(9, 61);
+            StyleComboBox(cbStatusUgovora);
+
+            lblDatumUgovora.Location = new Point(9, 63);
             lblDatumUgovora.Name = "lblDatumUgovora";
-            lblDatumUgovora.Size = new Size(93, 15);
             lblDatumUgovora.TabIndex = 4;
             lblDatumUgovora.Text = "Datum ugovora:";
-            // 
-            // dtDatumUgovora
-            // 
-            dtDatumUgovora.Location = new Point(105, 61);
+            StyleLabel(lblDatumUgovora);
+
+            dtDatumUgovora.Location = new Point(110, 61);
             dtDatumUgovora.Name = "dtDatumUgovora";
-            dtDatumUgovora.Size = new Size(158, 23);
+            dtDatumUgovora.Size = new Size(158, 24);
             dtDatumUgovora.TabIndex = 5;
-            // 
-            // panelButtons
-            // 
-            panelButtons.BackColor = Color.WhiteSmoke;
-            panelButtons.BorderStyle = BorderStyle.FixedSingle;
-            panelButtons.Controls.Add(btnSpremi);
-            panelButtons.Controls.Add(btnOtkazi);
-            panelButtons.Dock = DockStyle.Bottom;
-            panelButtons.Location = new Point(0, 647);
-            panelButtons.Name = "panelButtons";
-            panelButtons.Size = new Size(700, 56);
-            panelButtons.TabIndex = 1;
-            // 
-            // btnSpremi
-            // 
-            btnSpremi.BackColor = Color.LightGreen;
-            btnSpremi.FlatStyle = FlatStyle.Flat;
-            btnSpremi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnSpremi.Location = new Point(420, 14);
-            btnSpremi.Name = "btnSpremi";
-            btnSpremi.Size = new Size(131, 33);
-            btnSpremi.TabIndex = 0;
-            btnSpremi.Text = "💾 Spremi";
-            btnSpremi.UseVisualStyleBackColor = false;
-            btnSpremi.Click += btnSpremi_Click;
-            // 
-            // btnOtkazi
-            // 
-            btnOtkazi.BackColor = Color.LightCoral;
-            btnOtkazi.FlatStyle = FlatStyle.Flat;
-            btnOtkazi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnOtkazi.Location = new Point(560, 14);
-            btnOtkazi.Name = "btnOtkazi";
-            btnOtkazi.Size = new Size(131, 33);
-            btnOtkazi.TabIndex = 1;
-            btnOtkazi.Text = "❌ Otkazi";
-            btnOtkazi.UseVisualStyleBackColor = false;
-            btnOtkazi.Click += btnOtkazi_Click;
-            // 
-            // groupBoxKontakti
-            // 
+            dtDatumUgovora.Font = uiFont;
+
+            // ── groupBoxKontakti ──────────────────────────────────
             groupBoxKontakti.Controls.Add(lblEmail);
             groupBoxKontakti.Controls.Add(txtEmail);
             groupBoxKontakti.Controls.Add(lblTelefon);
@@ -502,45 +418,60 @@
             groupBoxKontakti.Size = new Size(665, 108);
             groupBoxKontakti.TabIndex = 3;
             groupBoxKontakti.TabStop = false;
-            groupBoxKontakti.Text = "📞 Kontakti";
-            // 
-            // lblEmail
-            // 
-            lblEmail.AutoSize = true;
-            lblEmail.Location = new Point(12, 28);
+            StyleGroupBox(groupBoxKontakti, "📞 Kontakti");
+
+            lblEmail.Location = new Point(9, 30);
             lblEmail.Name = "lblEmail";
-            lblEmail.Size = new Size(39, 15);
             lblEmail.TabIndex = 0;
             lblEmail.Text = "Email:";
-            // 
-            // txtEmail
-            // 
-            txtEmail.Location = new Point(57, 22);
+            StyleLabel(lblEmail);
+
+            txtEmail.Location = new Point(60, 28);
             txtEmail.MaxLength = 255;
             txtEmail.Name = "txtEmail";
-            txtEmail.Size = new Size(263, 23);
+            txtEmail.Size = new Size(258, 24);
             txtEmail.TabIndex = 1;
-            // 
-            // lblTelefon
-            // 
-            lblTelefon.AutoSize = true;
-            lblTelefon.Location = new Point(394, 28);
+            StyleTextBox(txtEmail);
+
+            lblTelefon.Location = new Point(340, 30);
             lblTelefon.Name = "lblTelefon";
-            lblTelefon.Size = new Size(49, 15);
             lblTelefon.TabIndex = 2;
             lblTelefon.Text = "Telefon:";
-            // 
-            // txtTelefon
-            // 
-            txtTelefon.Location = new Point(464, 22);
+            StyleLabel(lblTelefon);
+
+            txtTelefon.Location = new Point(400, 28);
             txtTelefon.MaxLength = 50;
             txtTelefon.Name = "txtTelefon";
-            txtTelefon.Size = new Size(176, 23);
+            txtTelefon.Size = new Size(250, 24);
             txtTelefon.TabIndex = 3;
+            StyleTextBox(txtTelefon);
             txtTelefon.TextChanged += txtTelefon_TextChanged;
-            // 
-            // scrollPanel
-            // 
+
+            // ── groupBoxNapomena ──────────────────────────────────
+            groupBoxNapomena.Controls.Add(lblNapomena);
+            groupBoxNapomena.Controls.Add(txtNapomena);
+            groupBoxNapomena.Location = new Point(9, 591);
+            groupBoxNapomena.Name = "groupBoxNapomena";
+            groupBoxNapomena.Size = new Size(665, 112);
+            groupBoxNapomena.TabIndex = 4;
+            groupBoxNapomena.TabStop = false;
+            StyleGroupBox(groupBoxNapomena, "📝 Napomena");
+
+            lblNapomena.Location = new Point(9, 26);
+            lblNapomena.Name = "lblNapomena";
+            lblNapomena.TabIndex = 0;
+            lblNapomena.Text = "Napomena:";
+            StyleLabel(lblNapomena);
+
+            txtNapomena.Location = new Point(9, 44);
+            txtNapomena.Multiline = true;
+            txtNapomena.Name = "txtNapomena";
+            txtNapomena.ScrollBars = ScrollBars.Vertical;
+            txtNapomena.Size = new Size(639, 56);
+            txtNapomena.TabIndex = 1;
+            StyleTextBox(txtNapomena);
+
+            // ── scrollPanel ───────────────────────────────────────
             scrollPanel.AutoScroll = true;
             scrollPanel.Controls.Add(groupBoxOsnovni);
             scrollPanel.Controls.Add(groupBoxRizici);
@@ -553,43 +484,55 @@
             scrollPanel.Padding = new Padding(0, 0, 0, 56);
             scrollPanel.Size = new Size(700, 647);
             scrollPanel.TabIndex = 0;
-            // 
-            // groupBoxNapomena
-            // 
-            groupBoxNapomena.Controls.Add(lblNapomena);
-            groupBoxNapomena.Controls.Add(txtNapomena);
-            groupBoxNapomena.Location = new Point(9, 591);
-            groupBoxNapomena.Name = "groupBoxNapomena";
-            groupBoxNapomena.Size = new Size(665, 112);
-            groupBoxNapomena.TabIndex = 4;
-            groupBoxNapomena.TabStop = false;
-            groupBoxNapomena.Text = "📝 Napomena";
-            // 
-            // lblNapomena
-            // 
-            lblNapomena.AutoSize = true;
-            lblNapomena.Location = new Point(9, 23);
-            lblNapomena.Name = "lblNapomena";
-            lblNapomena.Size = new Size(69, 15);
-            lblNapomena.TabIndex = 0;
-            lblNapomena.Text = "Napomena:";
-            // 
-            // txtNapomena
-            // 
-            txtNapomena.Location = new Point(9, 42);
-            txtNapomena.Multiline = true;
-            txtNapomena.Name = "txtNapomena";
-            txtNapomena.ScrollBars = ScrollBars.Vertical;
-            txtNapomena.Size = new Size(639, 56);
-            txtNapomena.TabIndex = 1;
-            // 
-            // FrmDodajKlijent
-            // 
+            scrollPanel.BackColor = Color.FromArgb(245, 248, 252);
+
+            // ── panelButtons ──────────────────────────────────────
+            panelButtons.BackColor = Color.FromArgb(28, 40, 65);
+            panelButtons.BorderStyle = BorderStyle.None;
+            panelButtons.Controls.Add(btnSpremi);
+            panelButtons.Controls.Add(btnOtkazi);
+            panelButtons.Dock = DockStyle.Bottom;
+            panelButtons.Location = new Point(0, 647);
+            panelButtons.Name = "panelButtons";
+            panelButtons.Size = new Size(700, 56);
+            panelButtons.TabIndex = 1;
+
+            btnSpremi.BackColor = Color.FromArgb(39, 174, 96);
+            btnSpremi.FlatStyle = FlatStyle.Flat;
+            btnSpremi.FlatAppearance.BorderSize = 0;
+            btnSpremi.ForeColor = Color.White;
+            btnSpremi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnSpremi.Cursor = Cursors.Hand;
+            btnSpremi.Location = new Point(420, 12);
+            btnSpremi.Name = "btnSpremi";
+            btnSpremi.Size = new Size(131, 34);
+            btnSpremi.TabIndex = 0;
+            btnSpremi.Text = "💾 Spremi";
+            btnSpremi.UseVisualStyleBackColor = false;
+            btnSpremi.Click += btnSpremi_Click;
+
+            btnOtkazi.BackColor = Color.FromArgb(192, 57, 43);
+            btnOtkazi.FlatStyle = FlatStyle.Flat;
+            btnOtkazi.FlatAppearance.BorderSize = 0;
+            btnOtkazi.ForeColor = Color.White;
+            btnOtkazi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnOtkazi.Cursor = Cursors.Hand;
+            btnOtkazi.Location = new Point(560, 12);
+            btnOtkazi.Name = "btnOtkazi";
+            btnOtkazi.Size = new Size(131, 34);
+            btnOtkazi.TabIndex = 1;
+            btnOtkazi.Text = "❌ Otkaži";
+            btnOtkazi.UseVisualStyleBackColor = false;
+            btnOtkazi.Click += btnOtkazi_Click;
+
+            // ── FrmDodajKlijent ───────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(245, 248, 252);
             ClientSize = new Size(700, 703);
             Controls.Add(scrollPanel);
             Controls.Add(panelButtons);
+            Font = new Font("Segoe UI", 9.5F);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -597,6 +540,7 @@
             StartPosition = FormStartPosition.CenterParent;
             Text = "Dodaj firmu";
             Load += FrmDodajKlijent_Load;
+
             groupBoxOsnovni.ResumeLayout(false);
             groupBoxOsnovni.PerformLayout();
             groupBoxRizici.ResumeLayout(false);

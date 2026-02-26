@@ -66,10 +66,9 @@
             panelDirektori.SuspendLayout();
             panelDirektoriBtns.SuspendLayout();
             SuspendLayout();
-            // 
-            // panelToolbar
-            // 
-            panelToolbar.BackColor = Color.LightGray;
+
+            // ── panelToolbar ──────────────────────────────────────
+            panelToolbar.BackColor = Color.FromArgb(28, 40, 65);
             panelToolbar.Controls.Add(btnResetImport);
             panelToolbar.Controls.Add(btnDodajKlijent);
             panelToolbar.Controls.Add(btnIzmijeniKlijent);
@@ -81,98 +80,98 @@
             panelToolbar.Dock = DockStyle.Top;
             panelToolbar.Location = new Point(0, 0);
             panelToolbar.Name = "panelToolbar";
-            panelToolbar.Size = new Size(1450, 47);
+            panelToolbar.Size = new Size(1450, 52);
             panelToolbar.TabIndex = 2;
-            // 
-            // btnResetImport
-            // 
-            btnResetImport.BackColor = Color.IndianRed;
-            btnResetImport.Location = new Point(487, 9);
-            btnResetImport.Name = "btnResetImport";
-            btnResetImport.Size = new Size(144, 28);
-            btnResetImport.TabIndex = 4;
-            btnResetImport.Text = "Resetuj i reimportuj";
-            btnResetImport.UseVisualStyleBackColor = false;
-            btnResetImport.Click += btnResetImport_Click;
-            // 
+            panelToolbar.Padding = new Padding(6, 0, 6, 0);
+
+            // Helper: styled toolbar button
+            static void StyleToolbarBtn(Button b, Color accent)
+            {
+                b.FlatStyle = FlatStyle.Flat;
+                b.FlatAppearance.BorderColor = accent;
+                b.FlatAppearance.BorderSize = 1;
+                b.BackColor = accent;
+                b.ForeColor = Color.White;
+                b.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                b.Cursor = Cursors.Hand;
+                b.UseVisualStyleBackColor = false;
+            }
+
             // btnDodajKlijent
-            // 
-            btnDodajKlijent.Location = new Point(9, 9);
+            btnDodajKlijent.Location = new Point(10, 11);
             btnDodajKlijent.Name = "btnDodajKlijent";
-            btnDodajKlijent.Size = new Size(105, 28);
+            btnDodajKlijent.Size = new Size(112, 30);
             btnDodajKlijent.TabIndex = 0;
             btnDodajKlijent.Text = "➕ Dodaj firmu";
-            btnDodajKlijent.UseVisualStyleBackColor = true;
+            StyleToolbarBtn(btnDodajKlijent, Color.FromArgb(39, 174, 96));
             btnDodajKlijent.Click += btnDodajKlijent_Click;
-            // 
+
             // btnIzmijeniKlijent
-            // 
-            btnIzmijeniKlijent.Location = new Point(122, 9);
+            btnIzmijeniKlijent.Location = new Point(130, 11);
             btnIzmijeniKlijent.Name = "btnIzmijeniKlijent";
-            btnIzmijeniKlijent.Size = new Size(105, 28);
+            btnIzmijeniKlijent.Size = new Size(105, 30);
             btnIzmijeniKlijent.TabIndex = 1;
             btnIzmijeniKlijent.Text = "✏️ Izmijeni";
-            btnIzmijeniKlijent.UseVisualStyleBackColor = true;
+            StyleToolbarBtn(btnIzmijeniKlijent, Color.FromArgb(52, 120, 200));
             btnIzmijeniKlijent.Click += btnIzmijeniKlijent_Click;
-            // 
+
             // btnObrisiKlijent
-            // 
-            btnObrisiKlijent.Location = new Point(236, 9);
+            btnObrisiKlijent.Location = new Point(243, 11);
             btnObrisiKlijent.Name = "btnObrisiKlijent";
-            btnObrisiKlijent.Size = new Size(105, 28);
+            btnObrisiKlijent.Size = new Size(105, 30);
             btnObrisiKlijent.TabIndex = 2;
-            btnObrisiKlijent.Text = "❌ Obriši";
-            btnObrisiKlijent.UseVisualStyleBackColor = true;
+            btnObrisiKlijent.Text = "🗑️ Obriši";
+            StyleToolbarBtn(btnObrisiKlijent, Color.FromArgb(192, 57, 43));
             btnObrisiKlijent.Click += btnObrisiKlijent_Click;
-            // 
+
             // btnImportExcel
-            // 
-            btnImportExcel.BackColor = Color.LightGreen;
-            btnImportExcel.Location = new Point(350, 9);
+            btnImportExcel.Location = new Point(360, 11);
             btnImportExcel.Name = "btnImportExcel";
-            btnImportExcel.Size = new Size(131, 28);
+            btnImportExcel.Size = new Size(135, 30);
             btnImportExcel.TabIndex = 3;
             btnImportExcel.Text = "📥 Import Excel";
-            btnImportExcel.UseVisualStyleBackColor = false;
+            StyleToolbarBtn(btnImportExcel, Color.FromArgb(22, 141, 84));
             btnImportExcel.Click += btnImportExcel_Click;
-            // 
-            // btnUpozorenja
-            // 
-            btnUpozorenja.BackColor = Color.Gold;
-            btnUpozorenja.Location = new Point(955, 9);
-            btnUpozorenja.Name = "btnUpozorenja";
-            btnUpozorenja.Size = new Size(140, 28);
-            btnUpozorenja.TabIndex = 5;
-            btnUpozorenja.Text = "⚠ Upozorenja (0)";
-            btnUpozorenja.UseVisualStyleBackColor = false;
-            btnUpozorenja.Click += btnUpozorenja_Click;
-            // 
-            // btnExportTabelaPdf
-            // 
-            btnExportTabelaPdf.BackColor = Color.SteelBlue;
-            btnExportTabelaPdf.ForeColor = Color.White;
-            btnExportTabelaPdf.Location = new Point(790, 9);
-            btnExportTabelaPdf.Name = "btnExportTabelaPdf";
-            btnExportTabelaPdf.Size = new Size(155, 28);
-            btnExportTabelaPdf.TabIndex = 7;
-            btnExportTabelaPdf.Text = "📋 Export tabele u PDF";
-            btnExportTabelaPdf.UseVisualStyleBackColor = false;
-            btnExportTabelaPdf.Click += btnExportTabelaPdf_Click;
-            // 
+
+            // btnResetImport
+            btnResetImport.Location = new Point(503, 11);
+            btnResetImport.Name = "btnResetImport";
+            btnResetImport.Size = new Size(148, 30);
+            btnResetImport.TabIndex = 4;
+            btnResetImport.Text = "🔁 Resetuj i reimportuj";
+            StyleToolbarBtn(btnResetImport, Color.FromArgb(150, 40, 40));
+            btnResetImport.Click += btnResetImport_Click;
+
             // btnSacuvajPdf
-            // 
-            btnSacuvajPdf.Location = new Point(640, 9);
+            btnSacuvajPdf.Location = new Point(663, 11);
             btnSacuvajPdf.Name = "btnSacuvajPdf";
-            btnSacuvajPdf.Size = new Size(140, 28);
+            btnSacuvajPdf.Size = new Size(148, 30);
             btnSacuvajPdf.TabIndex = 6;
             btnSacuvajPdf.Text = "📄 Sačuvaj kao PDF";
-            btnSacuvajPdf.UseVisualStyleBackColor = true;
+            StyleToolbarBtn(btnSacuvajPdf, Color.FromArgb(70, 100, 160));
             btnSacuvajPdf.Click += btnSacuvajPdf_Click;
-            // 
-            // panelSearch
-            // 
-            panelSearch.BackColor = Color.WhiteSmoke;
-            panelSearch.BorderStyle = BorderStyle.FixedSingle;
+
+            // btnExportTabelaPdf
+            btnExportTabelaPdf.Location = new Point(819, 11);
+            btnExportTabelaPdf.Name = "btnExportTabelaPdf";
+            btnExportTabelaPdf.Size = new Size(160, 30);
+            btnExportTabelaPdf.TabIndex = 7;
+            btnExportTabelaPdf.Text = "📋 Export tabele u PDF";
+            StyleToolbarBtn(btnExportTabelaPdf, Color.FromArgb(41, 98, 155));
+            btnExportTabelaPdf.Click += btnExportTabelaPdf_Click;
+
+            // btnUpozorenja
+            btnUpozorenja.Location = new Point(991, 11);
+            btnUpozorenja.Name = "btnUpozorenja";
+            btnUpozorenja.Size = new Size(148, 30);
+            btnUpozorenja.TabIndex = 5;
+            btnUpozorenja.Text = "⚠ Upozorenja (0)";
+            StyleToolbarBtn(btnUpozorenja, Color.FromArgb(200, 155, 10));
+            btnUpozorenja.Click += btnUpozorenja_Click;
+
+            // ── panelSearch ───────────────────────────────────────
+            panelSearch.BackColor = Color.FromArgb(240, 244, 250);
+            panelSearch.BorderStyle = BorderStyle.None;
             panelSearch.Controls.Add(lblSearchKlijent);
             panelSearch.Controls.Add(txtSearchKlijent);
             panelSearch.Controls.Add(lblFilterDjelatnost);
@@ -181,76 +180,97 @@
             panelSearch.Controls.Add(cmbFilterVelicina);
             panelSearch.Controls.Add(btnResetFilters);
             panelSearch.Dock = DockStyle.Top;
-            panelSearch.Location = new Point(0, 47);
+            panelSearch.Location = new Point(0, 52);
             panelSearch.Name = "panelSearch";
-            panelSearch.Size = new Size(1450, 42);
+            panelSearch.Size = new Size(1450, 44);
             panelSearch.TabIndex = 1;
-            // 
-            // lblSearchKlijent
-            // 
+
+            var searchFont = new Font("Segoe UI", 9F);
+
             lblSearchKlijent.AutoSize = true;
-            lblSearchKlijent.Location = new Point(9, 11);
+            lblSearchKlijent.Font = searchFont;
+            lblSearchKlijent.ForeColor = Color.FromArgb(50, 60, 80);
+            lblSearchKlijent.Location = new Point(12, 13);
             lblSearchKlijent.Name = "lblSearchKlijent";
-            lblSearchKlijent.Size = new Size(176, 15);
             lblSearchKlijent.TabIndex = 0;
             lblSearchKlijent.Text = "🔍 Pretraži firmu po nazivu ili ID:";
-            // 
-            // txtSearchKlijent
-            // 
-            txtSearchKlijent.Location = new Point(191, 8);
+
+            txtSearchKlijent.Location = new Point(195, 10);
             txtSearchKlijent.Name = "txtSearchKlijent";
-            txtSearchKlijent.Size = new Size(220, 23);
+            txtSearchKlijent.Size = new Size(230, 23);
+            txtSearchKlijent.Font = searchFont;
             txtSearchKlijent.TabIndex = 1;
             txtSearchKlijent.TextChanged += txtSearchKlijent_TextChanged;
-            // 
-            // lblFilterDjelatnost
-            // 
+
             lblFilterDjelatnost.AutoSize = true;
-            lblFilterDjelatnost.Location = new Point(467, 11);
+            lblFilterDjelatnost.Font = searchFont;
+            lblFilterDjelatnost.ForeColor = Color.FromArgb(50, 60, 80);
+            lblFilterDjelatnost.Location = new Point(468, 13);
             lblFilterDjelatnost.Name = "lblFilterDjelatnost";
-            lblFilterDjelatnost.Size = new Size(106, 15);
             lblFilterDjelatnost.TabIndex = 2;
-            lblFilterDjelatnost.Text = "🏭 Filter djelatnost:";
-            // 
-            // cmbFilterDjelatnost
-            // 
+            lblFilterDjelatnost.Text = "🏭 Djelatnost:";
+
             cmbFilterDjelatnost.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbFilterDjelatnost.Location = new Point(585, 8);
+            cmbFilterDjelatnost.Font = searchFont;
+            cmbFilterDjelatnost.Location = new Point(560, 10);
             cmbFilterDjelatnost.Name = "cmbFilterDjelatnost";
             cmbFilterDjelatnost.Size = new Size(300, 23);
             cmbFilterDjelatnost.TabIndex = 3;
             cmbFilterDjelatnost.SelectedIndexChanged += cmbFilterDjelatnost_SelectedIndexChanged;
-            // 
-            // lblFilterVelicina
-            // 
+
             lblFilterVelicina.AutoSize = true;
-            lblFilterVelicina.Location = new Point(910, 11);
+            lblFilterVelicina.Font = searchFont;
+            lblFilterVelicina.ForeColor = Color.FromArgb(50, 60, 80);
+            lblFilterVelicina.Location = new Point(876, 13);
             lblFilterVelicina.Name = "lblFilterVelicina";
-            lblFilterVelicina.Size = new Size(65, 15);
             lblFilterVelicina.TabIndex = 5;
             lblFilterVelicina.Text = "📏 Veličina:";
-            // 
-            // cmbFilterVelicina
-            // 
+
             cmbFilterVelicina.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbFilterVelicina.Location = new Point(983, 8);
+            cmbFilterVelicina.Font = searchFont;
+            cmbFilterVelicina.Location = new Point(948, 10);
             cmbFilterVelicina.Name = "cmbFilterVelicina";
-            cmbFilterVelicina.Size = new Size(120, 23);
+            cmbFilterVelicina.Size = new Size(130, 23);
             cmbFilterVelicina.TabIndex = 6;
             cmbFilterVelicina.SelectedIndexChanged += cmbFilterVelicina_SelectedIndexChanged;
-            // 
-            // btnResetFilters
-            // 
-            btnResetFilters.Location = new Point(1122, 6);
+
+            btnResetFilters.FlatStyle = FlatStyle.Flat;
+            btnResetFilters.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
+            btnResetFilters.Font = searchFont;
+            btnResetFilters.BackColor = Color.FromArgb(220, 226, 238);
+            btnResetFilters.ForeColor = Color.FromArgb(40, 50, 80);
+            btnResetFilters.Cursor = Cursors.Hand;
+            btnResetFilters.Location = new Point(1092, 9);
             btnResetFilters.Name = "btnResetFilters";
-            btnResetFilters.Size = new Size(90, 25);
+            btnResetFilters.Size = new Size(95, 26);
             btnResetFilters.TabIndex = 4;
             btnResetFilters.Text = "🔄 Resetuj";
-            btnResetFilters.UseVisualStyleBackColor = true;
+            btnResetFilters.UseVisualStyleBackColor = false;
             btnResetFilters.Click += btnResetFilters_Click;
-            // 
-            // dataGridKlijenti
-            // 
+
+            // ── DataGridView helper ───────────────────────────────
+            static void StyleGrid(DataGridView g)
+            {
+                g.BackgroundColor = Color.White;
+                g.GridColor = Color.FromArgb(210, 218, 230);
+                g.BorderStyle = BorderStyle.None;
+                g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+                g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(28, 40, 65);
+                g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+                g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                g.ColumnHeadersDefaultCellStyle.Padding = new Padding(4, 0, 0, 0);
+                g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+                g.ColumnHeadersHeight = 32;
+                g.EnableHeadersVisualStyles = false;
+                g.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
+                g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(52, 120, 200);
+                g.DefaultCellStyle.SelectionForeColor = Color.White;
+                g.DefaultCellStyle.Padding = new Padding(3, 0, 0, 0);
+                g.RowTemplate.Height = 26;
+                g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(246, 249, 253);
+            }
+
+            // ── dataGridKlijenti ──────────────────────────────────
             dataGridKlijenti.AllowUserToAddRows = false;
             dataGridKlijenti.AllowUserToDeleteRows = false;
             dataGridKlijenti.Dock = DockStyle.Fill;
@@ -262,10 +282,10 @@
             dataGridKlijenti.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridKlijenti.Size = new Size(1450, 536);
             dataGridKlijenti.TabIndex = 0;
+            StyleGrid(dataGridKlijenti);
             dataGridKlijenti.SelectionChanged += dataGridKlijenti_SelectionChanged;
-            // 
-            // dataGridVlasnici
-            // 
+
+            // ── dataGridVlasnici ──────────────────────────────────
             dataGridVlasnici.AllowUserToAddRows = false;
             dataGridVlasnici.AllowUserToDeleteRows = false;
             dataGridVlasnici.Dock = DockStyle.Fill;
@@ -277,9 +297,9 @@
             dataGridVlasnici.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridVlasnici.Size = new Size(656, 177);
             dataGridVlasnici.TabIndex = 0;
-            // 
-            // dataGridDirektori
-            // 
+            StyleGrid(dataGridVlasnici);
+
+            // ── dataGridDirektori ─────────────────────────────────
             dataGridDirektori.AllowUserToAddRows = false;
             dataGridDirektori.AllowUserToDeleteRows = false;
             dataGridDirektori.Dock = DockStyle.Fill;
@@ -291,108 +311,82 @@
             dataGridDirektori.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridDirektori.Size = new Size(790, 177);
             dataGridDirektori.TabIndex = 0;
-            // 
+            StyleGrid(dataGridDirektori);
+
+            // ── Sub-panel button helper ───────────────────────────
+            static void StyleSubBtn(Button b, Color accent)
+            {
+                b.FlatStyle = FlatStyle.Flat;
+                b.FlatAppearance.BorderColor = accent;
+                b.FlatAppearance.BorderSize = 1;
+                b.BackColor = accent;
+                b.ForeColor = Color.White;
+                b.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+                b.Cursor = Cursors.Hand;
+                b.UseVisualStyleBackColor = false;
+            }
+
             // btnDodajVlasnika
-            // 
             btnDodajVlasnika.Location = new Point(9, 8);
             btnDodajVlasnika.Name = "btnDodajVlasnika";
-            btnDodajVlasnika.Size = new Size(114, 23);
+            btnDodajVlasnika.Size = new Size(118, 24);
             btnDodajVlasnika.TabIndex = 0;
             btnDodajVlasnika.Text = "➕ Dodaj vlasnika";
-            btnDodajVlasnika.UseVisualStyleBackColor = true;
+            StyleSubBtn(btnDodajVlasnika, Color.FromArgb(39, 174, 96));
             btnDodajVlasnika.Click += btnDodajVlasnika_Click;
-            // 
-            // btnIzmijeniVlasnika
-            // 
-            btnIzmijeniVlasnika.Location = new Point(131, 8);
+
+            btnIzmijeniVlasnika.Location = new Point(135, 8);
             btnIzmijeniVlasnika.Name = "btnIzmijeniVlasnika";
-            btnIzmijeniVlasnika.Size = new Size(88, 23);
+            btnIzmijeniVlasnika.Size = new Size(90, 24);
             btnIzmijeniVlasnika.TabIndex = 1;
             btnIzmijeniVlasnika.Text = "✏️ Izmijeni";
-            btnIzmijeniVlasnika.UseVisualStyleBackColor = true;
+            StyleSubBtn(btnIzmijeniVlasnika, Color.FromArgb(52, 120, 200));
             btnIzmijeniVlasnika.Click += btnIzmijeniVlasnika_Click;
-            // 
-            // btnObrisiVlasnika
-            // 
-            btnObrisiVlasnika.Location = new Point(228, 8);
+
+            btnObrisiVlasnika.Location = new Point(233, 8);
             btnObrisiVlasnika.Name = "btnObrisiVlasnika";
-            btnObrisiVlasnika.Size = new Size(88, 23);
+            btnObrisiVlasnika.Size = new Size(90, 24);
             btnObrisiVlasnika.TabIndex = 2;
-            btnObrisiVlasnika.Text = "❌ Obriši";
-            btnObrisiVlasnika.UseVisualStyleBackColor = true;
+            btnObrisiVlasnika.Text = "🗑️ Obriši";
+            StyleSubBtn(btnObrisiVlasnika, Color.FromArgb(192, 57, 43));
             btnObrisiVlasnika.Click += btnObrisiVlasnika_Click;
-            // 
-            // btnDodajDirektora
-            // 
+
             btnDodajDirektora.Location = new Point(9, 8);
             btnDodajDirektora.Name = "btnDodajDirektora";
-            btnDodajDirektora.Size = new Size(114, 23);
+            btnDodajDirektora.Size = new Size(118, 24);
             btnDodajDirektora.TabIndex = 0;
             btnDodajDirektora.Text = "➕ Dodaj direktora";
-            btnDodajDirektora.UseVisualStyleBackColor = true;
+            StyleSubBtn(btnDodajDirektora, Color.FromArgb(39, 174, 96));
             btnDodajDirektora.Click += btnDodajDirektora_Click;
-            // 
-            // btnIzmijeniDirektora
-            // 
-            btnIzmijeniDirektora.Location = new Point(131, 8);
+
+            btnIzmijeniDirektora.Location = new Point(135, 8);
             btnIzmijeniDirektora.Name = "btnIzmijeniDirektora";
-            btnIzmijeniDirektora.Size = new Size(88, 23);
+            btnIzmijeniDirektora.Size = new Size(90, 24);
             btnIzmijeniDirektora.TabIndex = 1;
             btnIzmijeniDirektora.Text = "✏️ Izmijeni";
-            btnIzmijeniDirektora.UseVisualStyleBackColor = true;
+            StyleSubBtn(btnIzmijeniDirektora, Color.FromArgb(52, 120, 200));
             btnIzmijeniDirektora.Click += btnIzmijeniDirektora_Click;
-            // 
-            // btnObrisiDirektora
-            // 
-            btnObrisiDirektora.Location = new Point(228, 8);
+
+            btnObrisiDirektora.Location = new Point(233, 8);
             btnObrisiDirektora.Name = "btnObrisiDirektora";
-            btnObrisiDirektora.Size = new Size(88, 23);
+            btnObrisiDirektora.Size = new Size(90, 24);
             btnObrisiDirektora.TabIndex = 2;
-            btnObrisiDirektora.Text = "❌ Obriši";
-            btnObrisiDirektora.UseVisualStyleBackColor = true;
+            btnObrisiDirektora.Text = "🗑️ Obriši";
+            StyleSubBtn(btnObrisiDirektora, Color.FromArgb(192, 57, 43));
             btnObrisiDirektora.Click += btnObrisiDirektora_Click;
-            // 
-            // splitMain
-            // 
-            splitMain.Dock = DockStyle.Fill;
-            splitMain.Location = new Point(0, 89);
-            splitMain.Name = "splitMain";
-            splitMain.Orientation = Orientation.Horizontal;
-            // 
-            // splitMain.Panel1
-            // 
-            splitMain.Panel1.Controls.Add(dataGridKlijenti);
-            splitMain.Panel1MinSize = 100;
-            // 
-            // splitMain.Panel2
-            // 
-            splitMain.Panel2.Controls.Add(splitBottom);
-            splitMain.Panel2MinSize = 100;
-            splitMain.Size = new Size(1450, 755);
-            splitMain.SplitterDistance = 536;
-            splitMain.TabIndex = 0;
-            // 
-            // splitBottom
-            // 
-            splitBottom.Dock = DockStyle.Fill;
-            splitBottom.Location = new Point(0, 0);
-            splitBottom.Name = "splitBottom";
-            // 
-            // splitBottom.Panel1
-            // 
-            splitBottom.Panel1.Controls.Add(panelVlasnici);
-            splitBottom.Panel1MinSize = 50;
-            // 
-            // splitBottom.Panel2
-            // 
-            splitBottom.Panel2.Controls.Add(panelDirektori);
-            splitBottom.Panel2MinSize = 50;
-            splitBottom.Size = new Size(1450, 215);
-            splitBottom.SplitterDistance = 656;
-            splitBottom.TabIndex = 0;
-            // 
-            // panelVlasnici
-            // 
+
+            // ── panelVlasniciBtns ─────────────────────────────────
+            panelVlasniciBtns.BackColor = Color.FromArgb(240, 244, 250);
+            panelVlasniciBtns.Controls.Add(btnDodajVlasnika);
+            panelVlasniciBtns.Controls.Add(btnIzmijeniVlasnika);
+            panelVlasniciBtns.Controls.Add(btnObrisiVlasnika);
+            panelVlasniciBtns.Dock = DockStyle.Top;
+            panelVlasniciBtns.Location = new Point(0, 0);
+            panelVlasniciBtns.Name = "panelVlasniciBtns";
+            panelVlasniciBtns.Size = new Size(656, 40);
+            panelVlasniciBtns.TabIndex = 1;
+
+            // ── panelVlasnici ─────────────────────────────────────
             panelVlasnici.Controls.Add(dataGridVlasnici);
             panelVlasnici.Controls.Add(panelVlasniciBtns);
             panelVlasnici.Dock = DockStyle.Fill;
@@ -400,21 +394,19 @@
             panelVlasnici.Name = "panelVlasnici";
             panelVlasnici.Size = new Size(656, 215);
             panelVlasnici.TabIndex = 0;
-            // 
-            // panelVlasniciBtns
-            // 
-            panelVlasniciBtns.BackColor = Color.LightGray;
-            panelVlasniciBtns.Controls.Add(btnDodajVlasnika);
-            panelVlasniciBtns.Controls.Add(btnIzmijeniVlasnika);
-            panelVlasniciBtns.Controls.Add(btnObrisiVlasnika);
-            panelVlasniciBtns.Dock = DockStyle.Top;
-            panelVlasniciBtns.Location = new Point(0, 0);
-            panelVlasniciBtns.Name = "panelVlasniciBtns";
-            panelVlasniciBtns.Size = new Size(656, 38);
-            panelVlasniciBtns.TabIndex = 1;
-            // 
-            // panelDirektori
-            // 
+
+            // ── panelDirektoriBtns ────────────────────────────────
+            panelDirektoriBtns.BackColor = Color.FromArgb(240, 244, 250);
+            panelDirektoriBtns.Controls.Add(btnDodajDirektora);
+            panelDirektoriBtns.Controls.Add(btnIzmijeniDirektora);
+            panelDirektoriBtns.Controls.Add(btnObrisiDirektora);
+            panelDirektoriBtns.Dock = DockStyle.Top;
+            panelDirektoriBtns.Location = new Point(0, 0);
+            panelDirektoriBtns.Name = "panelDirektoriBtns";
+            panelDirektoriBtns.Size = new Size(790, 40);
+            panelDirektoriBtns.TabIndex = 1;
+
+            // ── panelDirektori ────────────────────────────────────
             panelDirektori.Controls.Add(dataGridDirektori);
             panelDirektori.Controls.Add(panelDirektoriBtns);
             panelDirektori.Dock = DockStyle.Fill;
@@ -422,31 +414,46 @@
             panelDirektori.Name = "panelDirektori";
             panelDirektori.Size = new Size(790, 215);
             panelDirektori.TabIndex = 0;
-            // 
-            // panelDirektoriBtns
-            // 
-            panelDirektoriBtns.BackColor = Color.LightGray;
-            panelDirektoriBtns.Controls.Add(btnDodajDirektora);
-            panelDirektoriBtns.Controls.Add(btnIzmijeniDirektora);
-            panelDirektoriBtns.Controls.Add(btnObrisiDirektora);
-            panelDirektoriBtns.Dock = DockStyle.Top;
-            panelDirektoriBtns.Location = new Point(0, 0);
-            panelDirektoriBtns.Name = "panelDirektoriBtns";
-            panelDirektoriBtns.Size = new Size(790, 38);
-            panelDirektoriBtns.TabIndex = 1;
-            // 
-            // Form1
-            // 
+
+            // ── splitBottom ───────────────────────────────────────
+            splitBottom.Dock = DockStyle.Fill;
+            splitBottom.Location = new Point(0, 0);
+            splitBottom.Name = "splitBottom";
+            splitBottom.Panel1.Controls.Add(panelVlasnici);
+            splitBottom.Panel1MinSize = 50;
+            splitBottom.Panel2.Controls.Add(panelDirektori);
+            splitBottom.Panel2MinSize = 50;
+            splitBottom.Size = new Size(1450, 215);
+            splitBottom.SplitterDistance = 656;
+            splitBottom.TabIndex = 0;
+
+            // ── splitMain ─────────────────────────────────────────
+            splitMain.Dock = DockStyle.Fill;
+            splitMain.Location = new Point(0, 96);
+            splitMain.Name = "splitMain";
+            splitMain.Orientation = Orientation.Horizontal;
+            splitMain.Panel1.Controls.Add(dataGridKlijenti);
+            splitMain.Panel1MinSize = 100;
+            splitMain.Panel2.Controls.Add(splitBottom);
+            splitMain.Panel2MinSize = 100;
+            splitMain.Size = new Size(1450, 755);
+            splitMain.SplitterDistance = 536;
+            splitMain.TabIndex = 0;
+
+            // ── Form1 ─────────────────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(248, 250, 253);
             ClientSize = new Size(1450, 844);
             Controls.Add(splitMain);
             Controls.Add(panelSearch);
             Controls.Add(panelToolbar);
+            Font = new Font("Segoe UI", 9F);
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "OwnerTrack - Upravljanje firmama i vlasnicima";
+            Text = "OwnerTrack — Upravljanje firmama i vlasnicima";
             WindowState = FormWindowState.Maximized;
+
             panelToolbar.ResumeLayout(false);
             panelSearch.ResumeLayout(false);
             panelSearch.PerformLayout();

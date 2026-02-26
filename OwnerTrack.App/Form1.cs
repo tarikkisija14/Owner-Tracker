@@ -52,7 +52,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-        // Fix #5 — osvježi _db kontekst da nema stale cache podataka
+       
         private void OsvjeziDb()
         {
             _db?.Dispose();
@@ -66,7 +66,7 @@ namespace OwnerTrack.App
         {
             cmbFilterVelicina.Items.Clear();
             cmbFilterVelicina.Items.Add(new { Value = "", Display = "-- Sve --" });
-            foreach (var v in Enum.GetValues(typeof(VelicinaFirme)).Cast<VelicinaFirme>())
+            foreach (VelicinaFirme v in Enum.GetValues(typeof(VelicinaFirme)))
                 cmbFilterVelicina.Items.Add(new { Value = v.ToString(), Display = v.ToString() });
             cmbFilterVelicina.DisplayMember = "Display";
             cmbFilterVelicina.ValueMember = "Value";
@@ -144,7 +144,7 @@ namespace OwnerTrack.App
 
         private void KonfigurirajKolone()
         {
-            // Koristimo istu PostaviKolone metodu umjesto lokalnog void K() bloka
+            
             PostaviKolone(dataGridKlijenti, new[]
             {
                 ("Id", 40, "ID", (string?)null),

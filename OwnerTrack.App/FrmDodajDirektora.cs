@@ -22,7 +22,9 @@ namespace OwnerTrack.App
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
-            cbTipValjanosti.Items.AddRange(new[] { "TRAJNO", "VREMENSKI" });
+            cbTipValjanosti.Items.Clear();
+            foreach (TipValjanosti v in Enum.GetValues(typeof(TipValjanosti)))
+                cbTipValjanosti.Items.Add(v.ToString());
             cbTipValjanosti.SelectedIndex = 0;
 
 

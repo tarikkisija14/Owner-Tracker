@@ -22,7 +22,7 @@ namespace OwnerTrack.App
 
             bool importZavršen = false;
 
-            // Fix #3 — spriječi zatvaranje X dugmetom dok import traje
+            
             frm.FormClosing += (s, args) =>
             {
                 if (!importZavršen)
@@ -72,8 +72,7 @@ namespace OwnerTrack.App
                             $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(10))}",
                             "Upozorenje", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-                    // Fix #2 — onZavrsetak se poziva tek nakon što korisnik zatvori formu
-                    // da nema race conditiona između refresh glavne forme i progress forme
+                    
                     btnZatvori.Click += (bs, be) =>
                     {
                         frm.Close();
