@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OwnerTrack.Data.Enums
+﻿namespace OwnerTrack.Data.Enums
 {
     public enum TipValjanosti
     {
         VREMENSKI,
         TRAJNO
+    }
+
+    
+    public static class TipValjanostiKonstante
+    {
+        public const string Vremenski = "VREMENSKI";
+        public const string Trajno = "TRAJNO";
     }
 }

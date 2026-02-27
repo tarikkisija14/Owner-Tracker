@@ -11,4 +11,9 @@ namespace OwnerTrack.Data.Enums
         DA,
         NE
     }
+    public static class DaNeKonstante
+    {
+        public const string Da = "DA";
+        public const string Ne = "NE";
+    }
 }

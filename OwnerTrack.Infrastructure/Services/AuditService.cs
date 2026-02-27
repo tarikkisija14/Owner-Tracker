@@ -1,4 +1,5 @@
 ﻿using OwnerTrack.Data.Entities;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using System;
 
@@ -24,26 +25,23 @@ namespace OwnerTrack.Infrastructure.Services
                 Opis = opis,
                 Vrijeme = DateTime.Now
             });
-            
         }
 
-        
-        public void ZabiljeziBesSave(ISoftDeletable entitet, string tabela, int? entitetId, string opis, string akcija = "OBRISANO")
-        {
-            ZabiljeziBesSave(tabela, entitetId, akcija, opis);
-        }
+        public void ZabiljeziBesSave(ISoftDeletable entitet, string tabela, int? entitetId, string opis,
+            string akcija = AuditKonstante.Obrisano)
+            => ZabiljeziBesSave(tabela, entitetId, akcija, opis);
 
         
         public void Dodano(string tabela, int id, string opis)
-            => ZabiljeziBesSave(tabela, id, "DODANO", opis);
+            => ZabiljeziBesSave(tabela, id, AuditKonstante.Dodano, opis);
 
         public void Izmijenjeno(string tabela, int id, string opis)
-            => ZabiljeziBesSave(tabela, id, "IZMIJENJENO", opis);
+            => ZabiljeziBesSave(tabela, id, AuditKonstante.Izmijenjeno, opis);
 
         public void SoftDelete(ISoftDeletable entitet, string tabela, int id, string opis)
         {
             entitet.Obrisan = DateTime.Now;
-            ZabiljeziBesSave(tabela, id, "OBRISANO", opis);
+            ZabiljeziBesSave(tabela, id, AuditKonstante.Obrisano, opis);
         }
     }
 }

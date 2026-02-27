@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Vlasnik:ISoftDeletable
+    public class Vlasnik : ISoftDeletable
     {
         [Key]
         public int Id { get; set; }
@@ -22,7 +22,7 @@ namespace OwnerTrack.Data.Entities
         [StringLength(255)]
         public string ImePrezime { get; set; }
 
-        public DateTime? DatumValjanostiDokumenta { get; set; }  
+        public DateTime? DatumValjanostiDokumenta { get; set; }
 
         [Range(0, 100)]
         public decimal ProcenatVlasnistva { get; set; }
@@ -32,8 +32,7 @@ namespace OwnerTrack.Data.Entities
         [StringLength(255)]
         public string IzvorPodatka { get; set; }
 
-        [StringLength(50)]
-        public string Status { get; set; } = StatusKonstante.Aktivan;
+        public StatusEntiteta Status { get; set; } = StatusEntiteta.AKTIVAN;
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
         public DateTime? Obrisan { get; set; }

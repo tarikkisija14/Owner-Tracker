@@ -108,7 +108,7 @@ namespace OwnerTrack.App
             if (!string.IsNullOrEmpty(k.SifraDjelatnosti))
                 cbSifra.SelectedValue = k.SifraDjelatnosti;
             dtDatumUspostave.Value = k.DatumUspostave ?? DateTime.Now;
-            SetCombo(cbVrstaKlijenta, k.VrstaKlijenta);
+            SetCombo(cbVrstaKlijenta, k.VrstaKlijenta?.ToString());
             dtDatumOsnivanja.Value = k.DatumOsnivanja ?? DateTime.Now;
             SetCombo(cbVelicina, k.Velicina);
             SetCombo(cbPepRizik, k.PepRizik);
@@ -118,7 +118,7 @@ namespace OwnerTrack.App
             txtUkupnaProcjena.Text = k.UkupnaProcjena ?? "";
             dtDatumProcjene.Value = k.DatumProcjene ?? DateTime.Now;
             txtOvjeraCr.Text = k.OvjeraCr ?? "";
-            SetCombo(cbStatus, k.Status);
+            SetCombo(cbStatus, k.Status.ToString());
             txtNapomena.Text = k.Napomena ?? "";
             txtEmail.Text = k.Email ?? "";
             txtTelefon.Text = k.Telefon ?? "";
@@ -126,7 +126,7 @@ namespace OwnerTrack.App
             if (k.Ugovor != null)
             {
                 txtVrstaUgovora.Text = k.Ugovor.VrstaUgovora ?? "";
-                SetCombo(cbStatusUgovora, k.Ugovor.StatusUgovora);
+                SetCombo(cbStatusUgovora, k.Ugovor.StatusUgovora.ToString());
                 dtDatumUgovora.Value = k.Ugovor.DatumUgovora ?? DateTime.Now;
             }
         }
@@ -207,7 +207,7 @@ namespace OwnerTrack.App
             k.Adresa = txtAdresa.Text;
             k.SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "";
             k.DatumUspostave = dtDatumUspostave.Value;
-            k.VrstaKlijenta = cbVrstaKlijenta.Text;
+            k.VrstaKlijenta = Enum.TryParse<VrstaKlijenta>(cbVrstaKlijenta.Text, out var vk) ? vk : null;
             k.DatumOsnivanja = dtDatumOsnivanja.Value;
             k.Velicina = cbVelicina.Text;
             k.PepRizik = Null(cbPepRizik.Text);
@@ -217,7 +217,7 @@ namespace OwnerTrack.App
             k.UkupnaProcjena = txtUkupnaProcjena.Text;
             k.DatumProcjene = dtDatumProcjene.Value;
             k.OvjeraCr = txtOvjeraCr.Text;
-            k.Status = cbStatus.Text;
+            k.Status = Enum.TryParse<StatusEntiteta>(cbStatus.Text, out var se) ? se : StatusEntiteta.AKTIVAN;
             k.Napomena = txtNapomena.Text;
             k.Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim();
             k.Telefon = string.IsNullOrWhiteSpace(txtTelefon.Text) ? null : txtTelefon.Text.Trim();
@@ -239,9 +239,9 @@ namespace OwnerTrack.App
             using var tx = _db.Database.BeginTransaction();
             try
             {
-                _db.SaveChanges(); 
-                _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'"); 
-                _db.SaveChanges(); 
+                _db.SaveChanges();
+                _audit.Izmijenjeno("Klijenti", id, $"'{stariNaziv}' → '{naziv}'");
+                _db.SaveChanges();
                 tx.Commit();
             }
             catch
@@ -262,7 +262,7 @@ namespace OwnerTrack.App
                 Adresa = txtAdresa.Text,
                 SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? "",
                 DatumUspostave = dtDatumUspostave.Value,
-                VrstaKlijenta = cbVrstaKlijenta.Text,
+                VrstaKlijenta = Enum.TryParse<VrstaKlijenta>(cbVrstaKlijenta.Text, out var vk2) ? vk2 : null,
                 DatumOsnivanja = dtDatumOsnivanja.Value,
                 Velicina = cbVelicina.Text,
                 PepRizik = Null(cbPepRizik.Text),
@@ -272,7 +272,7 @@ namespace OwnerTrack.App
                 UkupnaProcjena = txtUkupnaProcjena.Text,
                 DatumProcjene = dtDatumProcjene.Value,
                 OvjeraCr = txtOvjeraCr.Text,
-                Status = cbStatus.Text,
+                Status = Enum.TryParse<StatusEntiteta>(cbStatus.Text, out var se2) ? se2 : StatusEntiteta.AKTIVAN,
                 Napomena = txtNapomena.Text,
                 Kreiran = DateTime.Now,
                 Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim(),
@@ -283,9 +283,9 @@ namespace OwnerTrack.App
             try
             {
                 _db.Klijenti.Add(k);
-                _db.SaveChanges(); 
+                _db.SaveChanges();
 
-                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})"); 
+                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
 
                 if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
                 {
@@ -298,7 +298,7 @@ namespace OwnerTrack.App
                     });
                 }
 
-                _db.SaveChanges(); 
+                _db.SaveChanges();
                 tx.Commit();
             }
             catch

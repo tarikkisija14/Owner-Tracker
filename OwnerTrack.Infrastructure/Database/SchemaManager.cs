@@ -199,9 +199,7 @@ namespace OwnerTrack.Infrastructure
         }
 
 
-        /// <summary>
-        /// Poziva se nakon reseta baze da vrati djelatnosti (INSERT OR IGNORE).
-        /// </summary>
+        
         public void ReseedDjelatnosti()
         {
             using var conn = new SqliteConnection(_connectionString);

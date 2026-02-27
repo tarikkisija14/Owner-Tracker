@@ -38,13 +38,10 @@ namespace OwnerTrack.Infrastructure
                 Log($"[IMPORT-START] File='{filePath}' Time={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
                 using var doc = SpreadsheetDocument.Open(filePath, false);
-                var wbPart = doc.WorkbookPart
-                    ?? throw new Exception("Excel fajl nema validan WorkbookPart!");
-
+                var wbPart = doc.WorkbookPart ?? throw new Exception("Excel fajl nema validan WorkbookPart!");
                 var sheet = wbPart.Workbook.Sheets?.Cast<Sheet>()
-                    .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
-                    ?? throw new Exception("Nije pronađen list sa 'ZBIRNA'!");
-
+                                    .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
+                                  ?? throw new Exception("Nije pronađen list sa 'ZBIRNA'!");
                 var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
                 var sheetData = wsPart.Worksheet.Elements<SheetData>().First();
                 var allRows = sheetData.Elements<Row>().Skip(2).ToList();
@@ -53,7 +50,6 @@ namespace OwnerTrack.Infrastructure
 
                 for (int i = 0; i < allRows.Count; i++)
                 {
-                    
                     if (cancellationToken.IsCancellationRequested)
                     {
                         Log("[IMPORT-CANCELLED] Korisnik otkazao import.");
@@ -80,15 +76,8 @@ namespace OwnerTrack.Infrastructure
 
                         bool preskocen = ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
 
-                        if (!preskocen)
-                        {
-                            result.SuccessCount++;
-                            prog.SuccessCount = result.SuccessCount;
-                        }
-                        else
-                        {
-                            result.SkipCount++;
-                        }
+                        if (!preskocen) { result.SuccessCount++; prog.SuccessCount = result.SuccessCount; }
+                        else { result.SkipCount++; }
                     }
                     catch (Exception ex)
                     {
@@ -97,8 +86,7 @@ namespace OwnerTrack.Infrastructure
                         string inner = ex.InnerException?.Message ?? "";
                         Log($"[ERROR] Red={i + 3} '{naziv}' Msg='{ex.Message}'" +
                             (string.IsNullOrEmpty(inner) ? "" : $" Inner='{inner}'"));
-                        result.Errors.Add(
-                            $"Red {i + 3} | {naziv} | {idBroj} | {ex.Message}" +
+                        result.Errors.Add($"Red {i + 3} | {naziv} | {idBroj} | {ex.Message}" +
                             (string.IsNullOrEmpty(inner) ? "" : $" | {inner}"));
                     }
 
@@ -107,7 +95,7 @@ namespace OwnerTrack.Infrastructure
             }
             catch (OperationCanceledException)
             {
-                result.Success = true; 
+                result.Success = true;
                 return result;
             }
             catch (Exception ex)
@@ -125,17 +113,20 @@ namespace OwnerTrack.Infrastructure
                                    string naziv, string idBroj,
                                    ImportResult result, Action<string> Log)
         {
-            string sifraDjelatnostiPre = GetCellValue(wbPart, row, 5)?.Trim() ?? "69.20";
-            string? nazivDjelatnostiPre = GetCellValue(wbPart, row, 6)?.Trim();
-            if (string.IsNullOrWhiteSpace(sifraDjelatnostiPre))
-                sifraDjelatnostiPre = "69.20";
+
+            string sifraDjelatnosti = GetCellValue(wbPart, row, 5)?.Trim()
+                                      ?? AppKonstante.DefaultSifraDjelatnosti;
+            if (string.IsNullOrWhiteSpace(sifraDjelatnosti))
+                sifraDjelatnosti = AppKonstante.DefaultSifraDjelatnosti;
+
+            string? nazivDjelatnosti = GetCellValue(wbPart, row, 6)?.Trim();
 
             using (var dbPre = KreirajDb())
-                EnsureDjelatnostExists(dbPre, sifraDjelatnostiPre, nazivDjelatnostiPre);
+                EnsureDjelatnostExists(dbPre, sifraDjelatnosti, nazivDjelatnosti);
 
             using var db = KreirajDb();
             using var tx = db.Database.BeginTransaction();
-            int privremeniVlasnikCount = 0;
+            int privVlasnikCount = 0;
 
             try
             {
@@ -147,8 +138,6 @@ namespace OwnerTrack.Infrastructure
 
                 if (db.Klijenti.AsNoTracking().Any(k => k.Naziv == naziv))
                     throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
-
-                string sifraDjelatnosti = sifraDjelatnostiPre;
 
                 var klijent = new Klijent
                 {
@@ -167,7 +156,8 @@ namespace OwnerTrack.Infrastructure
                     UkupnaProcjena = GetCellValue(wbPart, row, 22)?.Trim(),
                     DatumProcjene = ParseDate(GetCellValue(wbPart, row, 23)),
                     OvjeraCr = GetCellValue(wbPart, row, 24)?.Trim(),
-                    Status = StatusEntiteta.AKTIVAN.ToString(),
+
+                    Status = StatusEntiteta.AKTIVAN,
                     Kreiran = DateTime.Now
                 };
 
@@ -188,9 +178,10 @@ namespace OwnerTrack.Infrastructure
                         v.KlijentId = klijent.Id;
                         v.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
                         v.IzvorPodatka = izvorPodatka?.Trim();
-                        v.Status = StatusEntiteta.AKTIVAN.ToString();
+
+                        v.Status = StatusEntiteta.AKTIVAN;
                         db.Vlasnici.Add(v);
-                        privremeniVlasnikCount++;
+                        privVlasnikCount++;
                     }
                 }
 
@@ -203,7 +194,8 @@ namespace OwnerTrack.Infrastructure
                     foreach (var d in direktori)
                     {
                         d.KlijentId = klijent.Id;
-                        d.Status = StatusEntiteta.AKTIVAN.ToString();
+
+                        d.Status = StatusEntiteta.AKTIVAN;
                         db.Direktori.Add(d);
                     }
                 }
@@ -222,7 +214,7 @@ namespace OwnerTrack.Infrastructure
 
                 db.SaveChanges();
                 tx.Commit();
-                result.VlasnikCount += privremeniVlasnikCount;
+                result.VlasnikCount += privVlasnikCount;
 
                 Log($"[OK] Red={i + 3} KlijentId={klijent.Id} '{naziv}'");
                 return false;
@@ -277,7 +269,7 @@ namespace OwnerTrack.Infrastructure
                     ImePrezime = ime.ToUpperInvariant(),
                     ProcenatVlasnistva = ParseDecimal(i < procenti.Count ? procenti[i] : null),
                     DatumValjanostiDokumenta = ParseDate(i < datumi.Count ? datumi[i] : null),
-                    Status = StatusEntiteta.AKTIVAN.ToString()
+                    Status = StatusEntiteta.AKTIVAN
                 });
             }
 
@@ -338,11 +330,12 @@ namespace OwnerTrack.Infrastructure
                 : new List<string> { raw };
 
             string datVazNorm = datVazRaw?.Trim().ToUpper() ?? "";
-            bool jeTrajno = datVazNorm == "TRAJNO";
+
+            bool jeTrajno = datVazNorm == TipValjanostiKonstante.Trajno;
             DateTime? datVaz = jeTrajno ? null : ParseDate(datVazRaw);
             string tip = (jeTrajno || datVaz == null)
-                ? TipValjanosti.TRAJNO.ToString()
-                : TipValjanosti.VREMENSKI.ToString();
+                ? TipValjanostiKonstante.Trajno
+                : TipValjanostiKonstante.Vremenski;
 
             foreach (var ime in imena)
             {
@@ -352,7 +345,7 @@ namespace OwnerTrack.Infrastructure
                     ImePrezime = ime,
                     DatumValjanosti = datVaz,
                     TipValjanosti = tip,
-                    Status = StatusEntiteta.AKTIVAN.ToString()
+                    Status = StatusEntiteta.AKTIVAN
                 });
             }
 
@@ -367,8 +360,7 @@ namespace OwnerTrack.Infrastructure
                     .FirstOrDefault(c => GetColIndex(c.CellReference?.Value) == colIndex);
                 if (cell == null) return "";
 
-                if (cell.DataType == null)
-                    return cell.CellValue?.Text ?? "";
+                if (cell.DataType == null) return cell.CellValue?.Text ?? "";
 
                 if (cell.DataType.Value == CellValues.SharedString)
                 {
@@ -403,7 +395,9 @@ namespace OwnerTrack.Infrastructure
                 try { return DateTime.FromOADate(oa); } catch { }
             }
 
-            if (s.ToUpper() is "TRAJNO" or "STEČAJ" or "STECAJ") return null;
+
+            if (s.ToUpper() == TipValjanostiKonstante.Trajno
+                || s.ToUpper() is "STEČAJ" or "STECAJ") return null;
 
             string[] formats = {
                 "dd.MM.yyyy.", "dd.MM.yyyy",
@@ -450,11 +444,11 @@ namespace OwnerTrack.Infrastructure
                 ["VELIKO"] = VelicinaFirme.VELIKO,
                 ["VELIKI"] = VelicinaFirme.VELIKO,
                 ["VELIKA"] = VelicinaFirme.VELIKO,
+
                 ["OBRTNIK"] = VelicinaFirme.OBRTNIK,
                 ["OBRT"] = VelicinaFirme.OBRTNIK,
                 ["UDRUZENJE"] = VelicinaFirme.UDRUŽENJE,
                 ["UDRUŽENJE"] = VelicinaFirme.UDRUŽENJE,
-                ["UDRUZ"] = VelicinaFirme.UDRUŽENJE,
             };
 
             if (aliasi.TryGetValue(u, out var rezultat))
@@ -470,17 +464,24 @@ namespace OwnerTrack.Infrastructure
         {
             if (string.IsNullOrWhiteSpace(v)) return null;
             string first = v.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[0].ToUpper();
-            return first switch { "DA" => "DA", "NE" => "NE", _ => null };
+
+            return first switch
+            {
+                var s when s == DaNeKonstante.Da => DaNeKonstante.Da,
+                var s when s == DaNeKonstante.Ne => DaNeKonstante.Ne,
+                _ => null
+            };
         }
 
-        private string NormalizeVrstaKlijenta(string? v)
+        private VrstaKlijenta NormalizeVrstaKlijenta(string? v)
         {
-            if (string.IsNullOrWhiteSpace(v)) return "PRAVNO LICE";
+
+            if (string.IsNullOrWhiteSpace(v)) return VrstaKlijenta.PravnoLice;
             string u = v.ToUpper().Trim();
-            if (u.Contains("FIZIČKO") || u.Contains("FIZICKO")) return "FIZIČKO LICE";
-            if (u.Contains("UDRUŽ") || u.Contains("UDRUZ")) return "UDRUŽENJE";
-            if (u == "OBRTNIK" || u.Contains("OBRT")) return "OBRTNIK";
-            return "PRAVNO LICE";
+            if (u.Contains("FIZIČKO") || u.Contains("FIZICKO")) return VrstaKlijenta.FizickoLice;
+            if (u.Contains("UDRUŽ") || u.Contains("UDRUZ")) return VrstaKlijenta.Udruzenje;
+            if (u == "OBRTNIK" || u.Contains("OBRT")) return VrstaKlijenta.Obrtnik;
+            return VrstaKlijenta.PravnoLice;
         }
     }
 }

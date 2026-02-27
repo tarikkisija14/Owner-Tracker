@@ -30,7 +30,7 @@ namespace OwnerTrack.Data.Entities
 
         
         [StringLength(50)]
-        public string? VrstaKlijenta { get; set; }
+        public VrstaKlijenta? VrstaKlijenta { get; set; }
 
         public DateTime? DatumOsnivanja { get; set; }
 
@@ -58,7 +58,7 @@ namespace OwnerTrack.Data.Entities
         public string? OvjeraCr { get; set; }
 
         [StringLength(50)]
-        public string? Status { get; set; } = StatusKonstante.Aktivan;
+        public StatusEntiteta Status { get; set; } = StatusEntiteta.AKTIVAN;
 
         [StringLength(1000)]
         public string? Napomena { get; set; }

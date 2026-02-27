@@ -27,8 +27,7 @@ namespace OwnerTrack.Data.Entities
         [StringLength(50)]
         public string TipValjanosti { get; set; }
 
-        [StringLength(50)]
-        public string Status { get; set; } = StatusKonstante.Aktivan;
+        public StatusEntiteta Status { get; set; } = StatusEntiteta.AKTIVAN;
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
         public DateTime? Obrisan { get; set; }

@@ -11,9 +11,6 @@ namespace OwnerTrack.App
 {
     public partial class FrmUpozorenja : Form
     {
-        private const int DANA_UPOZORENJE = 60;
-
-        
         private readonly OwnerTrackDbContext _db;
         private List<UpozorenjeDetalj> _svaUpozorenja = new();
 
@@ -24,7 +21,7 @@ namespace OwnerTrack.App
             UcitajUpozorenja();
         }
 
-        
+
         public FrmUpozorenja(OwnerTrackDbContext _ignored)
         {
             _db = DbContextFactory.Kreiraj();
@@ -43,14 +40,15 @@ namespace OwnerTrack.App
             try
             {
                 var danas = DateTime.Today;
-                var granica = danas.AddDays(DANA_UPOZORENJE);
+                var granica = danas.AddDays(AppKonstante.DanaUpozerenja);
 
                 var vlasnici = _db.Vlasnici
                     .AsNoTracking()
                     .Where(v => v.DatumValjanostiDokumenta != null
                              && v.DatumValjanostiDokumenta <= granica
-                             && v.Status == StatusKonstante.Aktivan
-                             && v.Klijent.Status != StatusKonstante.Arhiviran)
+
+                             && v.Status == StatusEntiteta.AKTIVAN
+                             && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                     .Include(v => v.Klijent)
                     .Select(v => new UpozorenjeDetalj
                     {
@@ -66,9 +64,10 @@ namespace OwnerTrack.App
                     .AsNoTracking()
                     .Where(d => d.DatumValjanosti != null
                              && d.DatumValjanosti <= granica
-                             && d.TipValjanosti == "VREMENSKI"
-                             && d.Status == StatusKonstante.Aktivan
-                             && d.Klijent.Status != StatusKonstante.Arhiviran)
+
+                             && d.TipValjanosti == TipValjanostiKonstante.Vremenski
+                             && d.Status == StatusEntiteta.AKTIVAN
+                             && d.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                     .Include(d => d.Klijent)
                     .Select(d => new UpozorenjeDetalj
                     {
@@ -86,15 +85,15 @@ namespace OwnerTrack.App
                     .ToList();
 
                 int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
-                int kriticni = _svaUpozorenja.Count(x => x.DatumIsteka >= danas && x.DatumIsteka <= danas.AddDays(14));
-                int ostali = _svaUpozorenja.Count(x => x.DatumIsteka > danas.AddDays(14));
+                int kriticni = _svaUpozorenja.Count(x => x.DatumIsteka >= danas && x.DatumIsteka <= danas.AddDays(AppKonstante.DanaKriticnoUpozorenje));
+                int ostali = _svaUpozorenja.Count(x => x.DatumIsteka > danas.AddDays(AppKonstante.DanaKriticnoUpozorenje));
                 int firmi = _svaUpozorenja.Select(x => x.KlijentId).Distinct().Count();
 
                 lblSumarij.Text =
                     $"Ukupno {firmi} firma s upozorenjima   |   " +
                     $" Isteklo: {istekli}   " +
-                    $" Kritično (≤14 dana): {kriticni}   " +
-                    $" Uskoro (15–60 dana): {ostali}";
+                    $" Kritično (≤{AppKonstante.DanaKriticnoUpozorenje} dana): {kriticni}   " +
+                    $" Uskoro ({AppKonstante.DanaKriticnoUpozorenje + 1}–{AppKonstante.DanaUpozerenja} dana): {ostali}";
 
                 panelTop.BackColor = istekli > 0
                     ? Color.FromArgb(160, 30, 30)
@@ -106,7 +105,7 @@ namespace OwnerTrack.App
                     .GroupBy(x => new { x.KlijentId, x.NazivFirme })
                     .Select(g => new
                     {
-                        KlijentId = g.Key.KlijentId,
+                        g.Key.KlijentId,
                         Firma = g.Key.NazivFirme,
                         Upozorenja = g.Count(),
                         NajbliziDatum = g.Min(x => x.DatumIsteka),
@@ -122,9 +121,7 @@ namespace OwnerTrack.App
 
                 if (gridFirme.Columns.Count > 0)
                 {
-                    if (gridFirme.Columns.Contains("KlijentId"))
-                        gridFirme.Columns["KlijentId"].Visible = false;
-
+                    if (gridFirme.Columns.Contains("KlijentId")) gridFirme.Columns["KlijentId"].Visible = false;
                     gridFirme.Columns["Firma"].HeaderText = "Naziv firme";
                     gridFirme.Columns["Firma"].FillWeight = 50;
                     gridFirme.Columns["Upozorenja"].HeaderText = "Br. upozorenja";
@@ -145,11 +142,7 @@ namespace OwnerTrack.App
 
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
-            if (gridFirme.SelectedRows.Count == 0)
-            {
-                gridDetalji.DataSource = null;
-                return;
-            }
+            if (gridFirme.SelectedRows.Count == 0) { gridDetalji.DataSource = null; return; }
 
             dynamic row = gridFirme.SelectedRows[0].DataBoundItem;
             int klijentId = row.KlijentId;
@@ -163,10 +156,10 @@ namespace OwnerTrack.App
                     DatumIsteka = x.DatumIsteka,
                     DanaDoIsteka = (int)(x.DatumIsteka - DateTime.Today).TotalDays,
                     Status = x.DatumIsteka < DateTime.Today
-                                    ? "⛔ ISTEKLO"
-                                    : x.DatumIsteka <= DateTime.Today.AddDays(14)
-                                        ? "⚠ Kritično"
-                                        : "🕐 Uskoro"
+                                   ? "⛔ ISTEKLO"
+                                   : x.DatumIsteka <= DateTime.Today.AddDays(AppKonstante.DanaKriticnoUpozorenje)
+                                       ? "⚠ Kritično"
+                                       : "🕐 Uskoro"
                 })
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
@@ -206,7 +199,7 @@ namespace OwnerTrack.App
 
         private static Color BojaZaDane(int dana) => dana < 0
             ? Color.FromArgb(220, 80, 80)
-            : dana <= 14
+            : dana <= AppKonstante.DanaKriticnoUpozorenje
                 ? Color.FromArgb(255, 200, 120)
                 : Color.FromArgb(255, 245, 150);
 
