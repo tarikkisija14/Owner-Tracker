@@ -48,6 +48,23 @@ namespace OwnerTrack.Infrastructure
 
                 prog.TotalRows = allRows.Count;
 
+                // Jedan DbContext za cijeli import — eliminišemo N*2 connections
+                using var db = KreirajDb();
+                using var tx = db.Database.BeginTransaction();
+
+                // Učitaj postojeće IdBroj i Naziv u memoriju za brzu duplikat provjeru
+                var postojeciIdBrojevi = db.Klijenti.AsNoTracking()
+                    .Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var postojeciNazivi = db.Klijenti.AsNoTracking()
+                    .Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Učitaj postojeće djelatnosti za provjeru
+                var postojeceDjelatnosti = db.Djelatnosti.AsNoTracking()
+                    .Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                const int BATCH_SIZE = 50;
+                int pendingChanges = 0;
+
                 for (int i = 0; i < allRows.Count; i++)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -74,9 +91,24 @@ namespace OwnerTrack.Infrastructure
                             continue;
                         }
 
-                        bool preskocen = ImportajRed(wbPart, row, i, naziv, idBroj, result, Log);
+                        bool preskocen = ImportajRed(
+                            wbPart, row, i, naziv, idBroj,
+                            result, Log, db,
+                            postojeciIdBrojevi, postojeciNazivi, postojeceDjelatnosti);
 
-                        if (!preskocen) { result.SuccessCount++; prog.SuccessCount = result.SuccessCount; }
+                        if (!preskocen)
+                        {
+                            result.SuccessCount++;
+                            prog.SuccessCount = result.SuccessCount;
+                            pendingChanges++;
+
+                            // Batch save svakih N redova da se ne gomila u memoriji
+                            if (pendingChanges >= BATCH_SIZE)
+                            {
+                                db.SaveChanges();
+                                pendingChanges = 0;
+                            }
+                        }
                         else { result.SkipCount++; }
                     }
                     catch (Exception ex)
@@ -92,6 +124,12 @@ namespace OwnerTrack.Infrastructure
 
                     progress?.Report(prog);
                 }
+
+                // Finalni save i commit
+                if (pendingChanges > 0)
+                    db.SaveChanges();
+
+                tx.Commit();
             }
             catch (OperationCanceledException)
             {
@@ -109,11 +147,15 @@ namespace OwnerTrack.Infrastructure
             return result;
         }
 
-        private bool ImportajRed(WorkbookPart wbPart, Row row, int i,
-                                   string naziv, string idBroj,
-                                   ImportResult result, Action<string> Log)
+        private bool ImportajRed(
+            WorkbookPart wbPart, Row row, int i,
+            string naziv, string idBroj,
+            ImportResult result, Action<string> Log,
+            OwnerTrackDbContext db,
+            HashSet<string> postojeciIdBrojevi,
+            HashSet<string> postojeciNazivi,
+            HashSet<string> postojeceDjelatnosti)
         {
-
             string sifraDjelatnosti = GetCellValue(wbPart, row, 5)?.Trim()
                                       ?? AppKonstante.DefaultSifraDjelatnosti;
             if (string.IsNullOrWhiteSpace(sifraDjelatnosti))
@@ -121,109 +163,103 @@ namespace OwnerTrack.Infrastructure
 
             string? nazivDjelatnosti = GetCellValue(wbPart, row, 6)?.Trim();
 
-            using (var dbPre = KreirajDb())
-                EnsureDjelatnostExists(dbPre, sifraDjelatnosti, nazivDjelatnosti);
-
-            using var db = KreirajDb();
-            using var tx = db.Database.BeginTransaction();
-            int privVlasnikCount = 0;
-
-            try
+            // Provjera i dodavanje djelatnosti u isti context
+            if (!postojeceDjelatnosti.Contains(sifraDjelatnosti))
             {
-                if (db.Klijenti.AsNoTracking().Any(k => k.IdBroj == idBroj))
-                {
-                    Log($"[SKIP-DUPLICATE-ID] Red={i + 3} ID='{idBroj}'");
-                    return true;
-                }
-
-                if (db.Klijenti.AsNoTracking().Any(k => k.Naziv == naziv))
-                    throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
-
-                var klijent = new Klijent
-                {
-                    Naziv = naziv,
-                    IdBroj = idBroj,
-                    Adresa = GetCellValue(wbPart, row, 4)?.Trim(),
-                    SifraDjelatnosti = sifraDjelatnosti,
-                    DatumUspostave = ParseDate(GetCellValue(wbPart, row, 7)),
-                    VrstaKlijenta = NormalizeVrstaKlijenta(GetCellValue(wbPart, row, 8)),
-                    DatumOsnivanja = ParseDate(GetCellValue(wbPart, row, 9)),
-                    Velicina = NormalizeVelicina(GetCellValue(wbPart, row, 17)),
-                    PepRizik = NormalizeDaNe(GetCellValue(wbPart, row, 18)),
-                    UboRizik = NormalizeDaNe(GetCellValue(wbPart, row, 19)),
-                    GotovinaRizik = NormalizeDaNe(GetCellValue(wbPart, row, 20)),
-                    GeografskiRizik = NormalizeDaNe(GetCellValue(wbPart, row, 21)),
-                    UkupnaProcjena = GetCellValue(wbPart, row, 22)?.Trim(),
-                    DatumProcjene = ParseDate(GetCellValue(wbPart, row, 23)),
-                    OvjeraCr = GetCellValue(wbPart, row, 24)?.Trim(),
-
-                    Status = StatusEntiteta.AKTIVAN,
-                    Kreiran = DateTime.Now
-                };
-
-                db.Klijenti.Add(klijent);
-                db.SaveChanges();
-
-                string? vlasnikRaw = GetCellValue(wbPart, row, 10);
-                string? datVazVlasnika = GetCellValue(wbPart, row, 11);
-                string? procenatRaw = GetCellValue(wbPart, row, 12);
-                string? datUtvrdjivanja = GetCellValue(wbPart, row, 13);
-                string? izvorPodatka = GetCellValue(wbPart, row, 14);
-
-                if (!string.IsNullOrWhiteSpace(vlasnikRaw))
-                {
-                    var vlasnici = ParseVlasnici(vlasnikRaw, datVazVlasnika, procenatRaw);
-                    foreach (var v in vlasnici)
-                    {
-                        v.KlijentId = klijent.Id;
-                        v.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
-                        v.IzvorPodatka = izvorPodatka?.Trim();
-
-                        v.Status = StatusEntiteta.AKTIVAN;
-                        db.Vlasnici.Add(v);
-                        privVlasnikCount++;
-                    }
-                }
-
-                string? direktorRaw = GetCellValue(wbPart, row, 15);
-                string? datVazDirektora = GetCellValue(wbPart, row, 16);
-
-                if (!string.IsNullOrWhiteSpace(direktorRaw))
-                {
-                    var direktori = ParseDirektori(direktorRaw, datVazDirektora);
-                    foreach (var d in direktori)
-                    {
-                        d.KlijentId = klijent.Id;
-
-                        d.Status = StatusEntiteta.AKTIVAN;
-                        db.Direktori.Add(d);
-                    }
-                }
-
-                string? statusUgovora = GetCellValue(wbPart, row, 25);
-                string? datumUgovora = GetCellValue(wbPart, row, 26);
-                if (!string.IsNullOrWhiteSpace(statusUgovora))
-                {
-                    db.Ugovori.Add(new Ugovor
-                    {
-                        KlijentId = klijent.Id,
-                        StatusUgovora = statusUgovora.Trim(),
-                        DatumUgovora = ParseDate(datumUgovora)
-                    });
-                }
-
-                db.SaveChanges();
-                tx.Commit();
-                result.VlasnikCount += privVlasnikCount;
-
-                Log($"[OK] Red={i + 3} KlijentId={klijent.Id} '{naziv}'");
-                return false;
+                string ime = (string.IsNullOrWhiteSpace(nazivDjelatnosti) || nazivDjelatnosti.StartsWith("="))
+                    ? $"Djelatnost {sifraDjelatnosti}" : nazivDjelatnosti;
+                db.Djelatnosti.Add(new Djelatnost { Sifra = sifraDjelatnosti, Naziv = ime });
+                postojeceDjelatnosti.Add(sifraDjelatnosti);
             }
-            catch
+
+            // Duplikat provjera iz memorije — bez dodatnih DB upita
+            if (postojeciIdBrojevi.Contains(idBroj))
             {
-                tx.Rollback();
-                throw;
+                Log($"[SKIP-DUPLICATE-ID] Red={i + 3} ID='{idBroj}'");
+                return true;
             }
+
+            if (postojeciNazivi.Contains(naziv))
+                throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
+
+            var klijent = new Klijent
+            {
+                Naziv = naziv,
+                IdBroj = idBroj,
+                Adresa = GetCellValue(wbPart, row, 4)?.Trim(),
+                SifraDjelatnosti = sifraDjelatnosti,
+                DatumUspostave = ParseDate(GetCellValue(wbPart, row, 7)),
+                VrstaKlijenta = NormalizeVrstaKlijenta(GetCellValue(wbPart, row, 8)),
+                DatumOsnivanja = ParseDate(GetCellValue(wbPart, row, 9)),
+                Velicina = NormalizeVelicina(GetCellValue(wbPart, row, 17)),
+                PepRizik = NormalizeDaNe(GetCellValue(wbPart, row, 18)),
+                UboRizik = NormalizeDaNe(GetCellValue(wbPart, row, 19)),
+                GotovinaRizik = NormalizeDaNe(GetCellValue(wbPart, row, 20)),
+                GeografskiRizik = NormalizeDaNe(GetCellValue(wbPart, row, 21)),
+                UkupnaProcjena = GetCellValue(wbPart, row, 22)?.Trim(),
+                DatumProcjene = ParseDate(GetCellValue(wbPart, row, 23)),
+                OvjeraCr = GetCellValue(wbPart, row, 24)?.Trim(),
+                Status = StatusEntiteta.AKTIVAN,
+                Kreiran = DateTime.Now
+            };
+
+            db.Klijenti.Add(klijent);
+            // Ne pozivamo SaveChanges ovdje — batch u caller-u
+            // Ali trebamo Id za vlasnici/direktori — SaveChanges se mora pozvati
+            db.SaveChanges(); // SaveChanges da dobijemo klijent.Id za FK relacije
+
+            // Ažuriraj in-memory skupove
+            postojeciIdBrojevi.Add(idBroj);
+            postojeciNazivi.Add(naziv);
+
+            string? vlasnikRaw = GetCellValue(wbPart, row, 10);
+            string? datVazVlasnika = GetCellValue(wbPart, row, 11);
+            string? procenatRaw = GetCellValue(wbPart, row, 12);
+            string? datUtvrdjivanja = GetCellValue(wbPart, row, 13);
+            string? izvorPodatka = GetCellValue(wbPart, row, 14);
+
+            if (!string.IsNullOrWhiteSpace(vlasnikRaw))
+            {
+                var vlasnici = ParseVlasnici(vlasnikRaw, datVazVlasnika, procenatRaw);
+                foreach (var v in vlasnici)
+                {
+                    v.KlijentId = klijent.Id;
+                    v.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
+                    v.IzvorPodatka = izvorPodatka?.Trim();
+                    v.Status = StatusEntiteta.AKTIVAN;
+                    db.Vlasnici.Add(v);
+                    result.VlasnikCount++;
+                }
+            }
+
+            string? direktorRaw = GetCellValue(wbPart, row, 15);
+            string? datVazDirektora = GetCellValue(wbPart, row, 16);
+
+            if (!string.IsNullOrWhiteSpace(direktorRaw))
+            {
+                var direktori = ParseDirektori(direktorRaw, datVazDirektora);
+                foreach (var d in direktori)
+                {
+                    d.KlijentId = klijent.Id;
+                    d.Status = StatusEntiteta.AKTIVAN;
+                    db.Direktori.Add(d);
+                }
+            }
+
+            string? statusUgovora = GetCellValue(wbPart, row, 25);
+            string? datumUgovora = GetCellValue(wbPart, row, 26);
+            if (!string.IsNullOrWhiteSpace(statusUgovora))
+            {
+                db.Ugovori.Add(new Ugovor
+                {
+                    KlijentId = klijent.Id,
+                    StatusUgovora = statusUgovora.Trim(),
+                    DatumUgovora = ParseDate(datumUgovora)
+                });
+            }
+
+            Log($"[OK] Red={i + 3} KlijentId={klijent.Id} '{naziv}'");
+            return false;
         }
 
         private OwnerTrackDbContext KreirajDb()
@@ -234,17 +270,6 @@ namespace OwnerTrack.Infrastructure
             return new OwnerTrackDbContext(opts);
         }
 
-        private void EnsureDjelatnostExists(OwnerTrackDbContext db, string sifra, string? naziv)
-        {
-            if (string.IsNullOrWhiteSpace(sifra)) return;
-            if (db.Djelatnosti.AsNoTracking().Any(d => d.Sifra == sifra)) return;
-
-            string ime = (string.IsNullOrWhiteSpace(naziv) || naziv.StartsWith("="))
-                ? $"Djelatnost {sifra}" : naziv;
-
-            db.Djelatnosti.Add(new Djelatnost { Sifra = sifra, Naziv = ime });
-            db.SaveChanges();
-        }
 
         private List<Vlasnik> ParseVlasnici(string raw, string? datVazRaw, string? procenatRaw)
         {

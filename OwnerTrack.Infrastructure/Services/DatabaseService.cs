@@ -18,21 +18,23 @@ namespace OwnerTrack.Infrastructure
         }
 
 
-        public void ResetirajBazu()
+        public string ResetirajBazu()
         {
-            NapraviBackup();
+            string backupPath = NapraviBackup();
             ObrisiSvePodatke();
+            return backupPath;
         }
 
-        private void NapraviBackup()
+        private string NapraviBackup()
         {
             if (!File.Exists(_dbPath))
-                return;
+                return "";
 
             string backupPath = _dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
             try
             {
                 File.Copy(_dbPath, backupPath, overwrite: true);
+                return backupPath;
             }
             catch (Exception ex)
             {
@@ -42,13 +44,31 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
+        public void VratiBackup(string backupPath)
+        {
+            if (string.IsNullOrEmpty(backupPath) || !File.Exists(backupPath))
+                return;
+
+            try
+            {
+                File.Copy(backupPath, _dbPath, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Vraćanje backupa nije uspjelo: {ex.Message}\n\n" +
+                    $"Backup se nalazi na:\n{backupPath}\n\n" +
+                    "Ručno kopiraj taj fajl i preimenuj ga u 'Firme.db'.", ex);
+            }
+        }
+
         private void ObrisiSvePodatke()
         {
             using var db = DbContextFactory.Kreiraj();
             using var tx = db.Database.BeginTransaction();
             try
             {
-                
+
                 db.Database.ExecuteSqlRaw("DELETE FROM AuditLogs");
                 db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
                 db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
@@ -67,7 +87,7 @@ namespace OwnerTrack.Infrastructure
                 throw;
             }
 
-            
+
             var schema = new SchemaManager(_connectionString);
             schema.ReseedDjelatnosti();
         }

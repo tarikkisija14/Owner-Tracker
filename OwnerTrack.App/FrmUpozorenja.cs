@@ -12,26 +12,31 @@ namespace OwnerTrack.App
     public partial class FrmUpozorenja : Form
     {
         private readonly OwnerTrackDbContext _db;
+        private readonly bool _dbOwned;
         private List<UpozorenjeDetalj> _svaUpozorenja = new();
 
         public FrmUpozorenja()
         {
             _db = DbContextFactory.Kreiraj();
+            _dbOwned = true;
             InitializeComponent();
-            UcitajUpozorenja();
         }
 
-
-        public FrmUpozorenja(OwnerTrackDbContext _ignored)
+        public FrmUpozorenja(OwnerTrackDbContext db)
         {
-            _db = DbContextFactory.Kreiraj();
+            _db = db ?? throw new ArgumentNullException(nameof(db));
+            _dbOwned = false;
             InitializeComponent();
+        }
+
+        private void FrmUpozorenja_Load(object sender, EventArgs e)
+        {
             UcitajUpozorenja();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            _db?.Dispose();
+            if (_dbOwned) _db?.Dispose();
             base.OnFormClosed(e);
         }
 

@@ -17,7 +17,7 @@ namespace OwnerTrack.App
             _connectionString = connectionString;
         }
 
-        public void PokreniImport(string filePath, Form owner, Action? onZavrsetak = null)
+        public void PokreniImport(string filePath, Form owner, Action? onZavrsetak = null, Action? onGreška = null)
         {
             var cts = new CancellationTokenSource();
             bool importZavršen = false;
@@ -28,7 +28,7 @@ namespace OwnerTrack.App
                 out var btnZatvori,
                 out var btnOtkazi);
 
-            
+
             frm.FormClosing += (s, args) =>
             {
                 if (!importZavršen)
@@ -40,7 +40,7 @@ namespace OwnerTrack.App
                 }
             };
 
-            
+
             btnOtkazi.Click += (s, args) =>
             {
                 if (!importZavršen)
@@ -51,7 +51,7 @@ namespace OwnerTrack.App
                 }
             };
 
-            
+
             var progress = new Progress<ImportProgress>(p =>
             {
                 if (!frm.IsHandleCreated || frm.IsDisposed) return;
@@ -70,7 +70,7 @@ namespace OwnerTrack.App
                 }));
             });
 
-           
+
             frm.Shown += async (s, args) =>
             {
                 try
@@ -118,11 +118,12 @@ namespace OwnerTrack.App
                     MessageBox.Show($"Greška: {ex.Message}", "Greška",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     frm.Close();
-                    onZavrsetak?.Invoke();
+                    
+                    onGreška?.Invoke();
                     return;
                 }
 
-                
+
                 void ZatvoriHandler(object? bs, EventArgs be)
                 {
                     btnZatvori.Click -= ZatvoriHandler;
@@ -171,7 +172,7 @@ namespace OwnerTrack.App
                 AutoSize = false
             };
 
-            
+
             btnZatvori = new Button
             {
                 Text = "Zatvori",
@@ -180,7 +181,7 @@ namespace OwnerTrack.App
                 Enabled = false
             };
 
-            
+
             btnOtkazi = new Button
             {
                 Text = "Otkaži",

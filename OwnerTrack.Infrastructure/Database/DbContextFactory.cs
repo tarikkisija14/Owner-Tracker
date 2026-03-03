@@ -31,8 +31,13 @@ namespace OwnerTrack.Infrastructure.Database
 
             var ctx = new OwnerTrackDbContext(options);
 
-            
-            ctx.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+            ctx.Database.ExecuteSqlRaw(@"
+                PRAGMA foreign_keys = ON;
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+                PRAGMA cache_size = 5000;
+                PRAGMA temp_store = memory;
+            ");
 
             return ctx;
         }

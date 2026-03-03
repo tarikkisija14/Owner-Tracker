@@ -172,6 +172,7 @@
             Name = "FrmUpozorenja";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             Text = "Upozorenja — dokumenti koji ističu";
+            this.Load += new System.EventHandler(this.FrmUpozorenja_Load);
 
             panelTop.ResumeLayout(false);
             split.Panel1.ResumeLayout(false);

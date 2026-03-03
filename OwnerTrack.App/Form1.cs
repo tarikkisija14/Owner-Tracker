@@ -103,10 +103,6 @@ namespace OwnerTrack.App
             {
                 using var db = DbContextFactory.Kreiraj();
                 var klijenti = db.Klijenti
-                    .Include(k => k.Djelatnost)
-                    .Include(k => k.Ugovor)
-                    .Include(k => k.Vlasnici)
-                    .Include(k => k.Direktori)
                     .Where(k =>
                         (string.IsNullOrWhiteSpace(filter) ||
                          k.Naziv.ToLower().Contains(filter.ToLower()) ||
@@ -114,7 +110,6 @@ namespace OwnerTrack.App
                         && (string.IsNullOrWhiteSpace(sifraDjelatnosti) || k.SifraDjelatnosti == sifraDjelatnosti)
                         && (string.IsNullOrWhiteSpace(velicina) || k.Velicina == velicina))
                     .AsNoTracking()
-                    .AsEnumerable()
                     .Select(k => new KlijentViewModel
                     {
                         Id = k.Id,
@@ -148,10 +143,15 @@ namespace OwnerTrack.App
                 dataGridKlijenti.ClearSelection();
                 dataGridKlijenti.SelectionChanged += dataGridKlijenti_SelectionChanged;
 
-                if (!_koloneKonfigurisane)
+                if (!_koloneKonfigurisane && dataGridKlijenti.Columns.Count > 0)
                 {
                     KonfigurirajKolone();
                     _koloneKonfigurisane = true;
+                }
+                else if (_koloneKonfigurisane)
+                {
+                    // Kolone su već postavljene, samo osiguraj širine (mogu se resetovati)
+                    KonfigurirajKolone();
                 }
             }
             catch (Exception ex) { Program.LogException(ex); MessageBox.Show($"Greška pri učitavanju klijenata: {ex.Message}"); }
@@ -195,7 +195,6 @@ namespace OwnerTrack.App
                 var vlasnici = db.Vlasnici
                     .Where(v => v.KlijentId == klijentId)
                     .AsNoTracking()
-                    .AsEnumerable()
                     .Select(v => new VlasnikViewModel
                     {
                         Id = v.Id,
@@ -232,7 +231,6 @@ namespace OwnerTrack.App
                 var direktori = db.Direktori
                     .Where(d => d.KlijentId == klijentId)
                     .AsNoTracking()
-                    .AsEnumerable()
                     .Select(d => new DirektorViewModel
                     {
                         Id = d.Id,
@@ -516,11 +514,53 @@ namespace OwnerTrack.App
             try
             {
                 var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
-                dbService.ResetirajBazu();
+                string backupPath = dbService.ResetirajBazu();
 
                 var helper = new ImportHelper(DbContextFactory.ConnectionString);
                 helper.PokreniImport(dialog.FileName, this, () =>
-                { LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge(); });
+                {
+                    LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
+                },
+                onGreška: () =>
+                {
+                    // Import je pukao — ponudi vraćanje backupa
+                    if (string.IsNullOrEmpty(backupPath)) return;
+
+                    var odgovor = MessageBox.Show(
+                        $"Import nije uspio, a baza je već bila obrisana.\n\n" +
+                        $"Hoćeš li vratiti podatke iz backupa?\n\n" +
+                        $"Backup: {backupPath}",
+                        "Vraćanje podataka",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
+
+                    if (odgovor == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            dbService.VratiBackup(backupPath);
+                            LoadDjelatnostiFilter(); LoadKlijenti(); OsvjeziUpozerenjaBadge();
+                            MessageBox.Show("Podaci su uspješno vraćeni iz backupa.", "Vraćanje uspješno",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        catch (Exception exRestore)
+                        {
+                            Program.LogException(exRestore);
+                            MessageBox.Show(
+                                $"Vraćanje nije uspjelo automatski.\n\n" +
+                                $"Ručno kopiraj ovaj fajl:\n{backupPath}\n\n" +
+                                $"i preimenuj ga u 'Firme.db' na istoj lokaciji.",
+                                "Ručno vraćanje", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+                            $"Backup ostaje sačuvan na:\n{backupPath}\n\n" +
+                            "Možeš ga ručno vratiti ako zatreba.",
+                            "Backup sačuvan", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                });
             }
             catch (Exception ex)
             { Program.LogException(ex); MessageBox.Show($"Greška pri resetu baze:\n{ex.Message}", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -562,14 +602,18 @@ namespace OwnerTrack.App
                 if (count > 0)
                 {
                     btnUpozorenja.Text = $"🔔 Upozorenja ({count})";
-                    btnUpozorenja.Font = new Font(btnUpozorenja.Font, System.Drawing.FontStyle.Bold);
+                    var oldFont = btnUpozorenja.Font;
+                    btnUpozorenja.Font = new Font(oldFont.FontFamily, oldFont.Size, FontStyle.Bold);
+                    if (oldFont.Style != FontStyle.Bold) oldFont.Dispose();
                     btnUpozorenja.BackColor = imaIsteklih ? Color.Firebrick : Color.FromArgb(220, 120, 20);
                     btnUpozorenja.ForeColor = Color.White;
                 }
                 else
                 {
                     btnUpozorenja.Text = "🔔 Upozorenja";
-                    btnUpozorenja.Font = new Font(btnUpozorenja.Font, System.Drawing.FontStyle.Regular);
+                    var oldFont = btnUpozorenja.Font;
+                    btnUpozorenja.Font = new Font(oldFont.FontFamily, oldFont.Size, FontStyle.Regular);
+                    if (oldFont.Style != FontStyle.Regular) oldFont.Dispose();
                     btnUpozorenja.BackColor = SystemColors.Control;
                     btnUpozorenja.ForeColor = SystemColors.ControlText;
                 }
