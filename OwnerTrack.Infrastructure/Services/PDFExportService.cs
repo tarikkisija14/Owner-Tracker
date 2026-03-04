@@ -50,7 +50,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(18, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9).FontColor(BojaTekst));
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(9).FontColor(BojaTekst));
 
                     page.Header().Element(c => BuildHeader(c, k));
                     page.Content().Element(c => BuildContent(c, k));
@@ -417,7 +417,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(12, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(7.5f).FontColor(BojaTekst));
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(7.5f).FontColor(BojaTekst));
 
                     page.Header().Element(c => BuildTabelaHeader(c, klijenti.Count));
                     page.Content().Element(c => BuildTabelaSadrzaj(c, klijenti));

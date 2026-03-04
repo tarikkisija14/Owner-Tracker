@@ -47,6 +47,7 @@ namespace OwnerTrack.Infrastructure
             if (ver < 7) ApplyV7(conn);
             if (ver < 8) ApplyV8(conn);
             if (ver < 9) ApplyV9(conn);
+            if (ver < 10) ApplyV10(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -131,9 +132,12 @@ namespace OwnerTrack.Infrastructure
                     CREATE TABLE IF NOT EXISTS Ugovori (
                         Id            INTEGER PRIMARY KEY AUTOINCREMENT,
                         KlijentId     INTEGER NOT NULL UNIQUE,
+                        VrstaUgovora  TEXT,
                         StatusUgovora TEXT NOT NULL,
                         DatumUgovora  TEXT,
+                        Napomena      TEXT,
                         Kreiran       TEXT NOT NULL DEFAULT (datetime('now')),
+                        Obrisan       TEXT,
                         FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
                     )");
 
@@ -366,6 +370,26 @@ namespace OwnerTrack.Infrastructure
             {
                 tx.Rollback();
                 throw new InvalidOperationException($"V9 neuspješna: {ex.Message}", ex);
+            }
+        }
+
+        private void ApplyV10(SqliteConnection conn)
+        {
+            Debug.WriteLine("[SCHEMA] V10 — dodavanje VrstaUgovora, Napomena, Obrisan na Ugovori...");
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                AddColumnIfMissing(conn, tx, "Ugovori", "VrstaUgovora", "TEXT");
+                AddColumnIfMissing(conn, tx, "Ugovori", "Napomena", "TEXT");
+                AddColumnIfMissing(conn, tx, "Ugovori", "Obrisan", "TEXT");
+
+                SetVersion(conn, 10, tx);
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException($"V10 neuspješna: {ex.Message}", ex);
             }
         }
 
