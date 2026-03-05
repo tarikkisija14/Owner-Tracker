@@ -48,17 +48,17 @@ namespace OwnerTrack.Infrastructure
 
                 prog.TotalRows = allRows.Count;
 
-                // Jedan DbContext za cijeli import — eliminišemo N*2 connections
+                
                 using var db = KreirajDb();
                 using var tx = db.Database.BeginTransaction();
 
-                // Učitaj postojeće IdBroj i Naziv u memoriju za brzu duplikat provjeru
+               
                 var postojeciIdBrojevi = db.Klijenti.AsNoTracking()
                     .Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 var postojeciNazivi = db.Klijenti.AsNoTracking()
                     .Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                // Učitaj postojeće djelatnosti za provjeru
+                
                 var postojeceDjelatnosti = db.Djelatnosti.AsNoTracking()
                     .Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -102,7 +102,7 @@ namespace OwnerTrack.Infrastructure
                             prog.SuccessCount = result.SuccessCount;
                             pendingChanges++;
 
-                            // Batch save svakih N redova da se ne gomila u memoriji
+                            
                             if (pendingChanges >= BATCH_SIZE)
                             {
                                 db.SaveChanges();
@@ -125,7 +125,7 @@ namespace OwnerTrack.Infrastructure
                     progress?.Report(prog);
                 }
 
-                // Finalni save i commit
+               
                 if (pendingChanges > 0)
                     db.SaveChanges();
 
@@ -163,7 +163,7 @@ namespace OwnerTrack.Infrastructure
 
             string? nazivDjelatnosti = GetCellValue(wbPart, row, 6)?.Trim();
 
-            // Provjera i dodavanje djelatnosti u isti context
+            
             if (!postojeceDjelatnosti.Contains(sifraDjelatnosti))
             {
                 string ime = (string.IsNullOrWhiteSpace(nazivDjelatnosti) || nazivDjelatnosti.StartsWith("="))
@@ -172,7 +172,7 @@ namespace OwnerTrack.Infrastructure
                 postojeceDjelatnosti.Add(sifraDjelatnosti);
             }
 
-            // Duplikat provjera iz memorije — bez dodatnih DB upita
+            
             if (postojeciIdBrojevi.Contains(idBroj))
             {
                 Log($"[SKIP-DUPLICATE-ID] Red={i + 3} ID='{idBroj}'");
@@ -204,11 +204,10 @@ namespace OwnerTrack.Infrastructure
             };
 
             db.Klijenti.Add(klijent);
-            // Ne pozivamo SaveChanges ovdje — batch u caller-u
-            // Ali trebamo Id za vlasnici/direktori — SaveChanges se mora pozvati
-            db.SaveChanges(); // SaveChanges da dobijemo klijent.Id za FK relacije
+          
+            db.SaveChanges(); 
 
-            // Ažuriraj in-memory skupove
+           
             postojeciIdBrojevi.Add(idBroj);
             postojeciNazivi.Add(naziv);
 

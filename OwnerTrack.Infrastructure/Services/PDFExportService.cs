@@ -63,8 +63,6 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void BuildHeader(IContainer c, Klijent k)
         {
-            var status = k.Status.ToString();
-
             var statusBoja = k.Status == StatusEntiteta.AKTIVAN ? BojaZelena
                            : k.Status == StatusEntiteta.NEAKTIVAN ? BojaCrvena
                                                                   : BojaOrandzasta;
@@ -76,13 +74,13 @@ namespace OwnerTrack.Infrastructure.Services
                     col.Item().Text(k.Naziv)
                        .FontSize(20).FontColor("#ffffff").Bold().AlignCenter();
                     col.Item().PaddingTop(4)
-                       .Text($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta?.ToString())}")
+                       .Text($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}")
                        .FontSize(10).FontColor(BojaHeaderSub).AlignCenter();
                 });
 
                 row.ConstantItem(70).AlignMiddle().AlignRight()
                    .Background(statusBoja).Padding(5)
-                   .Text(status)
+                   .Text(Fmt(k.Status))
                    .FontSize(9).FontColor("#ffffff").Bold().AlignCenter();
             });
         }
@@ -213,10 +211,10 @@ namespace OwnerTrack.Infrastructure.Services
                 return;
             }
 
-            var status = Fmt(u.StatusUgovora);
+            var statusUgovoraTekst = u.StatusUgovora ?? "—";
 
-            var statusBoja = status == StatusUgovora.Potpisan ? BojaZelena
-                           : status == StatusUgovora.Otkazan || status == StatusUgovora.Neaktivan ? BojaCrvena
+            var statusBoja = statusUgovoraTekst == StatusUgovora.Potpisan ? BojaZelena
+                           : statusUgovoraTekst == StatusUgovora.Otkazan || statusUgovoraTekst == StatusUgovora.Neaktivan ? BojaCrvena
                                                                                           : BojaOrandzasta;
 
             c.Table(tbl =>
@@ -232,7 +230,7 @@ namespace OwnerTrack.Infrastructure.Services
                 tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
                    .PaddingHorizontal(8).PaddingVertical(5).Text("Status ugovora:").FontColor(BojaSivaTekst);
                 tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
-                   .PaddingHorizontal(8).PaddingVertical(5).Text(status).Bold().FontColor(statusBoja);
+                   .PaddingHorizontal(8).PaddingVertical(5).Text(Fmt(u.StatusUgovora)).Bold().FontColor(statusBoja);
                 tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
                    .PaddingHorizontal(8).PaddingVertical(5).Text("Datum ugovora:").FontColor(BojaSivaTekst);
                 tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
@@ -282,7 +280,7 @@ namespace OwnerTrack.Infrastructure.Services
                     TabCell(tbl, bg, FmtDatum(v.DatumValjanostiDokumenta), center: true);
                     TabCell(tbl, bg, FmtDatum(v.DatumUtvrdjivanja), center: true);
                     TabCell(tbl, bg, Fmt(v.IzvorPodatka));
-                    TabCell(tbl, bg, v.Status.ToString(), bold: true, boja: sc, center: true);
+                    TabCell(tbl, bg, Fmt(v.Status), bold: true, boja: sc, center: true);
                 }
             });
         }
@@ -326,7 +324,7 @@ namespace OwnerTrack.Infrastructure.Services
                     TabCell(tbl, bg, Fmt(d.Jmbg), center: true);
                     TabCell(tbl, bg, Fmt(d.TipValjanosti), center: true);
                     TabCell(tbl, bg, datVal, center: true);
-                    TabCell(tbl, bg, d.Status.ToString(), bold: true, boja: sc, center: true);
+                    TabCell(tbl, bg, Fmt(d.Status), bold: true, boja: sc, center: true);
                 }
             });
         }
@@ -382,6 +380,12 @@ namespace OwnerTrack.Infrastructure.Services
 
         private static string Fmt(string? val) =>
             string.IsNullOrWhiteSpace(val) ? "—" : val.Trim();
+
+        private static string Fmt(StatusEntiteta status) =>
+            status.ToString();
+
+        private static string Fmt(VrstaKlijenta? vrsta) =>
+            vrsta.HasValue ? vrsta.Value.ToString() : "—";
 
         private static string FmtDatum(DateTime? dt) =>
             dt.HasValue ? dt.Value.ToString("dd.MM.yyyy.") : "—";
@@ -477,7 +481,7 @@ namespace OwnerTrack.Infrastructure.Services
                                                                    : BojaCrvena;
 
                     var djelatnost = k.Djelatnost?.Naziv ?? k.SifraDjelatnosti ?? "—";
-                    var statusUgovora = k.Ugovor?.StatusUgovora.ToString() ?? "—";
+                    var statusUgovora = k.Ugovor?.StatusUgovora ?? "—";
 
                     TabCell(tbl, bg, (i + 1).ToString(), center: true, noWrap: true);
                     TabCell(tbl, bg, Fmt(k.Naziv));
@@ -490,7 +494,7 @@ namespace OwnerTrack.Infrastructure.Services
                     TabCell(tbl, bg, statusUgovora, center: true, noWrap: true);
                     TabCell(tbl, bg, FmtDatum(k.DatumUspostave), center: true, noWrap: true);
                     TabCell(tbl, bg, FmtDatum(k.DatumOsnivanja), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.Status.ToString()), bold: true, boja: sc, center: true, noWrap: true);
+                    TabCell(tbl, bg, Fmt(k.Status), bold: true, boja: sc, center: true, noWrap: true);
                 }
             });
         }
