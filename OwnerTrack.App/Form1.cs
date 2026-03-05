@@ -672,7 +672,11 @@ namespace OwnerTrack.App
                     Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception ex)
-            { Program.LogException(ex); MessageBox.Show($"Greška pri generisanju PDF-a:\n\n{ex.Message}"); }
+
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{Program.GetLogPath()}");
+            }
             finally
             {
                 btnExportTabelaPdf.Enabled = true;
@@ -718,7 +722,11 @@ namespace OwnerTrack.App
                     Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception ex)
-            { Program.LogException(ex); MessageBox.Show($"Greška pri generisanju PDF-a:\n\n{ex.Message}"); }
+
+            {
+                Program.LogException(ex);
+                MessageBox.Show($"Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{Program.GetLogPath()}");
+            }
             finally
             {
                 btnSacuvajPdf.Enabled = true;

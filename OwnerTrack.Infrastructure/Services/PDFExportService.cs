@@ -71,17 +71,25 @@ namespace OwnerTrack.Infrastructure.Services
             {
                 row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text(k.Naziv)
-                       .FontSize(20).FontColor("#ffffff").Bold().AlignCenter();
-                    col.Item().PaddingTop(4)
-                       .Text($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}")
-                       .FontSize(10).FontColor(BojaHeaderSub).AlignCenter();
+                    col.Item().Text(txt =>
+                    {
+                        txt.AlignCenter();
+                        txt.Span(k.Naziv).FontSize(20).FontColor("#ffffff").Bold();
+                    });
+                    col.Item().PaddingTop(4).Text(txt =>
+                    {
+                        txt.AlignCenter();
+                        txt.Span($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}").FontSize(10).FontColor(BojaHeaderSub);
+                    });
                 });
 
                 row.ConstantItem(70).AlignMiddle().AlignRight()
                    .Background(statusBoja).Padding(5)
-                   .Text(Fmt(k.Status))
-                   .FontSize(9).FontColor("#ffffff").Bold().AlignCenter();
+                   .Text(txt =>
+                   {
+                       txt.AlignCenter();
+                       txt.Span(Fmt(k.Status)).FontSize(9).FontColor("#ffffff").Bold();
+                   });
             });
         }
 
@@ -113,9 +121,8 @@ namespace OwnerTrack.Infrastructure.Services
         private void SekcijaHeader(IContainer c, string tekst)
         {
             c.Background(BojaPlavaLight)
-             .BorderBottom(1.5f).BorderColor(BojaPlava)
-             .PaddingHorizontal(10).PaddingVertical(6)
-             .Text(tekst).FontSize(10).FontColor(BojaPlava).Bold();
+             .PaddingHorizontal(10).PaddingVertical(7)
+             .Text(txt => txt.Span(tekst).FontSize(10).FontColor(BojaPlava).Bold());
         }
 
         private void BuildOsnoviPodaci(IContainer c, Klijent k)
@@ -152,12 +159,12 @@ namespace OwnerTrack.Infrastructure.Services
                 if (!string.IsNullOrWhiteSpace(k.Napomena))
                 {
                     var bg = redovi.Count % 2 == 0 ? "#ffffff" : BojaSiva;
-                    tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
+                    tbl.Cell().Background(bg)
                        .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text("Napomena:").FontColor(BojaSivaTekst);
-                    tbl.Cell().ColumnSpan(3).Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
+                       .Text(txt => txt.Span("Napomena:").FontColor(BojaSivaTekst));
+                    tbl.Cell().ColumnSpan(3).Background(bg)
                        .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(k.Napomena).Bold();
+                       .Text(txt => txt.Span(k.Napomena).Bold());
                 }
             });
         }
@@ -190,14 +197,18 @@ namespace OwnerTrack.Infrastructure.Services
                     var boja1 = bojano ? DaNeBoja(v1) : BojaTekst;
                     var boja2 = bojano ? DaNeBoja(v2) : BojaTekst;
 
-                    tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-                       .PaddingHorizontal(8).PaddingVertical(5).Text(l1).FontColor(BojaSivaTekst);
-                    tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-                       .PaddingHorizontal(8).PaddingVertical(5).Text(v1).Bold().FontColor(boja1);
-                    tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-                       .PaddingHorizontal(8).PaddingVertical(5).Text(l2).FontColor(BojaSivaTekst);
-                    tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-                       .PaddingHorizontal(8).PaddingVertical(5).Text(v2).Bold().FontColor(boja2);
+                    tbl.Cell().Background(bg)
+                       .PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(l1).FontColor(BojaSivaTekst));
+                    tbl.Cell().Background(bg)
+                       .PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(v1).Bold().FontColor(boja1));
+                    tbl.Cell().Background(bg)
+                       .PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(l2).FontColor(BojaSivaTekst));
+                    tbl.Cell().Background(bg)
+                       .PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(v2).Bold().FontColor(boja2));
                 }
             });
         }
@@ -207,7 +218,7 @@ namespace OwnerTrack.Infrastructure.Services
             if (u == null)
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text("Nema podataka o ugovoru.").FontColor(BojaFooter).Italic();
+                 .Text(txt => txt.Span("Nema podataka o ugovoru.").FontColor(BojaFooter).Italic());
                 return;
             }
 
@@ -227,14 +238,18 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
-                   .PaddingHorizontal(8).PaddingVertical(5).Text("Status ugovora:").FontColor(BojaSivaTekst);
-                tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
-                   .PaddingHorizontal(8).PaddingVertical(5).Text(Fmt(u.StatusUgovora)).Bold().FontColor(statusBoja);
-                tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
-                   .PaddingHorizontal(8).PaddingVertical(5).Text("Datum ugovora:").FontColor(BojaSivaTekst);
-                tbl.Cell().Background("#ffffff").BorderBottom(0.3f).BorderColor(BojaLinija)
-                   .PaddingHorizontal(8).PaddingVertical(5).Text(FmtDatum(u.DatumUgovora)).Bold();
+                tbl.Cell().Background("#ffffff")
+                   .PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span("Status ugovora:").FontColor(BojaSivaTekst));
+                tbl.Cell().Background("#ffffff")
+                   .PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span(Fmt(u.StatusUgovora)).Bold().FontColor(statusBoja));
+                tbl.Cell().Background("#ffffff")
+                   .PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span("Datum ugovora:").FontColor(BojaSivaTekst));
+                tbl.Cell().Background("#ffffff")
+                   .PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span(FmtDatum(u.DatumUgovora)).Bold());
 
                 if (!string.IsNullOrWhiteSpace(u.VrstaUgovora) || !string.IsNullOrWhiteSpace(u.Napomena))
                     InfoRed(tbl, BojaSiva, "Vrsta ugovora:", Fmt(u.VrstaUgovora), "Napomena:", Fmt(u.Napomena));
@@ -246,7 +261,7 @@ namespace OwnerTrack.Infrastructure.Services
             if (!vlasnici.Any())
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text("Nema evidentiranih vlasnika.").FontColor(BojaFooter).Italic();
+                 .Text(txt => txt.Span("Nema evidentiranih vlasnika.").FontColor(BojaFooter).Italic());
                 return;
             }
 
@@ -290,7 +305,7 @@ namespace OwnerTrack.Infrastructure.Services
             if (!direktori.Any())
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text("Nema evidentiranih direktora.").FontColor(BojaFooter).Italic();
+                 .Text(txt => txt.Span("Nema evidentiranih direktora.").FontColor(BojaFooter).Italic());
                 return;
             }
 
@@ -331,11 +346,10 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void BuildFooter(IContainer c)
         {
-            c.BorderTop(0.5f).BorderColor(BojaLinija).PaddingTop(5).Row(row =>
+            c.PaddingTop(5).Row(row =>
             {
                 row.RelativeItem()
-                   .Text($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}")
-                   .FontSize(7).FontColor(BojaFooter);
+                   .Text(txt => txt.Span($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}").FontSize(7).FontColor(BojaFooter));
 
                 row.ConstantItem(60).AlignRight().Text(txt =>
                 {
@@ -349,33 +363,47 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void InfoRed(TableDescriptor tbl, string bg, string l1, string v1, string l2, string v2)
         {
-            tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-               .PaddingHorizontal(8).PaddingVertical(5).Text(l1).FontColor(BojaSivaTekst);
-            tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-               .PaddingHorizontal(8).PaddingVertical(5).Text(v1).Bold();
-            tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-               .PaddingHorizontal(8).PaddingVertical(5).Text(l2).FontColor(BojaSivaTekst);
-            tbl.Cell().Background(bg).BorderBottom(0.3f).BorderColor(BojaLinija)
-               .PaddingHorizontal(8).PaddingVertical(5).Text(v2).Bold();
+            tbl.Cell().Background(bg)
+               .PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(l1).FontColor(BojaSivaTekst));
+            tbl.Cell().Background(bg)
+               .PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(v1).Bold());
+            tbl.Cell().Background(bg)
+               .PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(l2).FontColor(BojaSivaTekst));
+            tbl.Cell().Background(bg)
+               .PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(v2).Bold());
         }
 
         private void TabHdr(TableDescriptor tbl, string tekst)
         {
             tbl.Cell().Background(BojaPlava).PaddingHorizontal(5).PaddingVertical(5)
-               .Text(tekst).FontSize(8).FontColor("#ffffff").Bold().AlignCenter();
+               .Text(txt =>
+               {
+                   txt.AlignCenter();
+                   txt.Span(tekst).FontSize(8).FontColor("#ffffff").Bold();
+               });
         }
 
         private void TabCell(TableDescriptor tbl, string bg, string tekst,
                               bool bold = false, string? boja = null, bool center = false, bool noWrap = false)
         {
-            var cell = tbl.Cell().Background(bg)
-                          .BorderBottom(0.3f).BorderColor(BojaLinija)
-                          .PaddingHorizontal(5).PaddingVertical(4);
-            var t = cell.Text(tekst).FontSize(8);
-            if (bold) t.Bold();
-            if (boja != null) t.FontColor(boja);
-            if (center) t.AlignCenter();
-            if (noWrap) t.ClampLines(1);
+            var container = tbl.Cell().Background(bg)
+
+                               .PaddingHorizontal(5).PaddingVertical(4);
+
+            
+            IContainer cell = noWrap ? container.ShowOnce() : container;
+
+            cell.Text(txt =>
+            {
+                var span = txt.Span(tekst).FontSize(8);
+                if (bold) span.Bold();
+                if (boja != null) span.FontColor(boja);
+                if (center) txt.AlignCenter();
+            });
         }
 
         private static string Fmt(string? val) =>
@@ -389,7 +417,6 @@ namespace OwnerTrack.Infrastructure.Services
 
         private static string FmtDatum(DateTime? dt) =>
             dt.HasValue ? dt.Value.ToString("dd.MM.yyyy.") : "—";
-
 
         private static string DaNeBoja(string? val) =>
             (val ?? "").Trim().ToUpper() switch
@@ -438,11 +465,10 @@ namespace OwnerTrack.Infrastructure.Services
             {
                 row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text("Pregled klijenata")
-                       .FontSize(16).FontColor("#ffffff").Bold();
-                    col.Item().PaddingTop(3)
-                       .Text($"Ukupno klijenata: {ukupno}   |   Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}")
-                       .FontSize(9).FontColor(BojaHeaderSub);
+                    col.Item().Text(txt =>
+                        txt.Span("Pregled klijenata").FontSize(16).FontColor("#ffffff").Bold());
+                    col.Item().PaddingTop(3).Text(txt =>
+                        txt.Span($"Ukupno klijenata: {ukupno}   |   Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}").FontSize(9).FontColor(BojaHeaderSub));
                 });
             });
         }
@@ -474,7 +500,6 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     var k = klijenti[i];
                     var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
-
 
                     var sc = k.Status == StatusEntiteta.AKTIVAN ? BojaZelena
                            : k.Status == StatusEntiteta.ARHIVIRAN ? BojaOrandzasta
