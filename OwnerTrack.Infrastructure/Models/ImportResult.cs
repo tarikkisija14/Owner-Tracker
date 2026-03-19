@@ -1,4 +1,6 @@
-﻿namespace OwnerTrack.Infrastructure.Models
+﻿using System.Collections.Generic;
+
+namespace OwnerTrack.Infrastructure.Models
 {
     public class ImportResult
     {
@@ -8,6 +10,6 @@
         public int ErrorCount { get; set; }
         public int VlasnikCount { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
-        public string DebugInfo { get; set; }
+        public string? DebugInfo { get; set; }
     }
 }

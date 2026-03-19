@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OwnerTrack.Data.Enums
+﻿namespace OwnerTrack.Data.Enums
 {
     public enum StatusEntiteta
     {
@@ -12,6 +6,7 @@ namespace OwnerTrack.Data.Enums
         NEAKTIVAN,
         ARHIVIRAN
     }
+
     public static class StatusKonstante
     {
         public const string Aktivan = "AKTIVAN";

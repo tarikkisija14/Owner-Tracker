@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OwnerTrack.Infrastructure.Models
+﻿namespace OwnerTrack.Infrastructure.Models
 {
     public class ImportProgress
     {
@@ -12,7 +6,6 @@ namespace OwnerTrack.Infrastructure.Models
         public int ProcessedRows { get; set; }
         public int SuccessCount { get; set; }
         public int ErrorCount { get; set; }
-        public string CurrentRow { get; set; }
-
+        public string CurrentRow { get; set; } = string.Empty;
     }
 }

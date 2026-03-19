@@ -6,7 +6,6 @@
         TRAJNO
     }
 
-    
     public static class TipValjanostiKonstante
     {
         public const string Vremenski = "VREMENSKI";

@@ -1,6 +1,5 @@
 ﻿namespace OwnerTrack.Data.Enums
 {
-    
     public enum VrstaKlijenta
     {
         PravnoLice,

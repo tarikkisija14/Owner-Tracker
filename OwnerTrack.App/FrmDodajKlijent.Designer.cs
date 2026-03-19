@@ -445,7 +445,7 @@
             txtTelefon.Size = new Size(250, 24);
             txtTelefon.TabIndex = 3;
             StyleTextBox(txtTelefon);
-            txtTelefon.TextChanged += txtTelefon_TextChanged;
+
 
             // ── groupBoxNapomena ──────────────────────────────────
             groupBoxNapomena.Controls.Add(lblNapomena);

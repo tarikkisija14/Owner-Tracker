@@ -14,8 +14,7 @@ namespace OwnerTrack.Infrastructure.Services
             _db = db;
         }
 
-        
-        public void ZabiljeziBesSave(string tabela, int? entitetId, string akcija, string opis)
+        public void Log(string tabela, int? entitetId, string akcija, string opis)
         {
             _db.AuditLogs.Add(new AuditLog
             {
@@ -27,21 +26,17 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        public void ZabiljeziBesSave(ISoftDeletable entitet, string tabela, int? entitetId, string opis,
-            string akcija = AuditKonstante.Obrisano)
-            => ZabiljeziBesSave(tabela, entitetId, akcija, opis);
-
-        
         public void Dodano(string tabela, int id, string opis)
-            => ZabiljeziBesSave(tabela, id, AuditKonstante.Dodano, opis);
+            => Log(tabela, id, AuditKonstante.Dodano, opis);
 
         public void Izmijenjeno(string tabela, int id, string opis)
-            => ZabiljeziBesSave(tabela, id, AuditKonstante.Izmijenjeno, opis);
+            => Log(tabela, id, AuditKonstante.Izmijenjeno, opis);
 
+        
         public void SoftDelete(ISoftDeletable entitet, string tabela, int id, string opis)
         {
             entitet.Obrisan = DateTime.Now;
-            ZabiljeziBesSave(tabela, id, AuditKonstante.Obrisano, opis);
+            Log(tabela, id, AuditKonstante.Obrisano, opis);
         }
     }
 }

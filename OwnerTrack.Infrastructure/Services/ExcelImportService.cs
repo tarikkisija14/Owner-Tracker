@@ -17,6 +17,44 @@ namespace OwnerTrack.Infrastructure
 {
     public class ExcelImportService
     {
+       
+        private static readonly Dictionary<string, VelicinaFirme> VelicinaAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MIKRO"] = VelicinaFirme.MIKRO,
+                ["MICRO"] = VelicinaFirme.MIKRO,
+                ["MALO"] = VelicinaFirme.MALO,
+                ["MALI"] = VelicinaFirme.MALO,
+                ["MALA"] = VelicinaFirme.MALO,
+                ["SREDNJE"] = VelicinaFirme.SREDNJE,
+                ["SREDNJI"] = VelicinaFirme.SREDNJE,
+                ["SREDNJA"] = VelicinaFirme.SREDNJE,
+                ["VELIKO"] = VelicinaFirme.VELIKO,
+                ["VELIKI"] = VelicinaFirme.VELIKO,
+                ["VELIKA"] = VelicinaFirme.VELIKO,
+                ["OBRTNIK"] = VelicinaFirme.OBRTNIK,
+                ["OBRT"] = VelicinaFirme.OBRTNIK,
+                ["UDRUZENJE"] = VelicinaFirme.UDRUŽENJE,
+                ["UDRUŽENJE"] = VelicinaFirme.UDRUŽENJE,
+            };
+
+        private static readonly string[] DateFormats =
+        {
+            "dd.MM.yyyy.", "dd.MM.yyyy",
+            "d.M.yyyy.",   "d.M.yyyy",
+            "d.MM.yyyy.",  "d.MM.yyyy",
+            "yyyy-MM-dd",
+        };
+
+        private static readonly Regex FirmaKeywordRegex = new(
+            @"\b(d\.o\.o\.|doo|d\.d\.|dd|a\.d\.|ltd|gmbh|inc|zajednica|dioničar|fond|komisija|općina|kanton|vlada)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex DateTokenRegex = new(@"\d{1,2}\.\d{1,2}\.\d{4}\.?", RegexOptions.Compiled);
+        private static readonly Regex WhitespaceRegex = new(@" {2,}", RegexOptions.Compiled);
+
+        private const int BatchSize = 50;
+
         private readonly string _connectionString;
 
         public ExcelImportService(string connectionString)
@@ -24,6 +62,7 @@ namespace OwnerTrack.Infrastructure
             _connectionString = connectionString;
         }
 
+      
         public ImportResult ImportFromExcel(
             string filePath,
             IProgress<ImportProgress>? progress = null,
@@ -31,45 +70,36 @@ namespace OwnerTrack.Infrastructure
         {
             var result = new ImportResult();
             var prog = new ImportProgress();
-            void Log(string t) => Debug.WriteLine(t);
 
             try
             {
-                Log($"[IMPORT-START] File='{filePath}' Time={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                Debug.WriteLine($"[IMPORT-START] File='{filePath}' Time={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
                 using var doc = SpreadsheetDocument.Open(filePath, false);
                 var wbPart = doc.WorkbookPart ?? throw new Exception("Excel fajl nema validan WorkbookPart!");
                 var sheet = wbPart.Workbook.Sheets?.Cast<Sheet>()
-                                    .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
-                                  ?? throw new Exception("Nije pronađen list sa 'ZBIRNA'!");
+                                       .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
+                                   ?? throw new Exception("Nije pronađen list sa 'ZBIRNA'!");
                 var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
-                var sheetData = wsPart.Worksheet.Elements<SheetData>().First();
-                var allRows = sheetData.Elements<Row>().Skip(2).ToList();
+                var allRows = wsPart.Worksheet.Elements<SheetData>().First()
+                                       .Elements<Row>().Skip(2).ToList();
 
                 prog.TotalRows = allRows.Count;
 
-                
-                using var db = KreirajDb();
+                using var db = CreateDbContext();
                 using var tx = db.Database.BeginTransaction();
 
-               
-                var postojeciIdBrojevi = db.Klijenti.AsNoTracking()
-                    .Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var postojeciNazivi = db.Klijenti.AsNoTracking()
-                    .Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingIdBrojevi = db.Klijenti.AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingNazivi = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingDjelatnosti = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                
-                var postojeceDjelatnosti = db.Djelatnosti.AsNoTracking()
-                    .Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                const int BATCH_SIZE = 50;
                 int pendingChanges = 0;
 
                 for (int i = 0; i < allRows.Count; i++)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        Log("[IMPORT-CANCELLED] Korisnik otkazao import.");
+                        Debug.WriteLine("[IMPORT-CANCELLED] Korisnik otkazao import.");
                         break;
                     }
 
@@ -91,32 +121,34 @@ namespace OwnerTrack.Infrastructure
                             continue;
                         }
 
-                        bool preskocen = ImportajRed(
+                        bool skipped = ImportRow(
                             wbPart, row, i, naziv, idBroj,
-                            result, Log, db,
-                            postojeciIdBrojevi, postojeciNazivi, postojeceDjelatnosti);
+                            result, db,
+                            existingIdBrojevi, existingNazivi, existingDjelatnosti);
 
-                        if (!preskocen)
+                        if (!skipped)
                         {
                             result.SuccessCount++;
                             prog.SuccessCount = result.SuccessCount;
                             pendingChanges++;
 
-                            
-                            if (pendingChanges >= BATCH_SIZE)
+                            if (pendingChanges >= BatchSize)
                             {
                                 db.SaveChanges();
                                 pendingChanges = 0;
                             }
                         }
-                        else { result.SkipCount++; }
+                        else
+                        {
+                            result.SkipCount++;
+                        }
                     }
                     catch (Exception ex)
                     {
                         result.ErrorCount++;
                         prog.ErrorCount = result.ErrorCount;
                         string inner = ex.InnerException?.Message ?? "";
-                        Log($"[ERROR] Red={i + 3} '{naziv}' Msg='{ex.Message}'" +
+                        Debug.WriteLine($"[ERROR] Red={i + 3} '{naziv}' Msg='{ex.Message}'" +
                             (string.IsNullOrEmpty(inner) ? "" : $" Inner='{inner}'"));
                         result.Errors.Add($"Red {i + 3} | {naziv} | {idBroj} | {ex.Message}" +
                             (string.IsNullOrEmpty(inner) ? "" : $" | {inner}"));
@@ -125,7 +157,6 @@ namespace OwnerTrack.Infrastructure
                     progress?.Report(prog);
                 }
 
-               
                 if (pendingChanges > 0)
                     db.SaveChanges();
 
@@ -147,14 +178,17 @@ namespace OwnerTrack.Infrastructure
             return result;
         }
 
-        private bool ImportajRed(
-            WorkbookPart wbPart, Row row, int i,
+        
+
+        /// <returns>True if the row was skipped (duplicate), false if it was imported.</returns>
+        private bool ImportRow(
+            WorkbookPart wbPart, Row row, int rowIndex,
             string naziv, string idBroj,
-            ImportResult result, Action<string> Log,
+            ImportResult result,
             OwnerTrackDbContext db,
-            HashSet<string> postojeciIdBrojevi,
-            HashSet<string> postojeciNazivi,
-            HashSet<string> postojeceDjelatnosti)
+            HashSet<string> existingIdBrojevi,
+            HashSet<string> existingNazivi,
+            HashSet<string> existingDjelatnosti)
         {
             string sifraDjelatnosti = GetCellValue(wbPart, row, 5)?.Trim()
                                       ?? AppKonstante.DefaultSifraDjelatnosti;
@@ -163,23 +197,15 @@ namespace OwnerTrack.Infrastructure
 
             string? nazivDjelatnosti = GetCellValue(wbPart, row, 6)?.Trim();
 
-            
-            if (!postojeceDjelatnosti.Contains(sifraDjelatnosti))
-            {
-                string ime = (string.IsNullOrWhiteSpace(nazivDjelatnosti) || nazivDjelatnosti.StartsWith("="))
-                    ? $"Djelatnost {sifraDjelatnosti}" : nazivDjelatnosti;
-                db.Djelatnosti.Add(new Djelatnost { Sifra = sifraDjelatnosti, Naziv = ime });
-                postojeceDjelatnosti.Add(sifraDjelatnosti);
-            }
+            EnsureDjelatnostExists(db, existingDjelatnosti, sifraDjelatnosti, nazivDjelatnosti);
 
-            
-            if (postojeciIdBrojevi.Contains(idBroj))
+            if (existingIdBrojevi.Contains(idBroj))
             {
-                Log($"[SKIP-DUPLICATE-ID] Red={i + 3} ID='{idBroj}'");
+                Debug.WriteLine($"[SKIP-DUPLICATE-ID] Red={rowIndex + 3} ID='{idBroj}'");
                 return true;
             }
 
-            if (postojeciNazivi.Contains(naziv))
+            if (existingNazivi.Contains(naziv))
                 throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
 
             var klijent = new Klijent
@@ -200,73 +226,88 @@ namespace OwnerTrack.Infrastructure
                 DatumProcjene = ParseDate(GetCellValue(wbPart, row, 23)),
                 OvjeraCr = GetCellValue(wbPart, row, 24)?.Trim(),
                 Status = StatusEntiteta.AKTIVAN,
-                Kreiran = DateTime.Now
+                Kreiran = DateTime.Now,
             };
 
             db.Klijenti.Add(klijent);
-          
             db.SaveChanges(); 
 
-           
-            postojeciIdBrojevi.Add(idBroj);
-            postojeciNazivi.Add(naziv);
+            existingIdBrojevi.Add(idBroj);
+            existingNazivi.Add(naziv);
 
+            ImportVlasnici(wbPart, row, klijent, result, db);
+            ImportDirektori(wbPart, row, klijent, db);
+            ImportUgovor(wbPart, row, klijent, db);
+
+            Debug.WriteLine($"[OK] Red={rowIndex + 3} KlijentId={klijent.Id} '{naziv}'");
+            return false;
+        }
+
+        private void ImportVlasnici(WorkbookPart wbPart, Row row, Klijent klijent, ImportResult result, OwnerTrackDbContext db)
+        {
             string? vlasnikRaw = GetCellValue(wbPart, row, 10);
             string? datVazVlasnika = GetCellValue(wbPart, row, 11);
             string? procenatRaw = GetCellValue(wbPart, row, 12);
             string? datUtvrdjivanja = GetCellValue(wbPart, row, 13);
             string? izvorPodatka = GetCellValue(wbPart, row, 14);
 
-            if (!string.IsNullOrWhiteSpace(vlasnikRaw))
-            {
-                var vlasnici = ParseVlasnici(vlasnikRaw, datVazVlasnika, procenatRaw);
-                foreach (var v in vlasnici)
-                {
-                    v.KlijentId = klijent.Id;
-                    v.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
-                    v.IzvorPodatka = izvorPodatka?.Trim();
-                    v.Status = StatusEntiteta.AKTIVAN;
-                    db.Vlasnici.Add(v);
-                    result.VlasnikCount++;
-                }
-            }
+            if (string.IsNullOrWhiteSpace(vlasnikRaw)) return;
 
+            foreach (var v in ParseVlasnici(vlasnikRaw, datVazVlasnika, procenatRaw))
+            {
+                v.KlijentId = klijent.Id;
+                v.DatumUtvrdjivanja = ParseDate(datUtvrdjivanja);
+                v.IzvorPodatka = izvorPodatka?.Trim();
+                v.Status = StatusEntiteta.AKTIVAN;
+                db.Vlasnici.Add(v);
+                result.VlasnikCount++;
+            }
+        }
+
+        private void ImportDirektori(WorkbookPart wbPart, Row row, Klijent klijent, OwnerTrackDbContext db)
+        {
             string? direktorRaw = GetCellValue(wbPart, row, 15);
             string? datVazDirektora = GetCellValue(wbPart, row, 16);
 
-            if (!string.IsNullOrWhiteSpace(direktorRaw))
-            {
-                var direktori = ParseDirektori(direktorRaw, datVazDirektora);
-                foreach (var d in direktori)
-                {
-                    d.KlijentId = klijent.Id;
-                    d.Status = StatusEntiteta.AKTIVAN;
-                    db.Direktori.Add(d);
-                }
-            }
+            if (string.IsNullOrWhiteSpace(direktorRaw)) return;
 
-            string? statusUgovora = GetCellValue(wbPart, row, 25);
-            string? datumUgovora = GetCellValue(wbPart, row, 26);
-            if (!string.IsNullOrWhiteSpace(statusUgovora))
+            foreach (var d in ParseDirektori(direktorRaw, datVazDirektora))
             {
-                db.Ugovori.Add(new Ugovor
-                {
-                    KlijentId = klijent.Id,
-                    StatusUgovora = statusUgovora.Trim(),
-                    DatumUgovora = ParseDate(datumUgovora)
-                });
+                d.KlijentId = klijent.Id;
+                d.Status = StatusEntiteta.AKTIVAN;
+                db.Direktori.Add(d);
             }
-
-            Log($"[OK] Red={i + 3} KlijentId={klijent.Id} '{naziv}'");
-            return false;
         }
 
-        private OwnerTrackDbContext KreirajDb()
+        private void ImportUgovor(WorkbookPart wbPart, Row row, Klijent klijent, OwnerTrackDbContext db)
         {
-            var opts = new DbContextOptionsBuilder<OwnerTrackDbContext>()
-                .UseSqlite(_connectionString)
-                .Options;
-            return new OwnerTrackDbContext(opts);
+            string? statusUgovora = GetCellValue(wbPart, row, 25);
+            string? datumUgovora = GetCellValue(wbPart, row, 26);
+
+            if (string.IsNullOrWhiteSpace(statusUgovora)) return;
+
+            db.Ugovori.Add(new Ugovor
+            {
+                KlijentId = klijent.Id,
+                StatusUgovora = statusUgovora.Trim(),
+                DatumUgovora = ParseDate(datumUgovora),
+            });
+        }
+
+        private static void EnsureDjelatnostExists(
+            OwnerTrackDbContext db,
+            HashSet<string> existingDjelatnosti,
+            string sifra,
+            string? naziv)
+        {
+            if (existingDjelatnosti.Contains(sifra)) return;
+
+            string displayNaziv = (string.IsNullOrWhiteSpace(naziv) || naziv.StartsWith("="))
+                ? $"Djelatnost {sifra}"
+                : naziv;
+
+            db.Djelatnosti.Add(new Djelatnost { Sifra = sifra, Naziv = displayNaziv });
+            existingDjelatnosti.Add(sifra);
         }
 
 
@@ -275,13 +316,13 @@ namespace OwnerTrack.Infrastructure
             var result = new List<Vlasnik>();
             raw = NormalizeWhitespace(raw);
 
-            List<string> imena = raw.Contains(',')
+            var imena = raw.Contains(',')
                 ? raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                      .Select(s => s.Trim()).Where(s => s.Length > 0).ToList()
-                : SplitNaImena(raw.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                         .Select(s => s.Trim()).Where(s => s.Length > 0).ToList()
+                : SplitIntoNames(raw.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-            var datumi = ParseTokenLista(datVazRaw, jeDatum: true);
-            var procenti = ParseTokenLista(procenatRaw, jeDatum: false);
+            var datumi = ParseTokenList(datVazRaw, isDate: true);
+            var procenti = ParseTokenList(procenatRaw, isDate: false);
 
             for (int i = 0; i < imena.Count; i++)
             {
@@ -293,54 +334,53 @@ namespace OwnerTrack.Infrastructure
                     ImePrezime = ime.ToUpperInvariant(),
                     ProcenatVlasnistva = ParseDecimal(i < procenti.Count ? procenti[i] : null),
                     DatumValjanostiDokumenta = ParseDate(i < datumi.Count ? datumi[i] : null),
-                    Status = StatusEntiteta.AKTIVAN
+                    Status = StatusEntiteta.AKTIVAN,
                 });
             }
 
             return result;
         }
 
-        private List<string> SplitNaImena(string[] rijeci)
+        private List<string> SplitIntoNames(string[] words)
         {
-            var lista = new List<string>();
-            if (rijeci.Length == 0) return lista;
+            var list = new List<string>();
+            if (words.Length == 0) return list;
 
-            string cijeli = string.Join(" ", rijeci);
+            string full = string.Join(" ", words);
 
-            bool imaFirmaKeyword = Regex.IsMatch(cijeli,
-                @"\b(d\.o\.o\.|doo|d\.d\.|dd|a\.d\.|ltd|gmbh|inc|zajednica|dioničar|fond|komisija|općina|kanton|vlada)\b",
-                RegexOptions.IgnoreCase);
-
-            if (imaFirmaKeyword || rijeci.Length > 4 || rijeci.Length % 2 != 0)
+           
+            bool hasCompanyKeyword = FirmaKeywordRegex.IsMatch(full);
+            if (hasCompanyKeyword || words.Length > 4 || words.Length % 2 != 0)
             {
-                lista.Add(cijeli);
-                return lista;
+                list.Add(full);
+                return list;
             }
 
-            for (int i = 0; i + 1 < rijeci.Length; i += 2)
-                lista.Add(rijeci[i] + " " + rijeci[i + 1]);
+            for (int i = 0; i + 1 < words.Length; i += 2)
+                list.Add(words[i] + " " + words[i + 1]);
 
-            return lista;
+            return list;
         }
 
-        private List<string> ParseTokenLista(string? raw, bool jeDatum)
+        private List<string> ParseTokenList(string? raw, bool isDate)
         {
-            var lista = new List<string>();
-            if (string.IsNullOrWhiteSpace(raw)) return lista;
+            var list = new List<string>();
+            if (string.IsNullOrWhiteSpace(raw)) return list;
+
             raw = NormalizeWhitespace(raw);
 
-            if (jeDatum)
+            if (isDate)
             {
-                var matches = Regex.Matches(raw, @"\d{1,2}\.\d{1,2}\.\d{4}\.?");
+                var matches = DateTokenRegex.Matches(raw);
                 if (matches.Count > 0)
                 {
-                    foreach (Match m in matches) lista.Add(m.Value.Trim());
-                    return lista;
+                    foreach (Match m in matches) list.Add(m.Value.Trim());
+                    return list;
                 }
             }
 
-            lista.AddRange(Regex.Split(raw, @"\s+").Where(s => !string.IsNullOrWhiteSpace(s)));
-            return lista;
+            list.AddRange(Regex.Split(raw, @"\s+").Where(s => !string.IsNullOrWhiteSpace(s)));
+            return list;
         }
 
         private List<Direktor> ParseDirektori(string raw, string? datVazRaw)
@@ -348,18 +388,17 @@ namespace OwnerTrack.Infrastructure
             var result = new List<Direktor>();
             raw = NormalizeWhitespace(raw);
 
-            List<string> imena = raw.Contains(',')
+            var imena = raw.Contains(',')
                 ? raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                      .Select(s => s.Trim()).Where(s => s.Length > 0).ToList()
+                         .Select(s => s.Trim()).Where(s => s.Length > 0).ToList()
                 : new List<string> { raw };
 
             string datVazNorm = datVazRaw?.Trim().ToUpper() ?? "";
-
-            bool jeTrajno = datVazNorm == TipValjanostiKonstante.Trajno;
-            DateTime? datVaz = jeTrajno ? null : ParseDate(datVazRaw);
-            string tip = (jeTrajno || datVaz == null)
-                ? TipValjanostiKonstante.Trajno
-                : TipValjanostiKonstante.Vremenski;
+            bool isTrajno = datVazNorm == TipValjanostiKonstante.Trajno;
+            DateTime? datVaz = isTrajno ? null : ParseDate(datVazRaw);
+            string tip = (isTrajno || datVaz == null)
+                                    ? TipValjanostiKonstante.Trajno
+                                    : TipValjanostiKonstante.Vremenski;
 
             foreach (var ime in imena)
             {
@@ -369,22 +408,24 @@ namespace OwnerTrack.Infrastructure
                     ImePrezime = ime,
                     DatumValjanosti = datVaz,
                     TipValjanosti = tip,
-                    Status = StatusEntiteta.AKTIVAN
+                    Status = StatusEntiteta.AKTIVAN,
                 });
             }
 
             return result;
         }
 
+       
         private string GetCellValue(WorkbookPart wbPart, Row row, int colIndex)
         {
             try
             {
                 var cell = row.Elements<Cell>()
-                    .FirstOrDefault(c => GetColIndex(c.CellReference?.Value) == colIndex);
+                    .FirstOrDefault(c => GetColumnIndex(c.CellReference?.Value) == colIndex);
                 if (cell == null) return "";
 
-                if (cell.DataType == null) return cell.CellValue?.Text ?? "";
+                if (cell.DataType == null)
+                    return cell.CellValue?.Text ?? "";
 
                 if (cell.DataType.Value == CellValues.SharedString)
                 {
@@ -398,7 +439,7 @@ namespace OwnerTrack.Infrastructure
             catch { return ""; }
         }
 
-        private int GetColIndex(string? cellRef)
+        private static int GetColumnIndex(string? cellRef)
         {
             if (string.IsNullOrWhiteSpace(cellRef)) return 0;
             string col = Regex.Replace(cellRef, @"\d", "");
@@ -408,36 +449,31 @@ namespace OwnerTrack.Infrastructure
             return idx;
         }
 
-        private DateTime? ParseDate(string? s)
+        private static DateTime? ParseDate(string? s)
         {
             if (string.IsNullOrWhiteSpace(s)) return null;
             s = s.Trim();
 
+            
             if (double.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out double oa)
                 && oa > 10000 && oa < 100000)
             {
                 try { return DateTime.FromOADate(oa); } catch { }
             }
 
+            string upper = s.ToUpperInvariant();
+            if (upper == TipValjanostiKonstante.Trajno || upper is "STEČAJ" or "STECAJ")
+                return null;
 
-            if (s.ToUpper() == TipValjanostiKonstante.Trajno
-                || s.ToUpper() is "STEČAJ" or "STECAJ") return null;
-
-            string[] formats = {
-                "dd.MM.yyyy.", "dd.MM.yyyy",
-                "d.M.yyyy.",  "d.M.yyyy",
-                "d.MM.yyyy.", "d.MM.yyyy",
-                "yyyy-MM-dd"
-            };
-
-            foreach (var fmt in formats)
+            foreach (var fmt in DateFormats)
                 if (DateTime.TryParseExact(s, fmt, CultureInfo.InvariantCulture,
                                             DateTimeStyles.None, out DateTime dt))
                     return dt;
+
             return null;
         }
 
-        private decimal ParseDecimal(string? s)
+        private static decimal ParseDecimal(string? s)
         {
             if (string.IsNullOrWhiteSpace(s) || s == "-") return 0;
             s = s.Replace(",", ".").Trim();
@@ -447,65 +483,48 @@ namespace OwnerTrack.Infrastructure
         private string NormalizeWhitespace(string? s)
         {
             if (string.IsNullOrWhiteSpace(s)) return "";
-            return Regex.Replace(s.Replace("\u00a0", " "), @" {2,}", " ").Trim();
+            return WhitespaceRegex.Replace(s.Replace("\u00a0", " "), " ").Trim();
         }
 
-        private string? NormalizeVelicina(string? v)
+        private static string? NormalizeVelicina(string? v)
         {
             if (string.IsNullOrWhiteSpace(v)) return null;
-            string u = v.ToUpper().Trim();
+            string upper = v.ToUpperInvariant().Trim();
 
-            var aliasi = new Dictionary<string, VelicinaFirme>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["MIKRO"] = VelicinaFirme.MIKRO,
-                ["MICRO"] = VelicinaFirme.MIKRO,
-                ["MALO"] = VelicinaFirme.MALO,
-                ["MALI"] = VelicinaFirme.MALO,
-                ["MALA"] = VelicinaFirme.MALO,
-                ["SREDNJE"] = VelicinaFirme.SREDNJE,
-                ["SREDNJI"] = VelicinaFirme.SREDNJE,
-                ["SREDNJA"] = VelicinaFirme.SREDNJE,
-                ["VELIKO"] = VelicinaFirme.VELIKO,
-                ["VELIKI"] = VelicinaFirme.VELIKO,
-                ["VELIKA"] = VelicinaFirme.VELIKO,
+            if (VelicinaAliases.TryGetValue(upper, out var result))
+                return result.ToString();
 
-                ["OBRTNIK"] = VelicinaFirme.OBRTNIK,
-                ["OBRT"] = VelicinaFirme.OBRTNIK,
-                ["UDRUZENJE"] = VelicinaFirme.UDRUŽENJE,
-                ["UDRUŽENJE"] = VelicinaFirme.UDRUŽENJE,
-            };
-
-            if (aliasi.TryGetValue(u, out var rezultat))
-                return rezultat.ToString();
-
-            if (Enum.TryParse<VelicinaFirme>(u, ignoreCase: true, out var parsed))
+            if (Enum.TryParse<VelicinaFirme>(upper, ignoreCase: true, out var parsed))
                 return parsed.ToString();
 
             return v.Trim();
         }
 
-        private string? NormalizeDaNe(string? v)
+        private static string? NormalizeDaNe(string? v)
         {
             if (string.IsNullOrWhiteSpace(v)) return null;
-            string first = v.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[0].ToUpper();
-
-            return first switch
-            {
-                var s when s == DaNeKonstante.Da => DaNeKonstante.Da,
-                var s when s == DaNeKonstante.Ne => DaNeKonstante.Ne,
-                _ => null
-            };
+            string first = v.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[0].ToUpperInvariant();
+            return first == DaNeKonstante.Da ? DaNeKonstante.Da
+                 : first == DaNeKonstante.Ne ? DaNeKonstante.Ne
+                 : null;
         }
 
-        private VrstaKlijenta NormalizeVrstaKlijenta(string? v)
+        private static VrstaKlijenta NormalizeVrstaKlijenta(string? v)
         {
-
             if (string.IsNullOrWhiteSpace(v)) return VrstaKlijenta.PravnoLice;
-            string u = v.ToUpper().Trim();
-            if (u.Contains("FIZIČKO") || u.Contains("FIZICKO")) return VrstaKlijenta.FizickoLice;
-            if (u.Contains("UDRUŽ") || u.Contains("UDRUZ")) return VrstaKlijenta.Udruzenje;
-            if (u == "OBRTNIK" || u.Contains("OBRT")) return VrstaKlijenta.Obrtnik;
+            string upper = v.ToUpperInvariant().Trim();
+            if (upper.Contains("FIZIČKO") || upper.Contains("FIZICKO")) return VrstaKlijenta.FizickoLice;
+            if (upper.Contains("UDRUŽ") || upper.Contains("UDRUZ")) return VrstaKlijenta.Udruzenje;
+            if (upper == "OBRTNIK" || upper.Contains("OBRT")) return VrstaKlijenta.Obrtnik;
             return VrstaKlijenta.PravnoLice;
+        }
+
+        private OwnerTrackDbContext CreateDbContext()
+        {
+            var opts = new DbContextOptionsBuilder<OwnerTrackDbContext>()
+                .UseSqlite(_connectionString)
+                .Options;
+            return new OwnerTrackDbContext(opts);
         }
     }
 }

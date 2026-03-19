@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace OwnerTrack.App
+namespace OwnerTrack.App.Helpers
 {
     public class ImportHelper
     {
@@ -17,10 +17,14 @@ namespace OwnerTrack.App
             _connectionString = connectionString;
         }
 
-        public void PokreniImport(string filePath, Form owner, Action? onZavrsetak = null, Action? onGreška = null)
+        public void PokreniImport(
+            string filePath,
+            Form owner,
+            Action? onZavrsetak = null,
+            Action? onGreska = null)
         {
-            var cts = new CancellationTokenSource();
-            bool importZavršen = false;
+            using var cts = new CancellationTokenSource();
+            bool importZavrsen = false;
 
             using var frm = KreirajProgressFormu(
                 out var progressBar,
@@ -28,10 +32,9 @@ namespace OwnerTrack.App
                 out var btnZatvori,
                 out var btnOtkazi);
 
-
             frm.FormClosing += (s, args) =>
             {
-                if (!importZavršen)
+                if (!importZavrsen)
                 {
                     args.Cancel = true;
                     MessageBox.Show(
@@ -40,10 +43,9 @@ namespace OwnerTrack.App
                 }
             };
 
-
             btnOtkazi.Click += (s, args) =>
             {
-                if (!importZavršen)
+                if (!importZavrsen)
                 {
                     btnOtkazi.Enabled = false;
                     btnOtkazi.Text = "Otkazivanje...";
@@ -51,11 +53,10 @@ namespace OwnerTrack.App
                 }
             };
 
-
             var progress = new Progress<ImportProgress>(p =>
             {
                 if (!frm.IsHandleCreated || frm.IsDisposed) return;
-                frm.Invoke((Action)(() =>
+                frm.Invoke(() =>
                 {
                     if (p.TotalRows > 0)
                     {
@@ -67,9 +68,8 @@ namespace OwnerTrack.App
                         $"Dodato: {p.SuccessCount}  |  Greške: {p.ErrorCount}\n" +
                         $"{p.CurrentRow}";
                     frm.Refresh();
-                }));
+                });
             });
-
 
             frm.Shown += async (s, args) =>
             {
@@ -80,24 +80,17 @@ namespace OwnerTrack.App
                         () => svc.ImportFromExcel(filePath, progress, cts.Token),
                         cts.Token);
 
-                    importZavršen = true;
+                    importZavrsen = true;
                     btnZatvori.Enabled = true;
                     btnOtkazi.Enabled = false;
 
-                    if (cts.IsCancellationRequested)
-                    {
-                        lblStatus.Text =
-                            $"Import otkazan.\n" +
-                            $"Dodano: {result.SuccessCount}  |  Preskočeno: {result.SkipCount}\n" +
-                            $"Greške: {result.ErrorCount}";
-                    }
-                    else
-                    {
-                        lblStatus.Text =
-                            $"Import završen!\n" +
-                            $"Dodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\n" +
-                            $"Greške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
-                    }
+                    lblStatus.Text = cts.IsCancellationRequested
+                        ? $"Import otkazan.\n" +
+                          $"Dodano: {result.SuccessCount}  |  Preskočeno: {result.SkipCount}\n" +
+                          $"Greške: {result.ErrorCount}"
+                        : $"Import završen!\n" +
+                          $"Dodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\n" +
+                          $"Greške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
 
                     if (result.Errors.Count > 0)
                         MessageBox.Show(
@@ -106,24 +99,23 @@ namespace OwnerTrack.App
                 }
                 catch (OperationCanceledException)
                 {
-                    importZavršen = true;
+                    importZavrsen = true;
                     lblStatus.Text = "Import je otkazan od strane korisnika.";
                     btnZatvori.Enabled = true;
                     btnOtkazi.Enabled = false;
                 }
                 catch (Exception ex)
                 {
-                    importZavršen = true;
+                    importZavrsen = true;
                     Program.LogException(ex);
                     MessageBox.Show($"Greška: {ex.Message}", "Greška",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     frm.Close();
-                    
-                    onGreška?.Invoke();
+                    onGreska?.Invoke();
                     return;
                 }
 
-
+                
                 void ZatvoriHandler(object? bs, EventArgs be)
                 {
                     btnZatvori.Click -= ZatvoriHandler;
@@ -135,10 +127,11 @@ namespace OwnerTrack.App
             };
 
             frm.ShowDialog(owner);
-            cts.Dispose();
         }
 
-        private Form KreirajProgressFormu(
+       
+
+        private static Form KreirajProgressFormu(
             out ProgressBar progressBar,
             out Label lblStatus,
             out Button btnZatvori,
@@ -152,42 +145,40 @@ namespace OwnerTrack.App
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
-                MinimizeBox = false
+                MinimizeBox = false,
             };
 
             progressBar = new ProgressBar
             {
-                Location = new System.Drawing.Point(20, 20),
+                Location = new Point(20, 20),
                 Width = 440,
                 Height = 30,
-                Style = ProgressBarStyle.Continuous
+                Style = ProgressBarStyle.Continuous,
             };
 
             lblStatus = new Label
             {
-                Location = new System.Drawing.Point(20, 60),
+                Location = new Point(20, 60),
                 Width = 440,
                 Height = 80,
                 Text = "Priprema...",
-                AutoSize = false
+                AutoSize = false,
             };
-
 
             btnZatvori = new Button
             {
                 Text = "Zatvori",
-                Location = new System.Drawing.Point(290, 165),
+                Location = new Point(290, 165),
                 Width = 90,
-                Enabled = false
+                Enabled = false,
             };
-
 
             btnOtkazi = new Button
             {
                 Text = "Otkaži",
-                Location = new System.Drawing.Point(390, 165),
+                Location = new Point(390, 165),
                 Width = 90,
-                Enabled = true
+                Enabled = true,
             };
 
             frm.Controls.AddRange(new Control[] { progressBar, lblStatus, btnZatvori, btnOtkazi });

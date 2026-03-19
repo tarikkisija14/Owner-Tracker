@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
@@ -24,33 +25,30 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
+        
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
-            if (_vlasnikId.HasValue)
-            {
-                LoadVlasnik(_vlasnikId.Value);
-                Text = "Izmijeni vlasnika";
-                btnSpremi.Text = "💾 Spremi izmjene";
-            }
-            else
-            {
-                Text = "Dodaj novog vlasnika";
-                btnSpremi.Text = "💾 Dodaj";
-            }
+            bool jeIzmjena = _vlasnikId.HasValue;
+            Text = jeIzmjena ? "Izmijeni vlasnika" : "Dodaj novog vlasnika";
+            btnSpremi.Text = jeIzmjena ? "💾 Spremi izmjene" : "💾 Dodaj";
+
+            if (jeIzmjena)
+                UcitajVlasnika(_vlasnikId!.Value);
         }
 
-        private void LoadVlasnik(int vlasnikId)
+        private void UcitajVlasnika(int vlasnikId)
         {
             var v = _db.Vlasnici.Find(vlasnikId);
             if (v == null) return;
 
-            txtImePrezime.Text = v.ImePrezime ?? "";
-            dtDatumValjanosti.Value = v.DatumValjanostiDokumenta ?? DateTime.Now;
+            txtImePrezime.Text = v.ImePrezime ?? string.Empty;
             txtProcetat.Text = v.ProcenatVlasnistva.ToString("F2");
+            txtIzvorPodatka.Text = v.IzvorPodatka ?? string.Empty;
+            dtDatumValjanosti.Value = v.DatumValjanostiDokumenta ?? DateTime.Now;
             dtDatumUtvrdjivanja.Value = v.DatumUtvrdjivanja ?? DateTime.Now;
-            txtIzvorPodatka.Text = v.IzvorPodatka ?? "";
         }
 
+        
         private void btnSpremi_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
@@ -63,15 +61,10 @@ namespace OwnerTrack.App
                     txtProcetat.Text.Replace(",", ".").Trim(),
                     System.Globalization.NumberStyles.Number,
                     System.Globalization.CultureInfo.InvariantCulture,
-                    out decimal procenat))
+                    out decimal procenat)
+                || procenat < 0 || procenat > 100)
             {
-                MessageBox.Show("Procenat mora biti broj (npr. 25 ili 33.5)!");
-                return;
-            }
-
-            if (procenat < 0 || procenat > 100)
-            {
-                MessageBox.Show("Procenat vlasništva mora biti između 0 i 100!",
+                MessageBox.Show("Procenat vlasništva mora biti broj između 0 i 100!",
                     "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtProcetat.Focus();
                 return;
@@ -104,9 +97,24 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                Program.LogException(ex);
-                MessageBox.Show($"Greška: {ex.Message}");
+                DialogHelper.LogirajIPokaziGresku(ex);
             }
+        }
+
+        private void btnOtkazi_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
+
+       
+        private void PrimijeniPolja(Vlasnik v, string imePrezime, decimal procenat)
+        {
+            v.ImePrezime = imePrezime;
+            v.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
+            v.ProcenatVlasnistva = procenat;
+            v.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
+            v.IzvorPodatka = txtIzvorPodatka.Text;
         }
 
         private void SpremiIzmjenu(int vlasnikId, string imePrezime, decimal procenat)
@@ -114,66 +122,33 @@ namespace OwnerTrack.App
             var v = _db.Vlasnici.Find(vlasnikId);
             if (v == null) return;
 
-            string stariNaziv = v.ImePrezime ?? "";
+            string stariNaziv = v.ImePrezime ?? string.Empty;
+            PrimijeniPolja(v, imePrezime, procenat);
 
-            v.ImePrezime = imePrezime;
-            v.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
-            v.ProcenatVlasnistva = procenat;
-            v.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
-            v.IzvorPodatka = txtIzvorPodatka.Text ?? "";
-
-            using var tx = _db.Database.BeginTransaction();
-            try
+            TransactionHelper.Execute(_db, db =>
             {
-                _db.SaveChanges();
+                db.SaveChanges();
                 _audit.Izmijenjeno("Vlasnici", vlasnikId, $"'{stariNaziv}' → '{imePrezime}'");
-                _db.SaveChanges();
-                tx.Commit();
-            }
-            catch
-            {
-                tx.Rollback();
-                throw;
-            }
+                db.SaveChanges();
+            });
 
             MessageBox.Show("Ažurirano!");
         }
 
         private void SpremiNovog(string imePrezime, decimal procenat)
         {
-            var v = new Vlasnik
-            {
-                KlijentId = _klijentId,
-                ImePrezime = imePrezime,
-                DatumValjanostiDokumenta = dtDatumValjanosti.Value,
-                ProcenatVlasnistva = procenat,
-                DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value,
-                IzvorPodatka = txtIzvorPodatka.Text ?? "",
-                Status = StatusEntiteta.AKTIVAN
-            };
+            var v = new Vlasnik { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
+            PrimijeniPolja(v, imePrezime, procenat);
 
-            using var tx = _db.Database.BeginTransaction();
-            try
+            TransactionHelper.Execute(_db, db =>
             {
-                _db.Vlasnici.Add(v);
-                _db.SaveChanges();
+                db.Vlasnici.Add(v);
+                db.SaveChanges();
                 _audit.Dodano("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'");
-                _db.SaveChanges();
-                tx.Commit();
-            }
-            catch
-            {
-                tx.Rollback();
-                throw;
-            }
+                db.SaveChanges();
+            });
 
             MessageBox.Show("Dodano!");
-        }
-
-        private void btnOtkazi_Click(object sender, EventArgs e)
-        {
-            DialogResult = DialogResult.Cancel;
-            Close();
         }
     }
 }

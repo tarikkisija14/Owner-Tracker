@@ -4,14 +4,17 @@ namespace OwnerTrack.Infrastructure.Validators
 {
     public static class JibValidator
     {
+        private const int RequiredLength = 13;
+
         public static bool JeValidan(string jib)
         {
             if (string.IsNullOrWhiteSpace(jib)) return false;
             jib = jib.Trim();
-            return jib.Length == 13 && jib.All(char.IsDigit);
+            return jib.Length == RequiredLength && jib.All(char.IsDigit);
         }
 
-        public static string? GreškaValidacije(string jib)
+        
+        public static string? GreskaValidacije(string jib)
         {
             if (string.IsNullOrWhiteSpace(jib))
                 return "ID broj je obavezan.";
@@ -21,8 +24,8 @@ namespace OwnerTrack.Infrastructure.Validators
             if (!jib.All(char.IsDigit))
                 return "ID broj smije sadržavati samo cifre.";
 
-            if (jib.Length != 13)
-                return $"ID broj mora imati tačno 13 cifara (uneseno: {jib.Length}).";
+            if (jib.Length != RequiredLength)
+                return $"ID broj mora imati tačno {RequiredLength} cifara (uneseno: {jib.Length}).";
 
             return null;
         }

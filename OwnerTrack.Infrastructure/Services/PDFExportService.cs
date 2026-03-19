@@ -13,19 +13,21 @@ namespace OwnerTrack.Infrastructure.Services
 {
     public class PdfExportService
     {
-        private readonly OwnerTrackDbContext _db;
+        
+        private const string ColourNavy = "#1a3a5c";
+        private const string ColourNavyLight = "#e8f0f8";
+        private const string ColourGrey = "#f5f5f5";
+        private const string ColourBorder = "#c0c8d4";
+        private const string ColourGreen = "#2e7d32";
+        private const string ColourRed = "#c62828";
+        private const string ColourOrange = "#e65100";
+        private const string ColourText = "#212121";
+        private const string ColourTextMuted = "#555555";
+        private const string ColourFooter = "#888888";
+        private const string ColourHeaderSub = "#b0c4de";
+        private const string ColourWhite = "#ffffff";
 
-        private static readonly string BojaPlava = "#1a3a5c";
-        private static readonly string BojaPlavaLight = "#e8f0f8";
-        private static readonly string BojaSiva = "#f5f5f5";
-        private static readonly string BojaLinija = "#c0c8d4";
-        private static readonly string BojaZelena = "#2e7d32";
-        private static readonly string BojaCrvena = "#c62828";
-        private static readonly string BojaOrandzasta = "#e65100";
-        private static readonly string BojaTekst = "#212121";
-        private static readonly string BojaSivaTekst = "#555555";
-        private static readonly string BojaFooter = "#888888";
-        private static readonly string BojaHeaderSub = "#b0c4de";
+        private readonly OwnerTrackDbContext _db;
 
         public PdfExportService(OwnerTrackDbContext db)
         {
@@ -33,15 +35,10 @@ namespace OwnerTrack.Infrastructure.Services
             QuestPDF.Settings.License = LicenseType.Community;
         }
 
+        
         public string GenerirajPdf(int klijentId, string outputPath)
         {
-            var k = _db.Klijenti
-                .AsNoTracking()
-                .Include(x => x.Djelatnost)
-                .Include(x => x.Vlasnici)
-                .Include(x => x.Direktori)
-                .Include(x => x.Ugovor)
-                .FirstOrDefault(x => x.Id == klijentId)
+            var k = LoadKlijent(klijentId)
                 ?? throw new InvalidOperationException($"Klijent ID={klijentId} nije pronađen.");
 
             Document.Create(container =>
@@ -50,7 +47,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(18, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(9).FontColor(BojaTekst));
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(9).FontColor(ColourText));
 
                     page.Header().Element(c => BuildHeader(c, k));
                     page.Content().Element(c => BuildContent(c, k));
@@ -61,34 +58,68 @@ namespace OwnerTrack.Infrastructure.Services
             return outputPath;
         }
 
+       
+        public string GenerirajTabeluKlijenata(List<int> klijentIds, string outputPath)
+        {
+            
+            var klijentiById = _db.Klijenti
+                .AsNoTracking()
+                .Include(x => x.Djelatnost)
+                .Include(x => x.Vlasnici)
+                .Include(x => x.Direktori)
+                .Include(x => x.Ugovor)
+                .Where(x => klijentIds.Contains(x.Id))
+                .ToDictionary(k => k.Id);
+
+            var klijenti = klijentIds
+                .Where(id => klijentiById.ContainsKey(id))
+                .Select(id => klijentiById[id])
+                .ToList();
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(12, Unit.Millimetre);
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(7.5f).FontColor(ColourText));
+
+                    page.Header().Element(c => BuildTabelaHeader(c, klijenti.Count));
+                    page.Content().Element(c => BuildTabelaSadrzaj(c, klijenti));
+                    page.Footer().Element(BuildFooter);
+                });
+            }).GeneratePdf(outputPath);
+
+            return outputPath;
+        }
+
+      
         private void BuildHeader(IContainer c, Klijent k)
         {
-            var statusBoja = k.Status == StatusEntiteta.AKTIVAN ? BojaZelena
-                           : k.Status == StatusEntiteta.NEAKTIVAN ? BojaCrvena
-                                                                  : BojaOrandzasta;
+            string statusColour = StatusColour(k.Status);
 
-            c.Background(BojaPlava).Padding(14).Row(row =>
+            c.Background(ColourNavy).Padding(14).Row(row =>
             {
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text(txt =>
                     {
                         txt.AlignCenter();
-                        txt.Span(k.Naziv).FontSize(20).FontColor("#ffffff").Bold();
+                        txt.Span(k.Naziv).FontSize(20).FontColor(ColourWhite).Bold();
                     });
                     col.Item().PaddingTop(4).Text(txt =>
                     {
                         txt.AlignCenter();
-                        txt.Span($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}").FontSize(10).FontColor(BojaHeaderSub);
+                        txt.Span($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}").FontSize(10).FontColor(ColourHeaderSub);
                     });
                 });
 
                 row.ConstantItem(70).AlignMiddle().AlignRight()
-                   .Background(statusBoja).Padding(5)
+                   .Background(statusColour).Padding(5)
                    .Text(txt =>
                    {
                        txt.AlignCenter();
-                       txt.Span(Fmt(k.Status)).FontSize(9).FontColor("#ffffff").Bold();
+                       txt.Span(Fmt(k.Status)).FontSize(9).FontColor(ColourWhite).Bold();
                    });
             });
         }
@@ -99,44 +130,37 @@ namespace OwnerTrack.Infrastructure.Services
             {
                 col.Spacing(10);
 
-                col.Item().Element(x => SekcijaHeader(x, "OSNOVNI PODACI"));
+                col.Item().Element(x => SectionHeader(x, "OSNOVNI PODACI"));
                 col.Item().Element(x => BuildOsnoviPodaci(x, k));
 
-                col.Item().Element(x => SekcijaHeader(x, "PROCJENA RIZIKA"));
+                col.Item().Element(x => SectionHeader(x, "PROCJENA RIZIKA"));
                 col.Item().Element(x => BuildRizik(x, k));
 
-                col.Item().Element(x => SekcijaHeader(x, "UGOVOR"));
+                col.Item().Element(x => SectionHeader(x, "UGOVOR"));
                 col.Item().Element(x => BuildUgovor(x, k.Ugovor));
 
                 var vlasnici = k.Vlasnici.ToList();
-                col.Item().Element(x => SekcijaHeader(x, $"VLASNICI  ({vlasnici.Count})"));
+                col.Item().Element(x => SectionHeader(x, $"VLASNICI  ({vlasnici.Count})"));
                 col.Item().Element(x => BuildVlasnici(x, vlasnici));
 
                 var direktori = k.Direktori.ToList();
-                col.Item().Element(x => SekcijaHeader(x, $"DIREKTORI  ({direktori.Count})"));
+                col.Item().Element(x => SectionHeader(x, $"DIREKTORI  ({direktori.Count})"));
                 col.Item().Element(x => BuildDirektori(x, direktori));
             });
         }
 
-        private void SekcijaHeader(IContainer c, string tekst)
-        {
-            c.Background(BojaPlavaLight)
-             .PaddingHorizontal(10).PaddingVertical(7)
-             .Text(txt => txt.Span(tekst).FontSize(10).FontColor(BojaPlava).Bold());
-        }
-
         private void BuildOsnoviPodaci(IContainer c, Klijent k)
         {
-            var djelatnost = string.IsNullOrWhiteSpace(k.SifraDjelatnosti)
+            string djelatnost = string.IsNullOrWhiteSpace(k.SifraDjelatnosti)
                 ? Fmt(k.Djelatnost?.Naziv)
                 : $"{k.SifraDjelatnosti} – {Fmt(k.Djelatnost?.Naziv)}";
 
-            var redovi = new List<(string, string, string, string)>
+            var rows = new List<(string, string, string, string)>
             {
-               ("Adresa:",         Fmt(k.Adresa),           "Datum osnivanja:", FmtDatum(k.DatumOsnivanja)),
-               ("Djelatnost:",     djelatnost,              "Datum uspostave:", FmtDatum(k.DatumUspostave)),
-               ("Veličina firme:", Fmt(k.Velicina),         "Ovjera / CR:",     Fmt(k.OvjeraCr)),
-               ("Email:",          Fmt(k.Email),            "Telefon:",         Fmt(k.Telefon)),
+                ("Adresa:",         Fmt(k.Adresa),    "Datum osnivanja:", FmtDate(k.DatumOsnivanja)),
+                ("Djelatnost:",     djelatnost,       "Datum uspostave:", FmtDate(k.DatumUspostave)),
+                ("Veličina firme:", Fmt(k.Velicina),  "Ovjera / CR:",     Fmt(k.OvjeraCr)),
+                ("Email:",          Fmt(k.Email),     "Telefon:",         Fmt(k.Telefon)),
             };
 
             c.Table(tbl =>
@@ -149,21 +173,18 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                for (int i = 0; i < redovi.Count; i++)
+                for (int i = 0; i < rows.Count; i++)
                 {
-                    var (l1, v1, l2, v2) = redovi[i];
-                    var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
-                    InfoRed(tbl, bg, l1, v1, l2, v2);
+                    var (l1, v1, l2, v2) = rows[i];
+                    InfoRow(tbl, AlternatingBg(i), l1, v1, l2, v2);
                 }
 
                 if (!string.IsNullOrWhiteSpace(k.Napomena))
                 {
-                    var bg = redovi.Count % 2 == 0 ? "#ffffff" : BojaSiva;
-                    tbl.Cell().Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span("Napomena:").FontColor(BojaSivaTekst));
-                    tbl.Cell().ColumnSpan(3).Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
+                    string bg = AlternatingBg(rows.Count);
+                    tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span("Napomena:").FontColor(ColourTextMuted));
+                    tbl.Cell().ColumnSpan(3).Background(bg).PaddingHorizontal(8).PaddingVertical(5)
                        .Text(txt => txt.Span(k.Napomena).Bold());
                 }
             });
@@ -181,34 +202,27 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                var redovi = new List<(string, string, string, string)>
+                var rows = new List<(string, string, string, string)>
                 {
-                    ("PEP:",              Fmt(k.PepRizik),       "UBO:",              Fmt(k.UboRizik)),
-                    ("Gotovina rizik:",   Fmt(k.GotovinaRizik),  "Geografski rizik:", Fmt(k.GeografskiRizik)),
-                    ("Ukupna procjena:",  Fmt(k.UkupnaProcjena), "Datum procjene:",   FmtDatum(k.DatumProcjene)),
+                    ("PEP:",             Fmt(k.PepRizik),       "UBO:",              Fmt(k.UboRizik)),
+                    ("Gotovina rizik:",  Fmt(k.GotovinaRizik),  "Geografski rizik:", Fmt(k.GeografskiRizik)),
+                    ("Ukupna procjena:", Fmt(k.UkupnaProcjena), "Datum procjene:",   FmtDate(k.DatumProcjene)),
                 };
 
-                for (int i = 0; i < redovi.Count; i++)
+                for (int i = 0; i < rows.Count; i++)
                 {
-                    var (l1, v1, l2, v2) = redovi[i];
-                    var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
+                    var (l1, v1, l2, v2) = rows[i];
+                    string bg = AlternatingBg(i);
+                    bool coloured = i < 2;
 
-                    bool bojano = i < 2;
-                    var boja1 = bojano ? DaNeBoja(v1) : BojaTekst;
-                    var boja2 = bojano ? DaNeBoja(v2) : BojaTekst;
-
-                    tbl.Cell().Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(l1).FontColor(BojaSivaTekst));
-                    tbl.Cell().Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(v1).Bold().FontColor(boja1));
-                    tbl.Cell().Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(l2).FontColor(BojaSivaTekst));
-                    tbl.Cell().Background(bg)
-                       .PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(v2).Bold().FontColor(boja2));
+                    tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(l1).FontColor(ColourTextMuted));
+                    tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(v1).Bold().FontColor(coloured ? DaNeColour(v1) : ColourText));
+                    tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(l2).FontColor(ColourTextMuted));
+                    tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+                       .Text(txt => txt.Span(v2).Bold().FontColor(coloured ? DaNeColour(v2) : ColourText));
                 }
             });
         }
@@ -218,15 +232,14 @@ namespace OwnerTrack.Infrastructure.Services
             if (u == null)
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text(txt => txt.Span("Nema podataka o ugovoru.").FontColor(BojaFooter).Italic());
+                 .Text(txt => txt.Span("Nema podataka o ugovoru.").FontColor(ColourFooter).Italic());
                 return;
             }
 
-            var statusUgovoraTekst = u.StatusUgovora ?? "—";
-
-            var statusBoja = statusUgovoraTekst == StatusUgovora.Potpisan ? BojaZelena
-                           : statusUgovoraTekst == StatusUgovora.Otkazan || statusUgovoraTekst == StatusUgovora.Neaktivan ? BojaCrvena
-                                                                                          : BojaOrandzasta;
+            string statusTekst = u.StatusUgovora ?? "—";
+            string statusColour = statusTekst == StatusUgovora.Potpisan ? ColourGreen
+                                : statusTekst is StatusUgovora.Otkazan or StatusUgovora.Neaktivan ? ColourRed
+                                : ColourOrange;
 
             c.Table(tbl =>
             {
@@ -238,21 +251,17 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                tbl.Cell().Background("#ffffff")
-                   .PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span("Status ugovora:").FontColor(BojaSivaTekst));
-                tbl.Cell().Background("#ffffff")
-                   .PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span(Fmt(u.StatusUgovora)).Bold().FontColor(statusBoja));
-                tbl.Cell().Background("#ffffff")
-                   .PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span("Datum ugovora:").FontColor(BojaSivaTekst));
-                tbl.Cell().Background("#ffffff")
-                   .PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span(FmtDatum(u.DatumUgovora)).Bold());
+                tbl.Cell().Background(ColourWhite).PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span("Status ugovora:").FontColor(ColourTextMuted));
+                tbl.Cell().Background(ColourWhite).PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span(Fmt(u.StatusUgovora)).Bold().FontColor(statusColour));
+                tbl.Cell().Background(ColourWhite).PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span("Datum ugovora:").FontColor(ColourTextMuted));
+                tbl.Cell().Background(ColourWhite).PaddingHorizontal(8).PaddingVertical(5)
+                   .Text(txt => txt.Span(FmtDate(u.DatumUgovora)).Bold());
 
                 if (!string.IsNullOrWhiteSpace(u.VrstaUgovora) || !string.IsNullOrWhiteSpace(u.Napomena))
-                    InfoRed(tbl, BojaSiva, "Vrsta ugovora:", Fmt(u.VrstaUgovora), "Napomena:", Fmt(u.Napomena));
+                    InfoRow(tbl, ColourGrey, "Vrsta ugovora:", Fmt(u.VrstaUgovora), "Napomena:", Fmt(u.Napomena));
             });
         }
 
@@ -261,7 +270,7 @@ namespace OwnerTrack.Infrastructure.Services
             if (!vlasnici.Any())
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text(txt => txt.Span("Nema evidentiranih vlasnika.").FontColor(BojaFooter).Italic());
+                 .Text(txt => txt.Span("Nema evidentiranih vlasnika.").FontColor(ColourFooter).Italic());
                 return;
             }
 
@@ -279,23 +288,22 @@ namespace OwnerTrack.Infrastructure.Services
                 });
 
                 foreach (var h in new[] { "#", "Ime i prezime", "% vlasn.", "Valjanost dok.", "Datum utvrđ.", "Izvor podatka", "Status" })
-                    TabHdr(tbl, h);
+                    TableHeader(tbl, h);
 
                 for (int i = 0; i < vlasnici.Count; i++)
                 {
                     var v = vlasnici[i];
-                    var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
+                    string bg = AlternatingBg(i);
+                    string sc = v.Status == StatusEntiteta.AKTIVAN ? ColourGreen : ColourRed;
+                    string pct = v.ProcenatVlasnistva > 0 ? $"{v.ProcenatVlasnistva:0.##} %" : "—";
 
-                    var sc = v.Status == StatusEntiteta.AKTIVAN ? BojaZelena : BojaCrvena;
-                    var pct = v.ProcenatVlasnistva > 0 ? $"{v.ProcenatVlasnistva:0.##} %" : "—";
-
-                    TabCell(tbl, bg, (i + 1).ToString(), center: true);
-                    TabCell(tbl, bg, Fmt(v.ImePrezime));
-                    TabCell(tbl, bg, pct, center: true);
-                    TabCell(tbl, bg, FmtDatum(v.DatumValjanostiDokumenta), center: true);
-                    TabCell(tbl, bg, FmtDatum(v.DatumUtvrdjivanja), center: true);
-                    TabCell(tbl, bg, Fmt(v.IzvorPodatka));
-                    TabCell(tbl, bg, Fmt(v.Status), bold: true, boja: sc, center: true);
+                    TableCell(tbl, bg, (i + 1).ToString(), center: true);
+                    TableCell(tbl, bg, Fmt(v.ImePrezime));
+                    TableCell(tbl, bg, pct, center: true);
+                    TableCell(tbl, bg, FmtDate(v.DatumValjanostiDokumenta), center: true);
+                    TableCell(tbl, bg, FmtDate(v.DatumUtvrdjivanja), center: true);
+                    TableCell(tbl, bg, Fmt(v.IzvorPodatka));
+                    TableCell(tbl, bg, Fmt(v.Status), bold: true, colour: sc, center: true);
                 }
             });
         }
@@ -305,7 +313,7 @@ namespace OwnerTrack.Infrastructure.Services
             if (!direktori.Any())
             {
                 c.PaddingHorizontal(8).PaddingVertical(5)
-                 .Text(txt => txt.Span("Nema evidentiranih direktora.").FontColor(BojaFooter).Italic());
+                 .Text(txt => txt.Span("Nema evidentiranih direktora.").FontColor(ColourFooter).Italic());
                 return;
             }
 
@@ -322,153 +330,39 @@ namespace OwnerTrack.Infrastructure.Services
                 });
 
                 foreach (var h in new[] { "#", "Ime i prezime", "JMBG", "Tip valjanosti", "Datum valjanosti", "Status" })
-                    TabHdr(tbl, h);
+                    TableHeader(tbl, h);
 
                 for (int i = 0; i < direktori.Count; i++)
                 {
                     var d = direktori[i];
-                    var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
-
-                    var sc = d.Status == StatusEntiteta.AKTIVAN ? BojaZelena : BojaCrvena;
-                    var datVal = d.TipValjanosti == TipValjanostiKonstante.Trajno
+                    string bg = AlternatingBg(i);
+                    string sc = d.Status == StatusEntiteta.AKTIVAN ? ColourGreen : ColourRed;
+                    string datVal = d.TipValjanosti == TipValjanostiKonstante.Trajno
                         ? TipValjanostiKonstante.Trajno
-                        : FmtDatum(d.DatumValjanosti);
+                        : FmtDate(d.DatumValjanosti);
 
-                    TabCell(tbl, bg, (i + 1).ToString(), center: true);
-                    TabCell(tbl, bg, Fmt(d.ImePrezime));
-                    TabCell(tbl, bg, Fmt(d.Jmbg), center: true);
-                    TabCell(tbl, bg, Fmt(d.TipValjanosti), center: true);
-                    TabCell(tbl, bg, datVal, center: true);
-                    TabCell(tbl, bg, Fmt(d.Status), bold: true, boja: sc, center: true);
+                    TableCell(tbl, bg, (i + 1).ToString(), center: true);
+                    TableCell(tbl, bg, Fmt(d.ImePrezime));
+                    TableCell(tbl, bg, Fmt(d.Jmbg), center: true);
+                    TableCell(tbl, bg, Fmt(d.TipValjanosti), center: true);
+                    TableCell(tbl, bg, datVal, center: true);
+                    TableCell(tbl, bg, Fmt(d.Status), bold: true, colour: sc, center: true);
                 }
             });
         }
 
-        private void BuildFooter(IContainer c)
+       
+        private void BuildTabelaHeader(IContainer c, int total)
         {
-            c.PaddingTop(5).Row(row =>
-            {
-                row.RelativeItem()
-                   .Text(txt => txt.Span($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}").FontSize(7).FontColor(BojaFooter));
-
-                row.ConstantItem(60).AlignRight().Text(txt =>
-                {
-                    txt.Span("Stranica ").FontSize(7).FontColor(BojaFooter);
-                    txt.CurrentPageNumber().FontSize(7).FontColor(BojaFooter);
-                    txt.Span(" / ").FontSize(7).FontColor(BojaFooter);
-                    txt.TotalPages().FontSize(7).FontColor(BojaFooter);
-                });
-            });
-        }
-
-        private void InfoRed(TableDescriptor tbl, string bg, string l1, string v1, string l2, string v2)
-        {
-            tbl.Cell().Background(bg)
-               .PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(l1).FontColor(BojaSivaTekst));
-            tbl.Cell().Background(bg)
-               .PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(v1).Bold());
-            tbl.Cell().Background(bg)
-               .PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(l2).FontColor(BojaSivaTekst));
-            tbl.Cell().Background(bg)
-               .PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(v2).Bold());
-        }
-
-        private void TabHdr(TableDescriptor tbl, string tekst)
-        {
-            tbl.Cell().Background(BojaPlava).PaddingHorizontal(5).PaddingVertical(5)
-               .Text(txt =>
-               {
-                   txt.AlignCenter();
-                   txt.Span(tekst).FontSize(8).FontColor("#ffffff").Bold();
-               });
-        }
-
-        private void TabCell(TableDescriptor tbl, string bg, string tekst,
-                              bool bold = false, string? boja = null, bool center = false, bool noWrap = false)
-        {
-            var container = tbl.Cell().Background(bg)
-
-                               .PaddingHorizontal(5).PaddingVertical(4);
-
-            
-            IContainer cell = noWrap ? container.ShowOnce() : container;
-
-            cell.Text(txt =>
-            {
-                var span = txt.Span(tekst).FontSize(8);
-                if (bold) span.Bold();
-                if (boja != null) span.FontColor(boja);
-                if (center) txt.AlignCenter();
-            });
-        }
-
-        private static string Fmt(string? val) =>
-            string.IsNullOrWhiteSpace(val) ? "—" : val.Trim();
-
-        private static string Fmt(StatusEntiteta status) =>
-            status.ToString();
-
-        private static string Fmt(VrstaKlijenta? vrsta) =>
-            vrsta.HasValue ? vrsta.Value.ToString() : "—";
-
-        private static string FmtDatum(DateTime? dt) =>
-            dt.HasValue ? dt.Value.ToString("dd.MM.yyyy.") : "—";
-
-        private static string DaNeBoja(string? val) =>
-            (val ?? "").Trim().ToUpper() switch
-            {
-                var s when s == DaNeKonstante.Da => BojaCrvena,
-                var s when s == DaNeKonstante.Ne => BojaZelena,
-                _ => "#212121"
-            };
-
-        public string GenerirajTabeluKlijenata(List<int> klijentIds, string outputPath)
-        {
-            var klijenti = _db.Klijenti
-                .AsNoTracking()
-                .Include(x => x.Djelatnost)
-                .Include(x => x.Vlasnici)
-                .Include(x => x.Direktori)
-                .Include(x => x.Ugovor)
-                .Where(x => klijentIds.Contains(x.Id))
-                .ToList();
-
-            klijenti = klijentIds
-                .Select(id => klijenti.FirstOrDefault(k => k.Id == id))
-                .Where(k => k != null)
-                .ToList()!;
-
-            Document.Create(container =>
-            {
-                container.Page(page =>
-                {
-                    page.Size(PageSizes.A4.Landscape());
-                    page.Margin(12, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(7.5f).FontColor(BojaTekst));
-
-                    page.Header().Element(c => BuildTabelaHeader(c, klijenti.Count));
-                    page.Content().Element(c => BuildTabelaSadrzaj(c, klijenti));
-                    page.Footer().Element(BuildFooter);
-                });
-            }).GeneratePdf(outputPath);
-
-            return outputPath;
-        }
-
-        private void BuildTabelaHeader(IContainer c, int ukupno)
-        {
-            c.Background(BojaPlava).Padding(10).Row(row =>
+            c.Background(ColourNavy).Padding(10).Row(row =>
             {
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text(txt =>
-                        txt.Span("Pregled klijenata").FontSize(16).FontColor("#ffffff").Bold());
+                        txt.Span("Pregled klijenata").FontSize(16).FontColor(ColourWhite).Bold());
                     col.Item().PaddingTop(3).Text(txt =>
-                        txt.Span($"Ukupno klijenata: {ukupno}   |   Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}").FontSize(9).FontColor(BojaHeaderSub));
+                        txt.Span($"Ukupno klijenata: {total}   |   Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}")
+                           .FontSize(9).FontColor(ColourHeaderSub));
                 });
             });
         }
@@ -494,34 +388,127 @@ namespace OwnerTrack.Infrastructure.Services
                 });
 
                 foreach (var h in new[] { "#", "Naziv klijenta", "ID broj", "Djelatnost", "Veličina", "PEP", "UBO", "Procjena", "Ugovor", "Dat. uspostave", "Dat. osnivanja", "Status" })
-                    TabHdr(tbl, h);
+                    TableHeader(tbl, h);
 
                 for (int i = 0; i < klijenti.Count; i++)
                 {
                     var k = klijenti[i];
-                    var bg = i % 2 == 0 ? "#ffffff" : BojaSiva;
+                    string bg = AlternatingBg(i);
+                    string sc = k.Status == StatusEntiteta.AKTIVAN ? ColourGreen
+                               : k.Status == StatusEntiteta.ARHIVIRAN ? ColourOrange
+                               : ColourRed;
 
-                    var sc = k.Status == StatusEntiteta.AKTIVAN ? BojaZelena
-                           : k.Status == StatusEntiteta.ARHIVIRAN ? BojaOrandzasta
-                                                                   : BojaCrvena;
+                    string djelatnost = k.Djelatnost?.Naziv ?? k.SifraDjelatnosti ?? "—";
+                    string statusUgovora = k.Ugovor?.StatusUgovora ?? "—";
 
-                    var djelatnost = k.Djelatnost?.Naziv ?? k.SifraDjelatnosti ?? "—";
-                    var statusUgovora = k.Ugovor?.StatusUgovora ?? "—";
-
-                    TabCell(tbl, bg, (i + 1).ToString(), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.Naziv));
-                    TabCell(tbl, bg, Fmt(k.IdBroj), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(djelatnost));
-                    TabCell(tbl, bg, Fmt(k.Velicina), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.PepRizik), bold: true, boja: DaNeBoja(k.PepRizik), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.UboRizik), bold: true, boja: DaNeBoja(k.UboRizik), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.UkupnaProcjena), center: true);
-                    TabCell(tbl, bg, statusUgovora, center: true, noWrap: true);
-                    TabCell(tbl, bg, FmtDatum(k.DatumUspostave), center: true, noWrap: true);
-                    TabCell(tbl, bg, FmtDatum(k.DatumOsnivanja), center: true, noWrap: true);
-                    TabCell(tbl, bg, Fmt(k.Status), bold: true, boja: sc, center: true, noWrap: true);
+                    TableCell(tbl, bg, (i + 1).ToString(), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(k.Naziv));
+                    TableCell(tbl, bg, Fmt(k.IdBroj), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(djelatnost));
+                    TableCell(tbl, bg, Fmt(k.Velicina), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(k.PepRizik), bold: true, colour: DaNeColour(k.PepRizik), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(k.UboRizik), bold: true, colour: DaNeColour(k.UboRizik), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(k.UkupnaProcjena), center: true);
+                    TableCell(tbl, bg, statusUgovora, center: true, noWrap: true);
+                    TableCell(tbl, bg, FmtDate(k.DatumUspostave), center: true, noWrap: true);
+                    TableCell(tbl, bg, FmtDate(k.DatumOsnivanja), center: true, noWrap: true);
+                    TableCell(tbl, bg, Fmt(k.Status), bold: true, colour: sc, center: true, noWrap: true);
                 }
             });
         }
+
+       
+        private static void SectionHeader(IContainer c, string text)
+        {
+            c.Background(ColourNavyLight)
+             .PaddingHorizontal(10).PaddingVertical(7)
+             .Text(txt => txt.Span(text).FontSize(10).FontColor(ColourNavy).Bold());
+        }
+
+        private static void BuildFooter(IContainer c)
+        {
+            c.PaddingTop(5).Row(row =>
+            {
+                row.RelativeItem().Text(txt =>
+                    txt.Span($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}").FontSize(7).FontColor(ColourFooter));
+
+                row.ConstantItem(60).AlignRight().Text(txt =>
+                {
+                    txt.Span("Stranica ").FontSize(7).FontColor(ColourFooter);
+                    txt.CurrentPageNumber().FontSize(7).FontColor(ColourFooter);
+                    txt.Span(" / ").FontSize(7).FontColor(ColourFooter);
+                    txt.TotalPages().FontSize(7).FontColor(ColourFooter);
+                });
+            });
+        }
+
+        private static void InfoRow(TableDescriptor tbl, string bg,
+                                    string label1, string value1, string label2, string value2)
+        {
+            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(label1).FontColor(ColourTextMuted));
+            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(value1).Bold());
+            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(label2).FontColor(ColourTextMuted));
+            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
+               .Text(txt => txt.Span(value2).Bold());
+        }
+
+        private static void TableHeader(TableDescriptor tbl, string text)
+        {
+            tbl.Cell().Background(ColourNavy).PaddingHorizontal(5).PaddingVertical(5)
+               .Text(txt =>
+               {
+                   txt.AlignCenter();
+                   txt.Span(text).FontSize(8).FontColor(ColourWhite).Bold();
+               });
+        }
+
+        private static void TableCell(TableDescriptor tbl, string bg, string text,
+                                      bool bold = false, string? colour = null,
+                                      bool center = false, bool noWrap = false)
+        {
+            var container = tbl.Cell().Background(bg).PaddingHorizontal(5).PaddingVertical(4);
+            IContainer cell = noWrap ? container.ShowOnce() : container;
+
+            cell.Text(txt =>
+            {
+                var span = txt.Span(text).FontSize(8);
+                if (bold) span.Bold();
+                if (colour != null) span.FontColor(colour);
+                if (center) txt.AlignCenter();
+            });
+        }
+
+        
+
+        private static string Fmt(string? val) => string.IsNullOrWhiteSpace(val) ? "—" : val.Trim();
+        private static string Fmt(StatusEntiteta status) => status.ToString();
+        private static string Fmt(VrstaKlijenta? vrsta) => vrsta.HasValue ? vrsta.Value.ToString() : "—";
+        private static string FmtDate(DateTime? dt) => dt.HasValue ? dt.Value.ToString("dd.MM.yyyy.") : "—";
+        private static string AlternatingBg(int rowIndex) => rowIndex % 2 == 0 ? ColourWhite : ColourGrey;
+        private static string StatusColour(StatusEntiteta s) =>
+            s == StatusEntiteta.AKTIVAN ? ColourGreen :
+            s == StatusEntiteta.NEAKTIVAN ? ColourRed : ColourOrange;
+
+        private static string DaNeColour(string? val) =>
+            (val ?? "").Trim().ToUpperInvariant() switch
+            {
+                var s when s == DaNeKonstante.Da => ColourRed,
+                var s when s == DaNeKonstante.Ne => ColourGreen,
+                _ => ColourText,
+            };
+
+      
+
+        private Klijent? LoadKlijent(int klijentId) =>
+            _db.Klijenti
+               .AsNoTracking()
+               .Include(x => x.Djelatnost)
+               .Include(x => x.Vlasnici)
+               .Include(x => x.Direktori)
+               .Include(x => x.Ugovor)
+               .FirstOrDefault(x => x.Id == klijentId);
     }
 }

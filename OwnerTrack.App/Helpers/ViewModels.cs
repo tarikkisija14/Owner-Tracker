@@ -1,8 +1,8 @@
-﻿using System;
+﻿
+using System;
 
-namespace OwnerTrack.App
+namespace OwnerTrack.App.Helpers
 {
-   
     public class KlijentViewModel
     {
         public int Id { get; set; }
@@ -30,7 +30,6 @@ namespace OwnerTrack.App
         public string? Napomena { get; set; }
     }
 
-   
     public class VlasnikViewModel
     {
         public int Id { get; set; }
@@ -42,7 +41,6 @@ namespace OwnerTrack.App
         public string? StatusVlasnika { get; set; }
     }
 
-   
     public class DirektorViewModel
     {
         public int Id { get; set; }

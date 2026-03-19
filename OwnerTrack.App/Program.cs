@@ -1,5 +1,4 @@
-﻿using OwnerTrack.App;
-using OwnerTrack.Infrastructure.Database;
+﻿using OwnerTrack.Infrastructure.Database;
 using System.IO;
 using System.Text;
 
@@ -11,6 +10,7 @@ namespace OwnerTrack.App
         static void Main()
         {
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+
             Application.ThreadException += (s, e) =>
             {
                 LogException(e.Exception);
@@ -24,32 +24,29 @@ namespace OwnerTrack.App
             };
 
             AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-            {
                 LogException(e.ExceptionObject as Exception);
-            };
 
             ApplicationConfiguration.Initialize();
             Application.Run(new Form1());
         }
 
+      
         public static void LogException(Exception? ex)
         {
             try
             {
-                string logPath = GetLogPath();
                 var sb = new StringBuilder();
                 sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]");
-                sb.AppendLine($"Tip: {ex?.GetType().FullName ?? "nepoznat"}");
+                sb.AppendLine($"Tip:    {ex?.GetType().FullName ?? "nepoznat"}");
                 sb.AppendLine($"Poruka: {ex?.Message ?? "nema poruke"}");
                 sb.AppendLine($"Stack:\n{ex?.StackTrace ?? "nema stacka"}");
 
-                
                 var inner = ex?.InnerException;
                 int depth = 1;
                 while (inner != null)
                 {
                     sb.AppendLine($"--- Inner Exception [{depth}] ---");
-                    sb.AppendLine($"Tip: {inner.GetType().FullName}");
+                    sb.AppendLine($"Tip:    {inner.GetType().FullName}");
                     sb.AppendLine($"Poruka: {inner.Message}");
                     sb.AppendLine($"Stack:\n{inner.StackTrace}");
                     inner = inner.InnerException;
@@ -57,16 +54,18 @@ namespace OwnerTrack.App
                 }
 
                 sb.AppendLine(new string('-', 80));
-                File.AppendAllText(logPath, sb.ToString());
+                File.AppendAllText(GetLogPath(), sb.ToString());
             }
-            catch { }
+            catch { /* never let logging crash the app */ }
         }
 
         public static string FormatExceptionFull(Exception? ex)
         {
             if (ex == null) return "Nepoznata greška";
+
             var sb = new StringBuilder();
             sb.AppendLine(ex.Message);
+
             var inner = ex.InnerException;
             int depth = 1;
             while (inner != null)
@@ -75,6 +74,7 @@ namespace OwnerTrack.App
                 inner = inner.InnerException;
                 depth++;
             }
+
             return sb.ToString();
         }
 

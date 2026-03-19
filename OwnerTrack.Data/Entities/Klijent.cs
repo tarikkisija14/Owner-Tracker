@@ -28,7 +28,6 @@ namespace OwnerTrack.Data.Entities
 
         public DateTime? DatumUspostave { get; set; }
 
-        
         [StringLength(50)]
         public VrstaKlijenta? VrstaKlijenta { get; set; }
 
@@ -63,15 +62,15 @@ namespace OwnerTrack.Data.Entities
         [StringLength(1000)]
         public string? Napomena { get; set; }
 
-        public DateTime? Kreiran { get; set; }
-        public DateTime? Azuriran { get; set; }
-        public DateTime? Obrisan { get; set; }
-
         [StringLength(255)]
         public string? Email { get; set; }
 
         [StringLength(50)]
         public string? Telefon { get; set; }
+
+        public DateTime? Kreiran { get; set; }
+        public DateTime? Azuriran { get; set; }
+        public DateTime? Obrisan { get; set; }
 
         public virtual Djelatnost? Djelatnost { get; set; }
         public virtual ICollection<Vlasnik> Vlasnici { get; set; } = new List<Vlasnik>();

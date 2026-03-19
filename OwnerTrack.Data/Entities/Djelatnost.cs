@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OwnerTrack.Data.Entities
 {
@@ -17,7 +13,6 @@ namespace OwnerTrack.Data.Entities
         [StringLength(500)]
         public string Naziv { get; set; } = null!;
 
-        
         public ICollection<Klijent> Klijenti { get; set; } = new List<Klijent>();
     }
 }

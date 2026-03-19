@@ -1,11 +1,7 @@
 ﻿using OwnerTrack.Data.Enums;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OwnerTrack.Data.Entities
 {
@@ -20,7 +16,7 @@ namespace OwnerTrack.Data.Entities
 
         [Required]
         [StringLength(255)]
-        public string ImePrezime { get; set; }
+        public string ImePrezime { get; set; } = string.Empty;
 
         public DateTime? DatumValjanostiDokumenta { get; set; }
 
@@ -30,14 +26,13 @@ namespace OwnerTrack.Data.Entities
         public DateTime? DatumUtvrdjivanja { get; set; }
 
         [StringLength(255)]
-        public string IzvorPodatka { get; set; }
+        public string? IzvorPodatka { get; set; }
 
         public StatusEntiteta Status { get; set; } = StatusEntiteta.AKTIVAN;
 
         public DateTime Kreiran { get; set; } = DateTime.Now;
         public DateTime? Obrisan { get; set; }
 
-
-        public virtual Klijent Klijent { get; set; }
+        public virtual Klijent Klijent { get; set; } = null!;
     }
 }

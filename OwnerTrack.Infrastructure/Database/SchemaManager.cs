@@ -18,39 +18,38 @@ namespace OwnerTrack.Infrastructure
             using var conn = new SqliteConnection(_connectionString);
             conn.Open();
 
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS __SchemaVersion (
-                        Version INTEGER NOT NULL,
-                        AppliedAt TEXT NOT NULL
-                    )";
-                cmd.ExecuteNonQuery();
-            }
+            ExecSql(conn, null, @"
+                CREATE TABLE IF NOT EXISTS __SchemaVersion (
+                    Version   INTEGER NOT NULL,
+                    AppliedAt TEXT    NOT NULL
+                )");
 
-            int ver = GetCurrentVersion(conn);
-            Debug.WriteLine($"[SCHEMA] Trenutna verzija: {ver}");
+            int version = GetCurrentVersion(conn);
+            Debug.WriteLine($"[SCHEMA] Trenutna verzija: {version}");
 
-            if (ver >= 1 && !TabelaPostoji(conn, "Klijenti"))
+            
+            if (version >= 1 && !TableExists(conn, null, "Klijenti"))
             {
                 Debug.WriteLine("[SCHEMA] Verzija >= 1 ali tabele nedostaju — resetujem i kreiram od nule.");
-                ResetujtVerzijeUBazi(conn);
-                ver = 0;
+                ResetVersionHistory(conn);
+                version = 0;
             }
 
-            if (ver < 1) ApplyV1(conn);
-            if (ver < 2) ApplyV2(conn);
-            if (ver < 3) ApplyV3(conn);
-            if (ver < 4) ApplyV4(conn);
-            if (ver < 5) ApplyV5(conn);
-            if (ver < 6) ApplyV6(conn);
-            if (ver < 7) ApplyV7(conn);
-            if (ver < 8) ApplyV8(conn);
-            if (ver < 9) ApplyV9(conn);
-            if (ver < 10) ApplyV10(conn);
+            if (version < 1) ApplyV1(conn);
+            if (version < 2) ApplyV2(conn);
+            if (version < 3) ApplyV3(conn);
+            if (version < 4) ApplyV4(conn);
+            if (version < 5) ApplyV5(conn);
+            if (version < 6) ApplyV6(conn);
+            if (version < 7) ApplyV7(conn);
+            if (version < 8) ApplyV8(conn);
+            if (version < 9) ApplyV9(conn);
+            if (version < 10) ApplyV10(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
+
+    
 
         private void ApplyV1(SqliteConnection conn)
         {
@@ -92,7 +91,7 @@ namespace OwnerTrack.Infrastructure
                         FOREIGN KEY (SifraDjelatnosti) REFERENCES Djelatnosti(Sifra) ON DELETE RESTRICT
                     )");
 
-                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_Naziv ON Klijenti(Naziv)");
+                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_Naziv  ON Klijenti(Naziv)");
                 ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_IdBroj ON Klijenti(IdBroj)");
 
                 ExecSql(conn, tx, @"
@@ -154,7 +153,6 @@ namespace OwnerTrack.Infrastructure
                     )");
 
                 InsertDjelatnosti(conn, tx);
-
                 SetVersion(conn, 1, tx);
                 tx.Commit();
             }
@@ -171,7 +169,7 @@ namespace OwnerTrack.Infrastructure
             using var tx = conn.BeginTransaction();
             try
             {
-                bool hasUnique = false;
+                bool hasUnique;
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
@@ -187,13 +185,13 @@ namespace OwnerTrack.Infrastructure
                     ExecSql(conn, tx, "DROP TABLE IF EXISTS Direktori_new");
                     ExecSql(conn, tx, @"
                         CREATE TABLE Direktori_new (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            KlijentId INTEGER NOT NULL,
-                            ImePrezime TEXT NOT NULL,
+                            Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                            KlijentId       INTEGER NOT NULL,
+                            ImePrezime      TEXT NOT NULL,
                             DatumValjanosti TEXT,
-                            TipValjanosti TEXT,
-                            Status TEXT,
-                            Kreiran TEXT NOT NULL DEFAULT (datetime('now')),
+                            TipValjanosti   TEXT,
+                            Status          TEXT,
+                            Kreiran         TEXT NOT NULL DEFAULT (datetime('now')),
                             FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
                         )");
                     ExecSql(conn, tx, @"
@@ -244,12 +242,9 @@ namespace OwnerTrack.Infrastructure
             using var tx = conn.BeginTransaction();
             try
             {
-                if (TableExists(conn, tx, "Klijenti"))
-                    AddColumnIfMissing(conn, tx, "Klijenti", "Obrisan", "TEXT");
-                if (TableExists(conn, tx, "Vlasnici"))
-                    AddColumnIfMissing(conn, tx, "Vlasnici", "Obrisan", "TEXT");
-                if (TableExists(conn, tx, "Direktori"))
-                    AddColumnIfMissing(conn, tx, "Direktori", "Obrisan", "TEXT");
+                foreach (var table in new[] { "Klijenti", "Vlasnici", "Direktori" })
+                    if (TableExists(conn, tx, table))
+                        AddColumnIfMissing(conn, tx, table, "Obrisan", "TEXT");
 
                 SetVersion(conn, 4, tx);
                 tx.Commit();
@@ -295,6 +290,7 @@ namespace OwnerTrack.Infrastructure
             {
                 if (TableExists(conn, tx, "Direktori"))
                     AddColumnIfMissing(conn, tx, "Direktori", "Jmbg", "TEXT");
+
                 if (TableExists(conn, tx, "Klijenti"))
                 {
                     AddColumnIfMissing(conn, tx, "Klijenti", "Email", "TEXT");
@@ -393,6 +389,8 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
+        
+
         public void ReseedDjelatnosti()
         {
             using var conn = new SqliteConnection(_connectionString);
@@ -409,6 +407,8 @@ namespace OwnerTrack.Infrastructure
                 throw new InvalidOperationException($"ReseedDjelatnosti neuspješan: {ex.Message}", ex);
             }
         }
+
+        
 
         private void InsertDjelatnosti(SqliteConnection conn, SqliteTransaction tx)
         {
@@ -470,31 +470,43 @@ namespace OwnerTrack.Infrastructure
                 ("94.12", "Djelatnosti strukovnih članskih organizacija"),
                 ("94.91", "Djelatnosti vjerskih organizacija"),
                 ("94.99", "Okupljanje oboljelih od dijabetesa"),
-                ("96.03", "Pogrebne i srodne djelatnosti")
+                ("96.03", "Pogrebne i srodne djelatnosti"),
             };
 
-            var insertCmd = conn.CreateCommand();
-            insertCmd.Transaction = tx;
-            insertCmd.CommandText = "INSERT OR IGNORE INTO Djelatnosti (Sifra, Naziv) VALUES (@s, @n)";
-            insertCmd.Parameters.Add(new SqliteParameter("@s", ""));
-            insertCmd.Parameters.Add(new SqliteParameter("@n", ""));
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "INSERT OR IGNORE INTO Djelatnosti (Sifra, Naziv) VALUES (@s, @n)";
+            cmd.Parameters.Add(new SqliteParameter("@s", ""));
+            cmd.Parameters.Add(new SqliteParameter("@n", ""));
 
-            foreach (var d in djelatnosti)
+            foreach (var (sifra, naziv) in djelatnosti)
             {
-                insertCmd.Parameters["@s"].Value = d.Sifra;
-                insertCmd.Parameters["@n"].Value = d.Naziv;
-                insertCmd.ExecuteNonQuery();
+                cmd.Parameters["@s"].Value = sifra;
+                cmd.Parameters["@n"].Value = naziv;
+                cmd.ExecuteNonQuery();
             }
 
             Debug.WriteLine($"[SCHEMA] InsertDjelatnosti — obrađeno {djelatnosti.Length} šifara.");
         }
 
-        private void ExecSql(SqliteConnection conn, SqliteTransaction tx, string sql)
+        
+
+        private void ExecSql(SqliteConnection conn, SqliteTransaction? tx, string sql)
         {
             using var cmd = conn.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = sql;
             cmd.ExecuteNonQuery();
+        }
+
+        
+        private bool TableExists(SqliteConnection conn, SqliteTransaction? tx, string table)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@t";
+            cmd.Parameters.AddWithValue("@t", table);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
         }
 
         private bool ColumnExists(SqliteConnection conn, SqliteTransaction tx, string table, string column)
@@ -509,32 +521,8 @@ namespace OwnerTrack.Infrastructure
             return false;
         }
 
-        private bool TableExists(SqliteConnection conn, SqliteTransaction tx, string table)
-        {
-            using var cmd = conn.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@t";
-            cmd.Parameters.AddWithValue("@t", table);
-            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-        }
-
-        private bool TabelaPostoji(SqliteConnection conn, string table)
-        {
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@t";
-            cmd.Parameters.AddWithValue("@t", table);
-            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-        }
-
-        private void ResetujtVerzijeUBazi(SqliteConnection conn)
-        {
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM __SchemaVersion";
-            cmd.ExecuteNonQuery();
-        }
-
         private void AddColumnIfMissing(SqliteConnection conn, SqliteTransaction tx,
-                                         string table, string column, string type)
+                                        string table, string column, string type)
         {
             if (!ColumnExists(conn, tx, table, column))
                 ExecSql(conn, tx, $"ALTER TABLE {table} ADD COLUMN {column} {type}");
@@ -546,8 +534,7 @@ namespace OwnerTrack.Infrastructure
             cmd.Transaction = tx;
             cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=@n";
             cmd.Parameters.AddWithValue("@n", indexName);
-            bool exists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-            if (exists)
+            if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
                 ExecSql(conn, tx, $"DROP INDEX IF EXISTS \"{indexName}\"");
         }
 
@@ -566,6 +553,13 @@ namespace OwnerTrack.Infrastructure
             cmd.CommandText = "INSERT INTO __SchemaVersion (Version, AppliedAt) VALUES (@v, @d)";
             cmd.Parameters.AddWithValue("@v", version);
             cmd.Parameters.AddWithValue("@d", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.ExecuteNonQuery();
+        }
+
+        private void ResetVersionHistory(SqliteConnection conn)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DELETE FROM __SchemaVersion";
             cmd.ExecuteNonQuery();
         }
     }

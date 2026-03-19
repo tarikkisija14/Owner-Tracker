@@ -3,11 +3,13 @@ using OwnerTrack.Infrastructure.Database;
 using System;
 using System.IO;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Services
 {
-
     public class DatabaseService
     {
+        private static readonly string[] DataTables =
+            { "AuditLogs", "Ugovori", "Vlasnici", "Direktori", "Klijenti" };
+
         private readonly string _dbPath;
         private readonly string _connectionString;
 
@@ -17,31 +19,12 @@ namespace OwnerTrack.Infrastructure
             _connectionString = connectionString;
         }
 
-
+        
         public string ResetirajBazu()
         {
-            string backupPath = NapraviBackup();
+            string backupPath = KreirajBackup();
             ObrisiSvePodatke();
             return backupPath;
-        }
-
-        private string NapraviBackup()
-        {
-            if (!File.Exists(_dbPath))
-                return "";
-
-            string backupPath = _dbPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
-            try
-            {
-                File.Copy(_dbPath, backupPath, overwrite: true);
-                return backupPath;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(
-                    $"Backup baze nije uspio: {ex.Message}\n" +
-                    "Reset je otkazan radi sigurnosti podataka.", ex);
-            }
         }
 
         public void VratiBackup(string backupPath)
@@ -62,18 +45,34 @@ namespace OwnerTrack.Infrastructure
             }
         }
 
+      
+        private string KreirajBackup()
+        {
+            if (!File.Exists(_dbPath))
+                return string.Empty;
+
+            string backupPath = $"{_dbPath}.backup_{DateTime.Now:yyyyMMdd_HHmmss}";
+            try
+            {
+                File.Copy(_dbPath, backupPath, overwrite: true);
+                return backupPath;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Backup baze nije uspio: {ex.Message}\n" +
+                    "Reset je otkazan radi sigurnosti podataka.", ex);
+            }
+        }
+
         private void ObrisiSvePodatke()
         {
             using var db = DbContextFactory.Kreiraj();
             using var tx = db.Database.BeginTransaction();
             try
             {
-
-                db.Database.ExecuteSqlRaw("DELETE FROM AuditLogs");
-                db.Database.ExecuteSqlRaw("DELETE FROM Ugovori");
-                db.Database.ExecuteSqlRaw("DELETE FROM Vlasnici");
-                db.Database.ExecuteSqlRaw("DELETE FROM Direktori");
-                db.Database.ExecuteSqlRaw("DELETE FROM Klijenti");
+                foreach (var tabela in DataTables)
+                    db.Database.ExecuteSqlRaw($"DELETE FROM {tabela}");
 
                 db.Database.ExecuteSqlRaw(
                     "DELETE FROM sqlite_sequence WHERE name IN " +
@@ -87,9 +86,7 @@ namespace OwnerTrack.Infrastructure
                 throw;
             }
 
-
-            var schema = new SchemaManager(_connectionString);
-            schema.ReseedDjelatnosti();
+            new SchemaManager(_connectionString).ReseedDjelatnosti();
         }
     }
 }
