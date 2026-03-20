@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Klijent : ISoftDeletable
+    public class Klijent : IArchivable
     {
         [Key]
         public int Id { get; set; }

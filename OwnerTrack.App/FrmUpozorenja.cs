@@ -1,12 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using OwnerTrack.App.Helpers;
+﻿using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
+using OwnerTrack.Infrastructure.Models;
+using OwnerTrack.Infrastructure.Services;
 using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace OwnerTrack.App
 {
@@ -18,7 +15,6 @@ namespace OwnerTrack.App
         private List<UpozorenjeDetalj> _svaUpozorenja = new();
 
         public FrmUpozorenja() : this(DbContextFactory.Kreiraj(), dbOwned: true) { }
-
         public FrmUpozorenja(OwnerTrackDbContext db) : this(db, dbOwned: false) { }
 
         private FrmUpozorenja(OwnerTrackDbContext db, bool dbOwned)
@@ -29,6 +25,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void FrmUpozorenja_Load(object sender, EventArgs e) => UcitajUpozorenja();
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -37,21 +34,16 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-       
+        
+
         private void UcitajUpozorenja()
         {
             try
             {
-                var danas = DateTime.Today;
-                var granica = danas.AddDays(AppKonstante.DanaUpozerenja);
+                _svaUpozorenja = new WarningQueryService(_db).DohvatiUpozorenja();
 
-                _svaUpozorenja = UcitajUpozorenjaVlasnika(granica)
-                    .Concat(UcitajUpozerenjaDirektora(granica))
-                    .OrderBy(x => x.DatumIsteka)
-                    .ToList();
-
-                PrikaziSumarij(danas);
-                PrikaziGridFirme(danas);
+                PrikaziSumarij(DateTime.Today);
+                PrikaziGridFirme(DateTime.Today);
             }
             catch (Exception ex)
             {
@@ -59,44 +51,8 @@ namespace OwnerTrack.App
             }
         }
 
-        private List<UpozorenjeDetalj> UcitajUpozorenjaVlasnika(DateTime granica) =>
-            _db.Vlasnici
-                .AsNoTracking()
-                .Where(v => v.DatumValjanostiDokumenta != null
-                         && v.DatumValjanostiDokumenta <= granica
-                         && v.Status == StatusEntiteta.AKTIVAN
-                         && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
-                .Include(v => v.Klijent)
-                .Select(v => new UpozorenjeDetalj
-                {
-                    KlijentId = v.KlijentId,
-                    NazivFirme = v.Klijent.Naziv,
-                    ImePrezime = v.ImePrezime,
-                    Tip = "Vlasnik",
-                    DatumIsteka = v.DatumValjanostiDokumenta!.Value,
-                })
-                .ToList();
+        
 
-        private List<UpozorenjeDetalj> UcitajUpozerenjaDirektora(DateTime granica) =>
-            _db.Direktori
-                .AsNoTracking()
-                .Where(d => d.DatumValjanosti != null
-                         && d.DatumValjanosti <= granica
-                         && d.TipValjanosti == TipValjanostiKonstante.Vremenski
-                         && d.Status == StatusEntiteta.AKTIVAN
-                         && d.Klijent.Status != StatusEntiteta.ARHIVIRAN)
-                .Include(d => d.Klijent)
-                .Select(d => new UpozorenjeDetalj
-                {
-                    KlijentId = d.KlijentId,
-                    NazivFirme = d.Klijent.Naziv,
-                    ImePrezime = d.ImePrezime,
-                    Tip = "Direktor",
-                    DatumIsteka = d.DatumValjanosti!.Value,
-                })
-                .ToList();
-
-       
         private void PrikaziSumarij(DateTime danas)
         {
             int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
@@ -130,7 +86,7 @@ namespace OwnerTrack.App
                     Firma = g.Key.NazivFirme,
                     Upozorenja = g.Count(),
                     NajbliziDatum = g.Min(x => x.DatumIsteka),
-                    DanaDoIsteka = (int)(g.Min(x => x.DatumIsteka) - danas).TotalDays,
+                    DanaDoIsteka = DaniDoIsteka(g.Min(x => x.DatumIsteka), danas),
                 })
                 .OrderBy(x => x.NajbliziDatum)
                 .ToList();
@@ -146,7 +102,8 @@ namespace OwnerTrack.App
             GridHelper.KonfigurirajKolonu(gridFirme, "DanaDoIsteka", "Dana do isteka", 15);
         }
 
-       
+        
+
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
             if (gridFirme.SelectedRows.Count == 0) { gridDetalji.DataSource = null; return; }
@@ -162,7 +119,7 @@ namespace OwnerTrack.App
                     x.Tip,
                     x.ImePrezime,
                     x.DatumIsteka,
-                    DanaDoIsteka = (int)(x.DatumIsteka - danas).TotalDays,
+                    DanaDoIsteka = DaniDoIsteka(x.DatumIsteka, danas),
                     Status = StatusTekst(x.DatumIsteka, danas),
                 })
                 .OrderBy(x => x.DatumIsteka)
@@ -180,6 +137,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
             => BojajRed(gridFirme, e);
 
@@ -196,6 +154,10 @@ namespace OwnerTrack.App
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
 
         
+
+        private static int DaniDoIsteka(DateTime datumIsteka, DateTime danas) =>
+            (int)(datumIsteka - danas).TotalDays;
+
         private static string StatusTekst(DateTime datumIsteka, DateTime danas) =>
             datumIsteka < danas ? "⛔ ISTEKLO"
             : datumIsteka <= danas.AddDays(AppKonstante.DanaKriticnoUpozorenje) ? "⚠ Kritično"

@@ -8,7 +8,6 @@ using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
 using System.Diagnostics;
 
-
 namespace OwnerTrack.App
 {
     public partial class Form1 : Form
@@ -29,7 +28,8 @@ namespace OwnerTrack.App
             Load += Form1_Load;
         }
 
-       
+        
+
         private void Form1_Load(object sender, EventArgs e)
         {
             try
@@ -63,6 +63,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void LoadVelicinaFilter()
         {
             cmbFilterVelicina.Items.Clear();
@@ -93,7 +94,8 @@ namespace OwnerTrack.App
             catch (Exception ex) { DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju djelatnosti"); }
         }
 
-       
+        
+
         private void LoadKlijenti(string filter = "", string sifraDjelatnosti = "", string velicina = "")
         {
             try
@@ -242,7 +244,8 @@ namespace OwnerTrack.App
             });
         }
 
-        
+       
+
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
             if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int id)) return;
@@ -285,6 +288,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
             using var db = DbContextFactory.Kreiraj();
@@ -310,9 +314,7 @@ namespace OwnerTrack.App
             {
                 var k = db.Klijenti.Find(id);
                 if (k == null) return;
-                k.Status = StatusEntiteta.ARHIVIRAN;
-                k.Obrisan = DateTime.Now;
-                new AuditService(db).Log("Klijenti", id, AuditKonstante.Obrisano, $"Arhivirana firma: '{k.Naziv}'");
+                new AuditService(db).Arhiviraj(k, "Klijenti", id, $"Arhivirana firma: '{k.Naziv}'");
                 db.SaveChanges();
             },
             nakonUspjeha: OsveziNakonIzmjene,
@@ -320,6 +322,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
             if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Prvo odaberi firmu!")) return;
@@ -349,9 +352,7 @@ namespace OwnerTrack.App
             {
                 var v = db.Vlasnici.Find(vlasnikId);
                 if (v == null) return;
-                v.Status = StatusEntiteta.ARHIVIRAN;
-                v.Obrisan = DateTime.Now;
-                new AuditService(db).Log("Vlasnici", vlasnikId, AuditKonstante.Obrisano, $"Arhiviran: '{v.ImePrezime}'");
+                new AuditService(db).Arhiviraj(v, "Vlasnici", vlasnikId, $"Arhiviran: '{v.ImePrezime}'");
                 db.SaveChanges();
             },
             nakonUspjeha: () => LoadVlasnici(klijentId),
@@ -359,6 +360,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
             if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Prvo odaberi firmu!")) return;
@@ -388,14 +390,14 @@ namespace OwnerTrack.App
             {
                 var d = db.Direktori.Find(direktorId);
                 if (d == null) return;
-                d.Status = StatusEntiteta.ARHIVIRAN;
-                d.Obrisan = DateTime.Now;
-                new AuditService(db).Log("Direktori", direktorId, AuditKonstante.Obrisano, $"Arhiviran: '{d.ImePrezime}'");
+                new AuditService(db).Arhiviraj(d, "Direktori", direktorId, $"Arhiviran: '{d.ImePrezime}'");
                 db.SaveChanges();
             },
             nakonUspjeha: () => LoadDirektori(klijentId),
             successMessage: "Direktor arhiviran.");
         }
+
+     
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
@@ -492,37 +494,14 @@ namespace OwnerTrack.App
         }
 
        
+
         private void OsvjeziUpozerenjaBadge()
         {
             try
             {
                 using var db = DbContextFactory.Kreiraj();
-                var danas = DateTime.Today;
-                var granica = danas.AddDays(AppKonstante.DanaUpozerenja);
-
-                bool imaIsteklih =
-                    db.Vlasnici.AsNoTracking().Any(v =>
-                        v.DatumValjanostiDokumenta < danas
-                        && v.Status == StatusEntiteta.AKTIVAN
-                        && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
-                    || db.Direktori.AsNoTracking().Any(d =>
-                        d.DatumValjanosti < danas
-                        && d.TipValjanosti == TipValjanostiKonstante.Vremenski
-                        && d.Status == StatusEntiteta.AKTIVAN
-                        && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
-
-                int count =
-                    db.Vlasnici.AsNoTracking().Count(v =>
-                        v.DatumValjanostiDokumenta <= granica
-                        && v.Status == StatusEntiteta.AKTIVAN
-                        && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
-                    + db.Direktori.AsNoTracking().Count(d =>
-                        d.DatumValjanosti <= granica
-                        && d.TipValjanosti == TipValjanostiKonstante.Vremenski
-                        && d.Status == StatusEntiteta.AKTIVAN
-                        && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
-
-                PostaviBadge(count, imaIsteklih);
+                var stats = new WarningQueryService(db).DohvatiStats();
+                PostaviBadge(stats.Count, stats.ImaIsteklih);
             }
             catch (Exception ex)
             {
@@ -556,6 +535,8 @@ namespace OwnerTrack.App
             using var db = DbContextFactory.Kreiraj();
             new FrmUpozorenja(db).ShowDialog(this);
         }
+
+       
 
         private async void btnExportTabelaPdf_Click(object sender, EventArgs e)
         {
@@ -609,6 +590,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void OsveziNakonIzmjene()
         {
             LoadDjelatnostiFilter();

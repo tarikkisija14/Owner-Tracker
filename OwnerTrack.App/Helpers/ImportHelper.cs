@@ -1,6 +1,5 @@
 ﻿using OwnerTrack.Infrastructure;
 using OwnerTrack.Infrastructure.Models;
-using System;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
@@ -81,8 +80,7 @@ namespace OwnerTrack.App.Helpers
                         cts.Token);
 
                     importZavrsen = true;
-                    btnZatvori.Enabled = true;
-                    btnOtkazi.Enabled = false;
+                    AzurirajStatusLabele(btnZatvori, btnOtkazi);
 
                     lblStatus.Text = cts.IsCancellationRequested
                         ? $"Import otkazan.\n" +
@@ -101,8 +99,7 @@ namespace OwnerTrack.App.Helpers
                 {
                     importZavrsen = true;
                     lblStatus.Text = "Import je otkazan od strane korisnika.";
-                    btnZatvori.Enabled = true;
-                    btnOtkazi.Enabled = false;
+                    AzurirajStatusLabele(btnZatvori, btnOtkazi);
                 }
                 catch (Exception ex)
                 {
@@ -115,7 +112,6 @@ namespace OwnerTrack.App.Helpers
                     return;
                 }
 
-                
                 void ZatvoriHandler(object? bs, EventArgs be)
                 {
                     btnZatvori.Click -= ZatvoriHandler;
@@ -129,7 +125,12 @@ namespace OwnerTrack.App.Helpers
             frm.ShowDialog(owner);
         }
 
-       
+        
+        private static void AzurirajStatusLabele(Button btnZatvori, Button btnOtkazi)
+        {
+            btnZatvori.Enabled = true;
+            btnOtkazi.Enabled = false;
+        }
 
         private static Form KreirajProgressFormu(
             out ProgressBar progressBar,

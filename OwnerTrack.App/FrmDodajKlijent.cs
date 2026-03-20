@@ -5,9 +5,6 @@ using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
 using OwnerTrack.Infrastructure.Validators;
-using System;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace OwnerTrack.App
 {
@@ -26,6 +23,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void FrmDodajKlijent_Load(object sender, EventArgs e)
         {
             PopuniComboe();
@@ -118,9 +116,9 @@ namespace OwnerTrack.App
         }
 
        
+
         private bool ValidirajPolja(string naziv, string idBroj)
         {
-            
             string? jibGreska = JibValidator.GreskaValidacije(idBroj);
             if (jibGreska != null)
             {
@@ -152,7 +150,8 @@ namespace OwnerTrack.App
             return true;
         }
 
-        
+       
+
         private void PrimijeniPoljaUKlijenta(Klijent k)
         {
             k.Adresa = txtAdresa.Text;
@@ -181,7 +180,8 @@ namespace OwnerTrack.App
             ugovor.DatumUgovora = dtDatumUgovora.Value;
         }
 
-       
+        
+
         private void btnSpremi_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtNaziv.Text) || string.IsNullOrWhiteSpace(txtIdBroj.Text))
@@ -217,7 +217,8 @@ namespace OwnerTrack.App
             Close();
         }
 
-       
+        
+
         private void SpremiIzmjenu(int id, string naziv, string idBroj)
         {
             var k = _db.Klijenti.Find(id);

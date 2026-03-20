@@ -2,7 +2,7 @@
 
 namespace OwnerTrack.App.Helpers
 {
-    internal class UpozorenjeDetalj
+    public class UpozorenjeDetalj
     {
         public int KlijentId { get; set; }
         public string NazivFirme { get; set; } = string.Empty;

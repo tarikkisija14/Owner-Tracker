@@ -27,7 +27,6 @@ namespace OwnerTrack.Infrastructure
             int version = GetCurrentVersion(conn);
             Debug.WriteLine($"[SCHEMA] Trenutna verzija: {version}");
 
-            
             if (version >= 1 && !TableExists(conn, null, "Klijenti"))
             {
                 Debug.WriteLine("[SCHEMA] Verzija >= 1 ali tabele nedostaju — resetujem i kreiram od nule.");
@@ -49,21 +48,18 @@ namespace OwnerTrack.Infrastructure
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
 
-    
+        
 
-        private void ApplyV1(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V1 — kreiranje svih osnovnih tabela...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV1(SqliteConnection conn) =>
+            ApplyMigration(conn, 1, "kreiranje svih osnovnih tabela", (c, tx) =>
             {
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Djelatnosti (
                         Sifra TEXT PRIMARY KEY NOT NULL,
                         Naziv TEXT NOT NULL
                     )");
 
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Klijenti (
                         Id               INTEGER PRIMARY KEY AUTOINCREMENT,
                         Naziv            TEXT NOT NULL,
@@ -91,10 +87,10 @@ namespace OwnerTrack.Infrastructure
                         FOREIGN KEY (SifraDjelatnosti) REFERENCES Djelatnosti(Sifra) ON DELETE RESTRICT
                     )");
 
-                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_Naziv  ON Klijenti(Naziv)");
-                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_IdBroj ON Klijenti(IdBroj)");
+                ExecSql(c, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_Naziv  ON Klijenti(Naziv)");
+                ExecSql(c, tx, "CREATE INDEX IF NOT EXISTS IX_Klijenti_IdBroj ON Klijenti(IdBroj)");
 
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Vlasnici (
                         Id                       INTEGER PRIMARY KEY AUTOINCREMENT,
                         KlijentId                INTEGER NOT NULL,
@@ -109,9 +105,9 @@ namespace OwnerTrack.Infrastructure
                         FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
                     )");
 
-                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Vlasnici_KlijentId_ImePrezime ON Vlasnici(KlijentId, ImePrezime)");
+                ExecSql(c, tx, "CREATE INDEX IF NOT EXISTS IX_Vlasnici_KlijentId_ImePrezime ON Vlasnici(KlijentId, ImePrezime)");
 
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Direktori (
                         Id              INTEGER PRIMARY KEY AUTOINCREMENT,
                         KlijentId       INTEGER NOT NULL,
@@ -125,9 +121,9 @@ namespace OwnerTrack.Infrastructure
                         FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
                     )");
 
-                ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Direktori_KlijentId ON Direktori(KlijentId)");
+                ExecSql(c, tx, "CREATE INDEX IF NOT EXISTS IX_Direktori_KlijentId ON Direktori(KlijentId)");
 
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Ugovori (
                         Id            INTEGER PRIMARY KEY AUTOINCREMENT,
                         KlijentId     INTEGER NOT NULL UNIQUE,
@@ -140,9 +136,9 @@ namespace OwnerTrack.Infrastructure
                         FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
                     )");
 
-                ExecSql(conn, tx, "CREATE UNIQUE INDEX IF NOT EXISTS IX_Ugovori_KlijentId ON Ugovori(KlijentId)");
+                ExecSql(c, tx, "CREATE UNIQUE INDEX IF NOT EXISTS IX_Ugovori_KlijentId ON Ugovori(KlijentId)");
 
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS AuditLogs (
                         Id        INTEGER PRIMARY KEY AUTOINCREMENT,
                         Tabela    TEXT    NOT NULL,
@@ -152,25 +148,14 @@ namespace OwnerTrack.Infrastructure
                         Vrijeme   TEXT    NOT NULL
                     )");
 
-                InsertDjelatnosti(conn, tx);
-                SetVersion(conn, 1, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V1 neuspješna: {ex.Message}", ex);
-            }
-        }
+                InsertDjelatnosti(c, tx);
+            });
 
-        private void ApplyV2(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V2 — uklanjanje unique constrainta na Direktori...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV2(SqliteConnection conn) =>
+            ApplyMigration(conn, 2, "uklanjanje unique constrainta na Direktori", (c, tx) =>
             {
                 bool hasUnique;
-                using (var cmd = conn.CreateCommand())
+                using (var cmd = c.CreateCommand())
                 {
                     cmd.CommandText = @"
                         SELECT COUNT(*) FROM sqlite_master
@@ -180,89 +165,52 @@ namespace OwnerTrack.Infrastructure
                     hasUnique = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
                 }
 
-                if (hasUnique)
-                {
-                    ExecSql(conn, tx, "DROP TABLE IF EXISTS Direktori_new");
-                    ExecSql(conn, tx, @"
-                        CREATE TABLE Direktori_new (
-                            Id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                            KlijentId       INTEGER NOT NULL,
-                            ImePrezime      TEXT NOT NULL,
-                            DatumValjanosti TEXT,
-                            TipValjanosti   TEXT,
-                            Status          TEXT,
-                            Kreiran         TEXT NOT NULL DEFAULT (datetime('now')),
-                            FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
-                        )");
-                    ExecSql(conn, tx, @"
-                        INSERT INTO Direktori_new
-                            (Id, KlijentId, ImePrezime, DatumValjanosti, TipValjanosti, Status, Kreiran)
-                        SELECT Id, KlijentId, ImePrezime, DatumValjanosti, TipValjanosti, Status, Kreiran
-                        FROM Direktori");
-                    ExecSql(conn, tx, "DROP TABLE Direktori");
-                    ExecSql(conn, tx, "ALTER TABLE Direktori_new RENAME TO Direktori");
-                    ExecSql(conn, tx, "CREATE INDEX IF NOT EXISTS IX_Direktori_KlijentId ON Direktori(KlijentId)");
-                }
+                if (!hasUnique) return;
 
-                SetVersion(conn, 2, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V2 neuspješna: {ex.Message}", ex);
-            }
-        }
+                ExecSql(c, tx, "DROP TABLE IF EXISTS Direktori_new");
+                ExecSql(c, tx, @"
+                    CREATE TABLE Direktori_new (
+                        Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                        KlijentId       INTEGER NOT NULL,
+                        ImePrezime      TEXT NOT NULL,
+                        DatumValjanosti TEXT,
+                        TipValjanosti   TEXT,
+                        Status          TEXT,
+                        Kreiran         TEXT NOT NULL DEFAULT (datetime('now')),
+                        FOREIGN KEY (KlijentId) REFERENCES Klijenti(Id) ON DELETE CASCADE
+                    )");
+                ExecSql(c, tx, @"
+                    INSERT INTO Direktori_new
+                        (Id, KlijentId, ImePrezime, DatumValjanosti, TipValjanosti, Status, Kreiran)
+                    SELECT Id, KlijentId, ImePrezime, DatumValjanosti, TipValjanosti, Status, Kreiran
+                    FROM Direktori");
+                ExecSql(c, tx, "DROP TABLE Direktori");
+                ExecSql(c, tx, "ALTER TABLE Direktori_new RENAME TO Direktori");
+                ExecSql(c, tx, "CREATE INDEX IF NOT EXISTS IX_Direktori_KlijentId ON Direktori(KlijentId)");
+            });
 
-        private void ApplyV3(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V3 — rename ProcetatVlasnistva → ProcenatVlasnistva...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV3(SqliteConnection conn) =>
+            ApplyMigration(conn, 3, "rename ProcetatVlasnistva → ProcenatVlasnistva", (c, tx) =>
             {
-                bool oldExists = ColumnExists(conn, tx, "Vlasnici", "ProcetatVlasnistva");
-                bool newExists = ColumnExists(conn, tx, "Vlasnici", "ProcenatVlasnistva");
+                bool oldExists = ColumnExists(c, tx, "Vlasnici", "ProcetatVlasnistva");
+                bool newExists = ColumnExists(c, tx, "Vlasnici", "ProcenatVlasnistva");
 
                 if (oldExists && !newExists)
-                    ExecSql(conn, tx, "ALTER TABLE Vlasnici RENAME COLUMN ProcetatVlasnistva TO ProcenatVlasnistva");
+                    ExecSql(c, tx, "ALTER TABLE Vlasnici RENAME COLUMN ProcetatVlasnistva TO ProcenatVlasnistva");
+            });
 
-                SetVersion(conn, 3, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V3 neuspješna: {ex.Message}", ex);
-            }
-        }
-
-        private void ApplyV4(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V4 — dodavanje Obrisan kolona...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV4(SqliteConnection conn) =>
+            ApplyMigration(conn, 4, "dodavanje Obrisan kolona", (c, tx) =>
             {
                 foreach (var table in new[] { "Klijenti", "Vlasnici", "Direktori" })
-                    if (TableExists(conn, tx, table))
-                        AddColumnIfMissing(conn, tx, table, "Obrisan", "TEXT");
+                    if (TableExists(c, tx, table))
+                        AddColumnIfMissing(c, tx, table, "Obrisan", "TEXT");
+            });
 
-                SetVersion(conn, 4, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
+        private void ApplyV5(SqliteConnection conn) =>
+            ApplyMigration(conn, 5, "kreiranje AuditLogs tabele", (c, tx) =>
             {
-                tx.Rollback();
-                throw new InvalidOperationException($"V4 neuspješna: {ex.Message}", ex);
-            }
-        }
-
-        private void ApplyV5(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V5 — kreiranje AuditLogs tabele...");
-            using var tx = conn.BeginTransaction();
-            try
-            {
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS AuditLogs (
                         Id        INTEGER PRIMARY KEY AUTOINCREMENT,
                         Tabela    TEXT    NOT NULL,
@@ -271,123 +219,54 @@ namespace OwnerTrack.Infrastructure
                         Opis      TEXT,
                         Vrijeme   TEXT    NOT NULL
                     )");
+            });
 
-                SetVersion(conn, 5, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
+        private void ApplyV6(SqliteConnection conn) =>
+            ApplyMigration(conn, 6, "dodavanje Jmbg, Email, Telefon kolona", (c, tx) =>
             {
-                tx.Rollback();
-                throw new InvalidOperationException($"V5 neuspješna: {ex.Message}", ex);
-            }
-        }
+                if (TableExists(c, tx, "Direktori"))
+                    AddColumnIfMissing(c, tx, "Direktori", "Jmbg", "TEXT");
 
-        private void ApplyV6(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V6 — dodavanje Jmbg, Email, Telefon kolona...");
-            using var tx = conn.BeginTransaction();
-            try
-            {
-                if (TableExists(conn, tx, "Direktori"))
-                    AddColumnIfMissing(conn, tx, "Direktori", "Jmbg", "TEXT");
-
-                if (TableExists(conn, tx, "Klijenti"))
+                if (TableExists(c, tx, "Klijenti"))
                 {
-                    AddColumnIfMissing(conn, tx, "Klijenti", "Email", "TEXT");
-                    AddColumnIfMissing(conn, tx, "Klijenti", "Telefon", "TEXT");
+                    AddColumnIfMissing(c, tx, "Klijenti", "Email", "TEXT");
+                    AddColumnIfMissing(c, tx, "Klijenti", "Telefon", "TEXT");
                 }
+            });
 
-                SetVersion(conn, 6, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
+        private void ApplyV7(SqliteConnection conn) =>
+            ApplyMigration(conn, 7, "uklanjanje unique indexa koji blokiraju soft-delete", (c, tx) =>
             {
-                tx.Rollback();
-                throw new InvalidOperationException($"V6 neuspješna: {ex.Message}", ex);
-            }
-        }
+                DropIndexIfExists(c, tx, "IX_Klijenti_Naziv");
+                DropIndexIfExists(c, tx, "IX_Klijenti_IdBroj");
+                DropIndexIfExists(c, tx, "IX_Vlasnici_KlijentId_ImePrezime");
+            });
 
-        private void ApplyV7(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V7 — uklanjanje unique indexa koji blokiraju soft-delete...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV8(SqliteConnection conn) =>
+            ApplyMigration(conn, 8, "kreiranje Djelatnosti tabele i seed KD BiH šifara", (c, tx) =>
             {
-                DropIndexIfExists(conn, tx, "IX_Klijenti_Naziv");
-                DropIndexIfExists(conn, tx, "IX_Klijenti_IdBroj");
-                DropIndexIfExists(conn, tx, "IX_Vlasnici_KlijentId_ImePrezime");
-
-                SetVersion(conn, 7, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V7 neuspješna: {ex.Message}", ex);
-            }
-        }
-
-        private void ApplyV8(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V8 — kreiranje Djelatnosti tabele i seed KD BiH šifara...");
-            using var tx = conn.BeginTransaction();
-            try
-            {
-                ExecSql(conn, tx, @"
+                ExecSql(c, tx, @"
                     CREATE TABLE IF NOT EXISTS Djelatnosti (
                         Sifra TEXT PRIMARY KEY NOT NULL,
                         Naziv TEXT NOT NULL
                     )");
 
-                InsertDjelatnosti(conn, tx);
+                InsertDjelatnosti(c, tx);
+            });
 
-                SetVersion(conn, 8, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
+        private void ApplyV9(SqliteConnection conn) =>
+            ApplyMigration(conn, 9, "dodavanje Azuriran kolone na Klijenti", (c, tx) =>
             {
-                tx.Rollback();
-                throw new InvalidOperationException($"V8 neuspješna: {ex.Message}", ex);
-            }
-        }
+                AddColumnIfMissing(c, tx, "Klijenti", "Azuriran", "TEXT");
+            });
 
-        private void ApplyV9(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V9 — dodavanje Azuriran kolone na Klijenti...");
-            using var tx = conn.BeginTransaction();
-            try
+        private void ApplyV10(SqliteConnection conn) =>
+            ApplyMigration(conn, 10, "dodavanje VrstaUgovora, Napomena, Obrisan na Ugovori", (c, tx) =>
             {
-                AddColumnIfMissing(conn, tx, "Klijenti", "Azuriran", "TEXT");
-
-                SetVersion(conn, 9, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V9 neuspješna: {ex.Message}", ex);
-            }
-        }
-
-        private void ApplyV10(SqliteConnection conn)
-        {
-            Debug.WriteLine("[SCHEMA] V10 — dodavanje VrstaUgovora, Napomena, Obrisan na Ugovori...");
-            using var tx = conn.BeginTransaction();
-            try
-            {
-                AddColumnIfMissing(conn, tx, "Ugovori", "VrstaUgovora", "TEXT");
-                AddColumnIfMissing(conn, tx, "Ugovori", "Napomena", "TEXT");
-                AddColumnIfMissing(conn, tx, "Ugovori", "Obrisan", "TEXT");
-
-                SetVersion(conn, 10, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"V10 neuspješna: {ex.Message}", ex);
-            }
-        }
+                AddColumnIfMissing(c, tx, "Ugovori", "VrstaUgovora", "TEXT");
+                AddColumnIfMissing(c, tx, "Ugovori", "Napomena", "TEXT");
+                AddColumnIfMissing(c, tx, "Ugovori", "Obrisan", "TEXT");
+            });
 
         
 
@@ -395,20 +274,10 @@ namespace OwnerTrack.Infrastructure
         {
             using var conn = new SqliteConnection(_connectionString);
             conn.Open();
-            using var tx = conn.BeginTransaction();
-            try
-            {
-                InsertDjelatnosti(conn, tx);
-                tx.Commit();
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                throw new InvalidOperationException($"ReseedDjelatnosti neuspješan: {ex.Message}", ex);
-            }
+            ApplyMigration(conn, version: -1, "reseed Djelatnosti", (c, tx) =>
+                InsertDjelatnosti(c, tx),
+            recordVersion: false);
         }
-
-        
 
         private void InsertDjelatnosti(SqliteConnection conn, SqliteTransaction tx)
         {
@@ -489,6 +358,36 @@ namespace OwnerTrack.Infrastructure
             Debug.WriteLine($"[SCHEMA] InsertDjelatnosti — obrađeno {djelatnosti.Length} šifara.");
         }
 
+        // ── Migration runner ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Wraps <paramref name="work"/> in a transaction. Rolls back and rethrows on failure.
+        /// When <paramref name="recordVersion"/> is true, records <paramref name="version"/>
+        /// in __SchemaVersion before committing.
+        /// </summary>
+        private void ApplyMigration(
+            SqliteConnection conn,
+            int version,
+            string description,
+            Action<SqliteConnection, SqliteTransaction> work,
+            bool recordVersion = true)
+        {
+            Debug.WriteLine($"[SCHEMA] V{version} — {description}...");
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                work(conn, tx);
+                if (recordVersion)
+                    SetVersion(conn, version, tx);
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                throw new InvalidOperationException($"V{version} neuspješna: {ex.Message}", ex);
+            }
+        }
+
         
 
         private void ExecSql(SqliteConnection conn, SqliteTransaction? tx, string sql)
@@ -499,7 +398,6 @@ namespace OwnerTrack.Infrastructure
             cmd.ExecuteNonQuery();
         }
 
-        
         private bool TableExists(SqliteConnection conn, SqliteTransaction? tx, string table)
         {
             using var cmd = conn.CreateCommand();

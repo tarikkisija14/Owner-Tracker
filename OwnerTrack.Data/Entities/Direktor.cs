@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OwnerTrack.Data.Entities
 {
-    public class Direktor : ISoftDeletable
+    public class Direktor : IArchivable
     {
         [Key]
         public int Id { get; set; }

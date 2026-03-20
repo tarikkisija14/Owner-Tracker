@@ -3,8 +3,6 @@ using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
-using System;
-using System.Windows.Forms;
 
 namespace OwnerTrack.App
 {
@@ -24,7 +22,8 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-       
+        
+
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
             cbTipValjanosti.Items.Clear();
@@ -53,10 +52,13 @@ namespace OwnerTrack.App
         }
 
        
+
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
             dtDatumValjanosti.Enabled = cbTipValjanosti.Text == TipValjanostiKonstante.Vremenski;
         }
+
+        
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -91,7 +93,8 @@ namespace OwnerTrack.App
             Close();
         }
 
-      
+        
+
         private void PrimijeniPolja(Direktor d, DateTime? datumValjanosti)
         {
             d.ImePrezime = txtImePrezime.Text.Trim();

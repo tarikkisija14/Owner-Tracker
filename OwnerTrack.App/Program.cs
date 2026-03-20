@@ -30,7 +30,6 @@ namespace OwnerTrack.App
             Application.Run(new Form1());
         }
 
-      
         public static void LogException(Exception? ex)
         {
             try
@@ -41,17 +40,7 @@ namespace OwnerTrack.App
                 sb.AppendLine($"Poruka: {ex?.Message ?? "nema poruke"}");
                 sb.AppendLine($"Stack:\n{ex?.StackTrace ?? "nema stacka"}");
 
-                var inner = ex?.InnerException;
-                int depth = 1;
-                while (inner != null)
-                {
-                    sb.AppendLine($"--- Inner Exception [{depth}] ---");
-                    sb.AppendLine($"Tip:    {inner.GetType().FullName}");
-                    sb.AppendLine($"Poruka: {inner.Message}");
-                    sb.AppendLine($"Stack:\n{inner.StackTrace}");
-                    inner = inner.InnerException;
-                    depth++;
-                }
+                AppendInnerExceptions(sb, ex?.InnerException);
 
                 sb.AppendLine(new string('-', 80));
                 File.AppendAllText(GetLogPath(), sb.ToString());
@@ -65,16 +54,7 @@ namespace OwnerTrack.App
 
             var sb = new StringBuilder();
             sb.AppendLine(ex.Message);
-
-            var inner = ex.InnerException;
-            int depth = 1;
-            while (inner != null)
-            {
-                sb.AppendLine($"  [{depth}] {inner.GetType().Name}: {inner.Message}");
-                inner = inner.InnerException;
-                depth++;
-            }
-
+            AppendInnerExceptions(sb, ex.InnerException, indent: "  ");
             return sb.ToString();
         }
 
@@ -83,6 +63,29 @@ namespace OwnerTrack.App
             string dir = Path.GetDirectoryName(DbContextFactory.DbPath)
                          ?? AppDomain.CurrentDomain.BaseDirectory;
             return Path.Combine(dir, "ownertrack_errors.log");
+        }
+
+        
+        private static void AppendInnerExceptions(StringBuilder sb, Exception? inner, string indent = "")
+        {
+            int depth = 1;
+            while (inner != null)
+            {
+                if (string.IsNullOrEmpty(indent))
+                {
+                    sb.AppendLine($"--- Inner Exception [{depth}] ---");
+                    sb.AppendLine($"Tip:    {inner.GetType().FullName}");
+                    sb.AppendLine($"Poruka: {inner.Message}");
+                    sb.AppendLine($"Stack:\n{inner.StackTrace}");
+                }
+                else
+                {
+                    sb.AppendLine($"{indent}[{depth}] {inner.GetType().Name}: {inner.Message}");
+                }
+
+                inner = inner.InnerException;
+                depth++;
+            }
         }
     }
 }

@@ -4,8 +4,6 @@ using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
-using System;
-using System.Windows.Forms;
 
 namespace OwnerTrack.App
 {
@@ -26,6 +24,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
             bool jeIzmjena = _vlasnikId.HasValue;
@@ -49,6 +48,7 @@ namespace OwnerTrack.App
         }
 
         
+
         private void btnSpremi_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
@@ -107,7 +107,8 @@ namespace OwnerTrack.App
             Close();
         }
 
-       
+        
+
         private void PrimijeniPolja(Vlasnik v, string imePrezime, decimal procenat)
         {
             v.ImePrezime = imePrezime;
