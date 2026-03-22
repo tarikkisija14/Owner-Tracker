@@ -1,14 +1,13 @@
-﻿using OwnerTrack.Infrastructure;
-using OwnerTrack.Infrastructure.Models;
+﻿using OwnerTrack.Infrastructure.Models;
 using OwnerTrack.Infrastructure.Services;
-using System.Threading;
-using System.Windows.Forms;
 
 namespace OwnerTrack.App.Helpers
 {
-    
+
     public class ImportHelper
     {
+        private const int MaxErrorsShownInDialog = 10;
+
         private readonly string _connectionString;
 
         public ImportHelper(string connectionString)
@@ -16,7 +15,6 @@ namespace OwnerTrack.App.Helpers
             _connectionString = connectionString;
         }
 
-        
 
         public void PokreniImport(
             string filePath,
@@ -25,17 +23,17 @@ namespace OwnerTrack.App.Helpers
             Action? onGreska = null)
         {
             using var cts = new CancellationTokenSource();
-            bool importZavrsen = false;
+            bool importFinished = false;
 
-            using var frm = ImportProgressFormFactory.Kreiraj(
+            using var progressForm = ImportProgressFormFactory.Kreiraj(
                 out var progressBar,
                 out var lblStatus,
-                out var btnZatvori,
-                out var btnOtkazi);
+                out var btnClose,
+                out var btnCancel);
 
-            frm.FormClosing += (s, args) =>
+            progressForm.FormClosing += (_, args) =>
             {
-                if (!importZavrsen)
+                if (!importFinished)
                 {
                     args.Cancel = true;
                     MessageBox.Show(
@@ -44,20 +42,22 @@ namespace OwnerTrack.App.Helpers
                 }
             };
 
-            btnOtkazi.Click += (s, args) =>
+            btnCancel.Click += (_, _) =>
             {
-                if (!importZavrsen)
+                if (!importFinished)
                 {
-                    btnOtkazi.Enabled = false;
-                    btnOtkazi.Text = "Otkazivanje...";
+                    btnCancel.Enabled = false;
+                    btnCancel.Text = "Otkazivanje...";
                     cts.Cancel();
                 }
             };
 
             var progress = new Progress<ImportProgress>(p =>
             {
-                if (!frm.IsHandleCreated || frm.IsDisposed) return;
-                frm.Invoke(() =>
+                if (!progressForm.IsHandleCreated || progressForm.IsDisposed)
+                    return;
+
+                progressForm.Invoke(() =>
                 {
                     if (p.TotalRows > 0)
                     {
@@ -65,64 +65,62 @@ namespace OwnerTrack.App.Helpers
                         progressBar.Value = Math.Min(p.ProcessedRows, p.TotalRows);
                     }
                     lblStatus.Text = FormatProgressLabel(p);
-                    frm.Refresh();
+                    progressForm.Refresh();
                 });
             });
 
-            frm.Shown += async (s, args) =>
+            progressForm.Shown += async (_, _) =>
             {
                 try
                 {
-                    var svc = new ExcelImportService(_connectionString);
+                    var service = new ExcelImportService(_connectionString);
                     var result = await Task.Run(
-                        () => svc.ImportFromExcel(filePath, progress, cts.Token),
+                        () => service.ImportFromExcel(filePath, progress, cts.Token),
                         cts.Token);
 
-                    importZavrsen = true;
-                    OmoguciBtnZatvori(btnZatvori, btnOtkazi);
+                    importFinished = true;
+                    EnableCloseButton(btnClose, btnCancel);
                     lblStatus.Text = FormatResultLabel(result, cts.IsCancellationRequested);
 
                     if (result.Errors.Count > 0)
                         MessageBox.Show(
-                            $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(10))}",
+                            $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(MaxErrorsShownInDialog))}",
                             "Upozorenje", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 catch (OperationCanceledException)
                 {
-                    importZavrsen = true;
+                    importFinished = true;
                     lblStatus.Text = "Import je otkazan od strane korisnika.";
-                    OmoguciBtnZatvori(btnZatvori, btnOtkazi);
+                    EnableCloseButton(btnClose, btnCancel);
                 }
                 catch (Exception ex)
                 {
-                    importZavrsen = true;
-                    Program.LogException(ex);
-                    MessageBox.Show($"Greška: {ex.Message}", "Greška",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    frm.Close();
+                    importFinished = true;
+                    AppLogger.LogException(ex);
+                    MessageBox.Show($"Greška: {ex.Message}", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    progressForm.Close();
                     onGreska?.Invoke();
                     return;
                 }
 
-                void ZatvoriHandler(object? bs, EventArgs be)
+                void OnCloseClicked(object? s, EventArgs e)
                 {
-                    btnZatvori.Click -= ZatvoriHandler;
-                    frm.Close();
+                    btnClose.Click -= OnCloseClicked;
+                    progressForm.Close();
                     if (!cts.IsCancellationRequested)
                         onZavrsetak?.Invoke();
                 }
-                btnZatvori.Click += ZatvoriHandler;
+                btnClose.Click += OnCloseClicked;
             };
 
-            frm.ShowDialog(owner);
+            progressForm.ShowDialog(owner);
         }
 
-        
 
-        private static void OmoguciBtnZatvori(Button btnZatvori, Button btnOtkazi)
+        private static void EnableCloseButton(Button btnClose, Button btnCancel)
         {
-            btnZatvori.Enabled = true;
-            btnOtkazi.Enabled = false;
+            btnClose.Enabled = true;
+            btnCancel.Enabled = false;
         }
 
         private static string FormatProgressLabel(ImportProgress p) =>
@@ -130,13 +128,9 @@ namespace OwnerTrack.App.Helpers
             $"Dodato: {p.SuccessCount}  |  Greške: {p.ErrorCount}\n" +
             $"{p.CurrentRow}";
 
-        private static string FormatResultLabel(ImportResult result, bool cancelled) =>
-            cancelled
-                ? $"Import otkazan.\n" +
-                  $"Dodano: {result.SuccessCount}  |  Preskočeno: {result.SkipCount}\n" +
-                  $"Greške: {result.ErrorCount}"
-                : $"Import završen!\n" +
-                  $"Dodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\n" +
-                  $"Greške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
+        private static string FormatResultLabel(ImportResult result, bool wasCancelled) =>
+            wasCancelled
+                ? $"Import otkazan.\nDodano: {result.SuccessCount}  |  Preskočeno: {result.SkipCount}\nGreške: {result.ErrorCount}"
+                : $"Import završen!\nDodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\nGreške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
     }
 }

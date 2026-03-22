@@ -9,8 +9,16 @@ using QuestPDF.Infrastructure;
 
 namespace OwnerTrack.Infrastructure.Services
 {
+
     public class PdfExportService
     {
+
+
+        private const float SinglePageMarginMm = 18f;
+        private const float TablePageMarginMm = 12f;
+        private const float SinglePageFontSize = 9f;
+        private const float TablePageFontSize = 7.5f;
+
         private readonly OwnerTrackDbContext _db;
 
         public PdfExportService(OwnerTrackDbContext db)
@@ -19,11 +27,10 @@ namespace OwnerTrack.Infrastructure.Services
             QuestPDF.Settings.License = LicenseType.Community;
         }
 
-        
 
         public string GenerirajPdf(int klijentId, string outputPath)
         {
-            var k = LoadKlijent(klijentId)
+            var klijent = LoadKlijent(klijentId)
                 ?? throw new InvalidOperationException($"Klijent ID={klijentId} nije pronađen.");
 
             Document.Create(container =>
@@ -31,11 +38,11 @@ namespace OwnerTrack.Infrastructure.Services
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(18, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(9).FontColor(PdfColours.Text));
+                    page.Margin(SinglePageMarginMm, Unit.Millimetre);
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(SinglePageFontSize).FontColor(PdfColours.Text));
 
-                    page.Header().Element(c => BuildHeader(c, k));
-                    page.Content().Element(c => BuildContent(c, k));
+                    page.Header().Element(c => BuildKlijentHeader(c, klijent));
+                    page.Content().Element(c => BuildKlijentContent(c, klijent));
                     page.Footer().Element(BuildFooter);
                 });
             }).GeneratePdf(outputPath);
@@ -45,7 +52,8 @@ namespace OwnerTrack.Infrastructure.Services
 
         public string GenerirajTabeluKlijenata(List<int> klijentIds, string outputPath)
         {
-            var klijentiById = _db.Klijenti
+           
+            var byId = _db.Klijenti
                 .AsNoTracking()
                 .Include(x => x.Djelatnost)
                 .Include(x => x.Vlasnici)
@@ -54,10 +62,9 @@ namespace OwnerTrack.Infrastructure.Services
                 .Where(x => klijentIds.Contains(x.Id))
                 .ToDictionary(k => k.Id);
 
-            
             var klijenti = klijentIds
-                .Where(id => klijentiById.ContainsKey(id))
-                .Select(id => klijentiById[id])
+                .Where(id => byId.ContainsKey(id))
+                .Select(id => byId[id])
                 .ToList();
 
             Document.Create(container =>
@@ -65,11 +72,11 @@ namespace OwnerTrack.Infrastructure.Services
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4.Landscape());
-                    page.Margin(12, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(7.5f).FontColor(PdfColours.Text));
+                    page.Margin(TablePageMarginMm, Unit.Millimetre);
+                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(TablePageFontSize).FontColor(PdfColours.Text));
 
-                    page.Header().Element(c => BuildTabelaHeader(c, klijenti.Count));
-                    page.Content().Element(c => BuildTabelaSadrzaj(c, klijenti));
+                    page.Header().Element(c => BuildTableHeader(c, klijenti.Count));
+                    page.Content().Element(c => BuildTableContent(c, klijenti));
                     page.Footer().Element(BuildFooter);
                 });
             }).GeneratePdf(outputPath);
@@ -77,11 +84,10 @@ namespace OwnerTrack.Infrastructure.Services
             return outputPath;
         }
 
-        
 
-        private void BuildHeader(IContainer c, Klijent k)
+        private static void BuildKlijentHeader(IContainer c, Klijent k)
         {
-            string statusColour = EntityStatusColour(k.Status);
+            string statusColour = PdfRenderHelpers.EntityStatusColour(k.Status);
 
             c.Background(PdfColours.Navy).Padding(14).Row(row =>
             {
@@ -95,7 +101,8 @@ namespace OwnerTrack.Infrastructure.Services
                     col.Item().PaddingTop(4).Text(txt =>
                     {
                         txt.AlignCenter();
-                        txt.Span($"ID: {k.IdBroj}   |   {Fmt(k.VrstaKlijenta)}").FontSize(10).FontColor(PdfColours.HeaderSub);
+                        txt.Span($"ID: {k.IdBroj}   |   {PdfRenderHelpers.Fmt(k.VrstaKlijenta)}")
+                           .FontSize(10).FontColor(PdfColours.HeaderSub);
                     });
                 });
 
@@ -104,48 +111,48 @@ namespace OwnerTrack.Infrastructure.Services
                    .Text(txt =>
                    {
                        txt.AlignCenter();
-                       txt.Span(Fmt(k.Status)).FontSize(9).FontColor(PdfColours.White).Bold();
+                       txt.Span(PdfRenderHelpers.Fmt(k.Status)).FontSize(9).FontColor(PdfColours.White).Bold();
                    });
             });
         }
 
-        private void BuildContent(IContainer c, Klijent k)
+        private static void BuildKlijentContent(IContainer c, Klijent k)
         {
             c.PaddingTop(10).Column(col =>
             {
                 col.Spacing(10);
 
-                col.Item().Element(x => SectionHeader(x, "OSNOVNI PODACI"));
-                col.Item().Element(x => BuildOsnoviPodaci(x, k));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "OSNOVNI PODACI"));
+                col.Item().Element(x => BuildOsnovniPodaci(x, k));
 
-                col.Item().Element(x => SectionHeader(x, "PROCJENA RIZIKA"));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "PROCJENA RIZIKA"));
                 col.Item().Element(x => BuildRizik(x, k));
 
-                col.Item().Element(x => SectionHeader(x, "UGOVOR"));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "UGOVOR"));
                 col.Item().Element(x => BuildUgovor(x, k.Ugovor));
 
                 var vlasnici = k.Vlasnici.ToList();
-                col.Item().Element(x => SectionHeader(x, $"VLASNICI  ({vlasnici.Count})"));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, $"VLASNICI  ({vlasnici.Count})"));
                 col.Item().Element(x => BuildVlasnici(x, vlasnici));
 
                 var direktori = k.Direktori.ToList();
-                col.Item().Element(x => SectionHeader(x, $"DIREKTORI  ({direktori.Count})"));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, $"DIREKTORI  ({direktori.Count})"));
                 col.Item().Element(x => BuildDirektori(x, direktori));
             });
         }
 
-        private void BuildOsnoviPodaci(IContainer c, Klijent k)
+        private static void BuildOsnovniPodaci(IContainer c, Klijent k)
         {
             string djelatnost = string.IsNullOrWhiteSpace(k.SifraDjelatnosti)
-                ? Fmt(k.Djelatnost?.Naziv)
-                : $"{k.SifraDjelatnosti} – {Fmt(k.Djelatnost?.Naziv)}";
+                ? PdfRenderHelpers.Fmt(k.Djelatnost?.Naziv)
+                : $"{k.SifraDjelatnosti} – {PdfRenderHelpers.Fmt(k.Djelatnost?.Naziv)}";
 
-            var rows = new List<(string, string, string, string)>
+            var rows = new[]
             {
-                ("Adresa:",         Fmt(k.Adresa),    "Datum osnivanja:", FmtDate(k.DatumOsnivanja)),
-                ("Djelatnost:",     djelatnost,       "Datum uspostave:", FmtDate(k.DatumUspostave)),
-                ("Veličina firme:", Fmt(k.Velicina),  "Ovjera / CR:",     Fmt(k.OvjeraCr)),
-                ("Email:",          Fmt(k.Email),     "Telefon:",         Fmt(k.Telefon)),
+                ("Adresa:",         PdfRenderHelpers.Fmt(k.Adresa),   "Datum osnivanja:", PdfRenderHelpers.FmtDate(k.DatumOsnivanja)),
+                ("Djelatnost:",     djelatnost,                        "Datum uspostave:", PdfRenderHelpers.FmtDate(k.DatumUspostave)),
+                ("Veličina firme:", PdfRenderHelpers.Fmt(k.Velicina), "Ovjera / CR:",     PdfRenderHelpers.Fmt(k.OvjeraCr)),
+                ("Email:",          PdfRenderHelpers.Fmt(k.Email),    "Telefon:",         PdfRenderHelpers.Fmt(k.Telefon)),
             };
 
             c.Table(tbl =>
@@ -158,15 +165,15 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                for (int i = 0; i < rows.Count; i++)
+                for (int i = 0; i < rows.Length; i++)
                 {
                     var (l1, v1, l2, v2) = rows[i];
-                    InfoRow(tbl, AlternatingBg(i), l1, v1, l2, v2);
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfRenderHelpers.AlternatingBackground(i), l1, v1, l2, v2);
                 }
 
                 if (!string.IsNullOrWhiteSpace(k.Napomena))
                 {
-                    string bg = AlternatingBg(rows.Count);
+                    string bg = PdfRenderHelpers.AlternatingBackground(rows.Length);
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
                        .Text(txt => txt.Span("Napomena:").FontColor(PdfColours.TextMuted));
                     tbl.Cell().ColumnSpan(3).Background(bg).PaddingHorizontal(8).PaddingVertical(5)
@@ -175,8 +182,15 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        private void BuildRizik(IContainer c, Klijent k)
+        private static void BuildRizik(IContainer c, Klijent k)
         {
+            var rows = new[]
+            {
+                ("PEP:",             PdfRenderHelpers.Fmt(k.PepRizik),       "UBO:",              PdfRenderHelpers.Fmt(k.UboRizik)),
+                ("Gotovina rizik:",  PdfRenderHelpers.Fmt(k.GotovinaRizik),  "Geografski rizik:", PdfRenderHelpers.Fmt(k.GeografskiRizik)),
+                ("Ukupna procjena:", PdfRenderHelpers.Fmt(k.UkupnaProcjena), "Datum procjene:",   PdfRenderHelpers.FmtDate(k.DatumProcjene)),
+            };
+
             c.Table(tbl =>
             {
                 tbl.ColumnsDefinition(cd =>
@@ -187,43 +201,33 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.RelativeColumn();
                 });
 
-                var rows = new List<(string, string, string, string)>
-                {
-                    ("PEP:",             Fmt(k.PepRizik),       "UBO:",              Fmt(k.UboRizik)),
-                    ("Gotovina rizik:",  Fmt(k.GotovinaRizik),  "Geografski rizik:", Fmt(k.GeografskiRizik)),
-                    ("Ukupna procjena:", Fmt(k.UkupnaProcjena), "Datum procjene:",   FmtDate(k.DatumProcjene)),
-                };
-
-                for (int i = 0; i < rows.Count; i++)
+                for (int i = 0; i < rows.Length; i++)
                 {
                     var (l1, v1, l2, v2) = rows[i];
-                    string bg = AlternatingBg(i);
-                    bool coloured = i < 2;
+                    string bg = PdfRenderHelpers.AlternatingBackground(i);
+                    bool isRiskRow = i < 2;  // first two rows have colour-coded values
 
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
                        .Text(txt => txt.Span(l1).FontColor(PdfColours.TextMuted));
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(v1).Bold().FontColor(coloured ? DaNeColour(v1) : PdfColours.Text));
+                       .Text(txt => txt.Span(v1).Bold().FontColor(isRiskRow ? PdfRenderHelpers.DaNeColour(v1) : PdfColours.Text));
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
                        .Text(txt => txt.Span(l2).FontColor(PdfColours.TextMuted));
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-                       .Text(txt => txt.Span(v2).Bold().FontColor(coloured ? DaNeColour(v2) : PdfColours.Text));
+                       .Text(txt => txt.Span(v2).Bold().FontColor(isRiskRow ? PdfRenderHelpers.DaNeColour(v2) : PdfColours.Text));
                 }
             });
         }
 
-        private void BuildUgovor(IContainer c, Ugovor? u)
+        private static void BuildUgovor(IContainer c, Ugovor? u)
         {
-            if (u == null)
+            if (u is null)
             {
-                BuildEmptyNote(c, "Nema podataka o ugovoru.");
+                PdfRenderHelpers.RenderEmptyNote(c, "Nema podataka o ugovoru.");
                 return;
             }
 
-            string statusTekst = u.StatusUgovora ?? "—";
-            string statusColour = statusTekst == StatusUgovora.Potpisan ? PdfColours.Green
-                                : statusTekst is StatusUgovora.Otkazan or StatusUgovora.Neaktivan ? PdfColours.Red
-                                : PdfColours.Orange;
+            string statusColour = PdfRenderHelpers.ContractStatusColour(u.StatusUgovora);
 
             c.Table(tbl =>
             {
@@ -238,20 +242,26 @@ namespace OwnerTrack.Infrastructure.Services
                 tbl.Cell().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(5)
                    .Text(txt => txt.Span("Status ugovora:").FontColor(PdfColours.TextMuted));
                 tbl.Cell().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span(Fmt(u.StatusUgovora)).Bold().FontColor(statusColour));
+                   .Text(txt => txt.Span(PdfRenderHelpers.Fmt(u.StatusUgovora)).Bold().FontColor(statusColour));
                 tbl.Cell().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(5)
                    .Text(txt => txt.Span("Datum ugovora:").FontColor(PdfColours.TextMuted));
                 tbl.Cell().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(5)
-                   .Text(txt => txt.Span(FmtDate(u.DatumUgovora)).Bold());
+                   .Text(txt => txt.Span(PdfRenderHelpers.FmtDate(u.DatumUgovora)).Bold());
 
                 if (!string.IsNullOrWhiteSpace(u.VrstaUgovora) || !string.IsNullOrWhiteSpace(u.Napomena))
-                    InfoRow(tbl, PdfColours.Grey, "Vrsta ugovora:", Fmt(u.VrstaUgovora), "Napomena:", Fmt(u.Napomena));
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.Grey,
+                        "Vrsta ugovora:", PdfRenderHelpers.Fmt(u.VrstaUgovora),
+                        "Napomena:", PdfRenderHelpers.Fmt(u.Napomena));
             });
         }
 
-        private void BuildVlasnici(IContainer c, List<Vlasnik> vlasnici)
+        private static void BuildVlasnici(IContainer c, List<Vlasnik> vlasnici)
         {
-            if (!vlasnici.Any()) { BuildEmptyNote(c, "Nema evidentiranih vlasnika."); return; }
+            if (!vlasnici.Any())
+            {
+                PdfRenderHelpers.RenderEmptyNote(c, "Nema evidentiranih vlasnika.");
+                return;
+            }
 
             c.Table(tbl =>
             {
@@ -266,30 +276,34 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.ConstantColumn(18, Unit.Millimetre);
                 });
 
-                foreach (var h in new[] { "#", "Ime i prezime", "% vlasn.", "Valjanost dok.", "Datum utvrđ.", "Izvor podatka", "Status" })
-                    TableHeader(tbl, h);
+                foreach (string h in new[] { "#", "Ime i prezime", "% vlasn.", "Valjanost dok.", "Datum utvrđ.", "Izvor podatka", "Status" })
+                    PdfRenderHelpers.RenderTableHeader(tbl, h);
 
                 for (int i = 0; i < vlasnici.Count; i++)
                 {
-                    var v = vlasnici[i];
-                    string bg = AlternatingBg(i);
+                    Vlasnik v = vlasnici[i];
+                    string bg = PdfRenderHelpers.AlternatingBackground(i);
                     string sc = v.Status == StatusEntiteta.AKTIVAN ? PdfColours.Green : PdfColours.Red;
                     string pct = v.ProcenatVlasnistva > 0 ? $"{v.ProcenatVlasnistva:0.##} %" : "—";
 
-                    TableCell(tbl, bg, (i + 1).ToString(), center: true);
-                    TableCell(tbl, bg, Fmt(v.ImePrezime));
-                    TableCell(tbl, bg, pct, center: true);
-                    TableCell(tbl, bg, FmtDate(v.DatumValjanostiDokumenta), center: true);
-                    TableCell(tbl, bg, FmtDate(v.DatumUtvrdjivanja), center: true);
-                    TableCell(tbl, bg, Fmt(v.IzvorPodatka));
-                    TableCell(tbl, bg, Fmt(v.Status), bold: true, colour: sc, center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, (i + 1).ToString(), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(v.ImePrezime));
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, pct, center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.FmtDate(v.DatumValjanostiDokumenta), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.FmtDate(v.DatumUtvrdjivanja), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(v.IzvorPodatka));
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(v.Status), bold: true, colour: sc, center: true);
                 }
             });
         }
 
-        private void BuildDirektori(IContainer c, List<Direktor> direktori)
+        private static void BuildDirektori(IContainer c, List<Direktor> direktori)
         {
-            if (!direktori.Any()) { BuildEmptyNote(c, "Nema evidentiranih direktora."); return; }
+            if (!direktori.Any())
+            {
+                PdfRenderHelpers.RenderEmptyNote(c, "Nema evidentiranih direktora.");
+                return;
+            }
 
             c.Table(tbl =>
             {
@@ -303,31 +317,31 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.ConstantColumn(18, Unit.Millimetre);
                 });
 
-                foreach (var h in new[] { "#", "Ime i prezime", "JMBG", "Tip valjanosti", "Datum valjanosti", "Status" })
-                    TableHeader(tbl, h);
+                foreach (string h in new[] { "#", "Ime i prezime", "JMBG", "Tip valjanosti", "Datum valjanosti", "Status" })
+                    PdfRenderHelpers.RenderTableHeader(tbl, h);
 
                 for (int i = 0; i < direktori.Count; i++)
                 {
-                    var d = direktori[i];
-                    string bg = AlternatingBg(i);
+                    Direktor d = direktori[i];
+                    string bg = PdfRenderHelpers.AlternatingBackground(i);
                     string sc = d.Status == StatusEntiteta.AKTIVAN ? PdfColours.Green : PdfColours.Red;
                     string datVal = d.TipValjanosti == TipValjanostiKonstante.Trajno
                         ? TipValjanostiKonstante.Trajno
-                        : FmtDate(d.DatumValjanosti);
+                        : PdfRenderHelpers.FmtDate(d.DatumValjanosti);
 
-                    TableCell(tbl, bg, (i + 1).ToString(), center: true);
-                    TableCell(tbl, bg, Fmt(d.ImePrezime));
-                    TableCell(tbl, bg, Fmt(d.Jmbg), center: true);
-                    TableCell(tbl, bg, Fmt(d.TipValjanosti), center: true);
-                    TableCell(tbl, bg, datVal, center: true);
-                    TableCell(tbl, bg, Fmt(d.Status), bold: true, colour: sc, center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, (i + 1).ToString(), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(d.ImePrezime));
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(d.Jmbg), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(d.TipValjanosti), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, datVal, center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(d.Status), bold: true, colour: sc, center: true);
                 }
             });
         }
 
-        
 
-        private void BuildTabelaHeader(IContainer c, int total)
+
+        private static void BuildTableHeader(IContainer c, int total)
         {
             c.Background(PdfColours.Navy).Padding(10).Row(row =>
             {
@@ -342,7 +356,7 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        private void BuildTabelaSadrzaj(IContainer c, List<Klijent> klijenti)
+        private static void BuildTableContent(IContainer c, List<Klijent> klijenti)
         {
             c.PaddingTop(8).Table(tbl =>
             {
@@ -362,49 +376,43 @@ namespace OwnerTrack.Infrastructure.Services
                     cd.ConstantColumn(16, Unit.Millimetre);
                 });
 
-                foreach (var h in new[] { "#", "Naziv klijenta", "ID broj", "Djelatnost", "Veličina", "PEP", "UBO", "Procjena", "Ugovor", "Dat. uspostave", "Dat. osnivanja", "Status" })
-                    TableHeader(tbl, h);
+                foreach (string h in new[] { "#", "Naziv klijenta", "ID broj", "Djelatnost", "Veličina", "PEP", "UBO", "Procjena", "Ugovor", "Dat. uspostave", "Dat. osnivanja", "Status" })
+                    PdfRenderHelpers.RenderTableHeader(tbl, h);
 
                 for (int i = 0; i < klijenti.Count; i++)
                 {
-                    var k = klijenti[i];
-                    string bg = AlternatingBg(i);
-                    string sc = EntityStatusColour(k.Status);
+                    Klijent k = klijenti[i];
+                    string bg = PdfRenderHelpers.AlternatingBackground(i);
+                    string sc = PdfRenderHelpers.EntityStatusColour(k.Status);
 
                     string djelatnost = k.Djelatnost?.Naziv ?? k.SifraDjelatnosti ?? "—";
                     string statusUgovora = k.Ugovor?.StatusUgovora ?? "—";
 
-                    TableCell(tbl, bg, (i + 1).ToString(), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(k.Naziv));
-                    TableCell(tbl, bg, Fmt(k.IdBroj), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(djelatnost));
-                    TableCell(tbl, bg, Fmt(k.Velicina), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(k.PepRizik), bold: true, colour: DaNeColour(k.PepRizik), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(k.UboRizik), bold: true, colour: DaNeColour(k.UboRizik), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(k.UkupnaProcjena), center: true);
-                    TableCell(tbl, bg, statusUgovora, center: true, noWrap: true);
-                    TableCell(tbl, bg, FmtDate(k.DatumUspostave), center: true, noWrap: true);
-                    TableCell(tbl, bg, FmtDate(k.DatumOsnivanja), center: true, noWrap: true);
-                    TableCell(tbl, bg, Fmt(k.Status), bold: true, colour: sc, center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, (i + 1).ToString(), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.Naziv));
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.IdBroj), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(djelatnost));
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.Velicina), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.PepRizik), bold: true, colour: PdfRenderHelpers.DaNeColour(k.PepRizik), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.UboRizik), bold: true, colour: PdfRenderHelpers.DaNeColour(k.UboRizik), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.UkupnaProcjena), center: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, statusUgovora, center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.FmtDate(k.DatumUspostave), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.FmtDate(k.DatumOsnivanja), center: true, noWrap: true);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(k.Status), bold: true, colour: sc, center: true, noWrap: true);
                 }
             });
         }
 
-        
 
-        private static void SectionHeader(IContainer c, string text)
-        {
-            c.Background(PdfColours.NavyLight)
-             .PaddingHorizontal(10).PaddingVertical(7)
-             .Text(txt => txt.Span(text).FontSize(10).FontColor(PdfColours.Navy).Bold());
-        }
 
         private static void BuildFooter(IContainer c)
         {
             c.PaddingTop(5).Row(row =>
             {
                 row.RelativeItem().Text(txt =>
-                    txt.Span($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}").FontSize(7).FontColor(PdfColours.Footer));
+                    txt.Span($"Izvještaj generisan: {DateTime.Now:dd.MM.yyyy. u HH:mm}")
+                       .FontSize(7).FontColor(PdfColours.Footer));
 
                 row.ConstantItem(60).AlignRight().Text(txt =>
                 {
@@ -416,73 +424,7 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        private static void InfoRow(TableDescriptor tbl, string bg,
-                                    string label1, string value1, string label2, string value2)
-        {
-            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(label1).FontColor(PdfColours.TextMuted));
-            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(value1).Bold());
-            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(label2).FontColor(PdfColours.TextMuted));
-            tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
-               .Text(txt => txt.Span(value2).Bold());
-        }
 
-        private static void TableHeader(TableDescriptor tbl, string text)
-        {
-            tbl.Cell().Background(PdfColours.Navy).PaddingHorizontal(5).PaddingVertical(5)
-               .Text(txt =>
-               {
-                   txt.AlignCenter();
-                   txt.Span(text).FontSize(8).FontColor(PdfColours.White).Bold();
-               });
-        }
-
-        private static void TableCell(TableDescriptor tbl, string bg, string text,
-                                      bool bold = false, string? colour = null,
-                                      bool center = false, bool noWrap = false)
-        {
-            var container = tbl.Cell().Background(bg).PaddingHorizontal(5).PaddingVertical(4);
-            IContainer cell = noWrap ? container.ShowOnce() : container;
-
-            cell.Text(txt =>
-            {
-                var span = txt.Span(text).FontSize(8);
-                if (bold) span.Bold();
-                if (colour != null) span.FontColor(colour);
-                if (center) txt.AlignCenter();
-            });
-        }
-
-        /// Renders an italicised placeholder note when a section has no records.
-        private static void BuildEmptyNote(IContainer c, string message)
-        {
-            c.PaddingHorizontal(8).PaddingVertical(5)
-             .Text(txt => txt.Span(message).FontColor(PdfColours.Footer).Italic());
-        }
-
-        
-
-        private static string Fmt(string? val) => string.IsNullOrWhiteSpace(val) ? "—" : val.Trim();
-        private static string Fmt(StatusEntiteta status) => status.ToString();
-        private static string Fmt(VrstaKlijenta? vrsta) => vrsta.HasValue ? vrsta.Value.ToString() : "—";
-        private static string FmtDate(DateTime? dt) => dt.HasValue ? dt.Value.ToString("dd.MM.yyyy.") : "—";
-        private static string AlternatingBg(int rowIndex) => rowIndex % 2 == 0 ? PdfColours.White : PdfColours.Grey;
-
-        private static string EntityStatusColour(StatusEntiteta s) =>
-            s == StatusEntiteta.AKTIVAN ? PdfColours.Green :
-            s == StatusEntiteta.NEAKTIVAN ? PdfColours.Red : PdfColours.Orange;
-
-        private static string DaNeColour(string? val) =>
-            (val ?? "").Trim().ToUpperInvariant() switch
-            {
-                var s when s == DaNeKonstante.Da => PdfColours.Red,
-                var s when s == DaNeKonstante.Ne => PdfColours.Green,
-                _ => PdfColours.Text,
-            };
-
-        
 
         private Klijent? LoadKlijent(int klijentId) =>
             _db.Klijenti

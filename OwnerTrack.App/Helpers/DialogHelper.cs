@@ -1,11 +1,12 @@
 ﻿using OwnerTrack.App.Constants;
+using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App.Helpers
 {
-    
+
     public static class DialogHelper
     {
-       
+
 
         public static bool PotvrdiArhiviranje(string poruka) =>
             MessageBox.Show(
@@ -14,7 +15,7 @@ namespace OwnerTrack.App.Helpers
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) == DialogResult.Yes;
 
-       
+
 
         public static SaveFileDialog KreirajSaveDialogPdf(string title, string fileName) =>
             new SaveFileDialog
@@ -28,66 +29,66 @@ namespace OwnerTrack.App.Helpers
 
         public static OpenFileDialog KreirajOpenDialogExcel(string? title = null)
         {
-            var dlg = new OpenFileDialog { Filter = UiConstants.ExcelFilter };
-            if (title != null) dlg.Title = title;
-            return dlg;
+            var dialog = new OpenFileDialog { Filter = UiConstants.ExcelFilter };
+            if (title is not null)
+                dialog.Title = title;
+            return dialog;
         }
 
-        
 
-       
+
         public static async Task IzvrsiPdfExport(
-            Button btn,
-            string originalniTekst,
-            Func<string, string> generatorPdf,
+            Button button,
+            string originalButtonText,
+            Func<string, string> pdfGenerator,
             string outputPath)
         {
-            btn.Enabled = false;
-            btn.Text = UiConstants.PdfExportBusyLabel;
+            button.Enabled = false;
+            button.Text = UiConstants.PdfExportBusyLabel;
             Cursor.Current = Cursors.WaitCursor;
 
             try
             {
-                string path = await Task.Run(() => generatorPdf(outputPath));
+                string savedPath = await Task.Run(() => pdfGenerator(outputPath));
 
                 if (MessageBox.Show(
-                        $"PDF je sačuvan:\n{path}\n\nŽeliš li ga otvoriti?",
+                        $"PDF je sačuvan:\n{savedPath}\n\nŽeliš li ga otvoriti?",
                         "PDF kreiran",
                         MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     System.Diagnostics.Process.Start(
-                        new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+                        new System.Diagnostics.ProcessStartInfo(savedPath) { UseShellExecute = true });
                 }
             }
             catch (Exception ex)
             {
-                Program.LogException(ex);
+                AppLogger.LogException(ex);
                 MessageBox.Show(
-                    $"Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{Program.GetLogPath()}");
+                    $"Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{AppLogger.GetLogPath()}");
             }
             finally
             {
-                btn.Enabled = true;
-                btn.Text = originalniTekst;
+                button.Enabled = true;
+                button.Text = originalButtonText;
                 Cursor.Current = Cursors.Default;
             }
         }
 
-        
 
-        public static void LogirajIPokaziGresku(Exception ex, string? prefiks = null)
+
+        public static void LogirajIPokaziGresku(Exception ex, string? prefix = null)
         {
-            Program.LogException(ex);
-            string poruka = prefiks != null ? $"{prefiks}: {ex.Message}" : $"Greška: {ex.Message}";
-            MessageBox.Show(poruka);
+            AppLogger.LogException(ex);
+            string message = prefix is not null ? $"{prefix}: {ex.Message}" : $"Greška: {ex.Message}";
+            MessageBox.Show(message);
         }
 
-        
+
         public static string SigurnoIme(string naziv)
         {
-            var invalid = Path.GetInvalidFileNameChars();
-            string safe = string.Concat(naziv.Select(c => invalid.Contains(c) ? '_' : c));
-            return $"{safe.Trim('_', ' ')}_{DateTime.Now:yyyyMMdd}.pdf";
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string safeName = string.Concat(naziv.Select(c => invalidChars.Contains(c) ? '_' : c));
+            return $"{safeName.Trim('_', ' ')}_{DateTime.Now:yyyyMMdd}.pdf";
         }
     }
 }

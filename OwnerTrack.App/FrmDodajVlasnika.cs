@@ -9,10 +9,12 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajVlasnika : Form
     {
+
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _vlasnikId;
+
 
         public FrmDodajVlasnika(int klijentId, int? vlasnikId, OwnerTrackDbContext db)
         {
@@ -23,22 +25,21 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-        
 
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
-            bool jeIzmjena = _vlasnikId.HasValue;
-            Text = jeIzmjena ? "Izmijeni vlasnika" : "Dodaj novog vlasnika";
-            btnSpremi.Text = jeIzmjena ? "💾 Spremi izmjene" : "💾 Dodaj";
+            bool isEditMode = _vlasnikId.HasValue;
+            Text = isEditMode ? "Izmijeni vlasnika" : "Dodaj novog vlasnika";
+            btnSpremi.Text = isEditMode ? "💾 Spremi izmjene" : "💾 Dodaj";
 
-            if (jeIzmjena)
-                UcitajVlasnika(_vlasnikId!.Value);
+            if (isEditMode)
+                LoadVlasnik(_vlasnikId!.Value);
         }
 
-        private void UcitajVlasnika(int vlasnikId)
+        private void LoadVlasnik(int vlasnikId)
         {
             var v = _db.Vlasnici.Find(vlasnikId);
-            if (v == null) return;
+            if (v is null) return;
 
             txtImePrezime.Text = v.ImePrezime ?? string.Empty;
             txtProcetat.Text = v.ProcenatVlasnistva.ToString("F2");
@@ -47,7 +48,6 @@ namespace OwnerTrack.App
             dtDatumUtvrdjivanja.Value = v.DatumUtvrdjivanja ?? DateTime.Now;
         }
 
-        
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -57,26 +57,15 @@ namespace OwnerTrack.App
                 return;
             }
 
-            if (!decimal.TryParse(
-                    txtProcetat.Text.Replace(",", ".").Trim(),
-                    System.Globalization.NumberStyles.Number,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out decimal procenat)
-                || procenat < 0 || procenat > 100)
-            {
-                MessageBox.Show("Procenat vlasništva mora biti broj između 0 i 100!",
-                    "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtProcetat.Focus();
-                return;
-            }
+            if (!TryParsePercentage(out decimal percentage)) return;
 
             string imePrezime = txtImePrezime.Text.Trim();
-            int trenutniId = _vlasnikId ?? 0;
+            int currentId = _vlasnikId ?? 0;
 
             if (_db.Set<Vlasnik>().IgnoreQueryFilters()
                     .Any(v => v.KlijentId == _klijentId
                            && v.ImePrezime == imePrezime
-                           && v.Id != trenutniId
+                           && v.Id != currentId
                            && v.Obrisan == null))
             {
                 MessageBox.Show($"Vlasnik '{imePrezime}' već postoji za ovu firmu!",
@@ -88,9 +77,9 @@ namespace OwnerTrack.App
             try
             {
                 if (_vlasnikId.HasValue)
-                    SpremiIzmjenu(_vlasnikId.Value, imePrezime, procenat);
+                    SaveChanges(_vlasnikId.Value, imePrezime, percentage);
                 else
-                    SpremiNovog(imePrezime, procenat);
+                    SaveNew(imePrezime, percentage);
 
                 DialogResult = DialogResult.OK;
                 Close();
@@ -107,39 +96,60 @@ namespace OwnerTrack.App
             Close();
         }
 
-        
 
-        private void PrimijeniPolja(Vlasnik v, string imePrezime, decimal procenat)
+        private bool TryParsePercentage(out decimal percentage)
+        {
+            string normalised = txtProcetat.Text.Replace(",", ".").Trim();
+            bool valid = decimal.TryParse(normalised,
+                             System.Globalization.NumberStyles.Number,
+                             System.Globalization.CultureInfo.InvariantCulture,
+                             out percentage)
+                         && percentage is >= 0 and <= 100;
+
+            if (!valid)
+            {
+                MessageBox.Show("Procenat vlasništva mora biti broj između 0 i 100!",
+                    "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtProcetat.Focus();
+                percentage = 0;
+            }
+
+            return valid;
+        }
+
+
+        private void ApplyFormFieldsToVlasnik(Vlasnik v, string imePrezime, decimal percentage)
         {
             v.ImePrezime = imePrezime;
             v.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
-            v.ProcenatVlasnistva = procenat;
+            v.ProcenatVlasnistva = percentage;
             v.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
             v.IzvorPodatka = txtIzvorPodatka.Text;
         }
 
-        private void SpremiIzmjenu(int vlasnikId, string imePrezime, decimal procenat)
+
+        private void SaveChanges(int vlasnikId, string imePrezime, decimal percentage)
         {
             var v = _db.Vlasnici.Find(vlasnikId);
-            if (v == null) return;
+            if (v is null) return;
 
-            string stariNaziv = v.ImePrezime ?? string.Empty;
-            PrimijeniPolja(v, imePrezime, procenat);
+            string previousName = v.ImePrezime ?? string.Empty;
+            ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
             TransactionHelper.Execute(_db, db =>
             {
                 db.SaveChanges();
-                _audit.Izmijenjeno("Vlasnici", vlasnikId, $"'{stariNaziv}' → '{imePrezime}'");
+                _audit.Izmijenjeno("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'");
                 db.SaveChanges();
             });
 
             MessageBox.Show("Ažurirano!");
         }
 
-        private void SpremiNovog(string imePrezime, decimal procenat)
+        private void SaveNew(string imePrezime, decimal percentage)
         {
             var v = new Vlasnik { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
-            PrimijeniPolja(v, imePrezime, procenat);
+            ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
             TransactionHelper.Execute(_db, db =>
             {

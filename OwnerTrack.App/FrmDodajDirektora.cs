@@ -8,10 +8,14 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajDirektora : Form
     {
+        
+
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _direktorId;
+
+        
 
         public FrmDodajDirektora(int klijentId, int? direktorId, OwnerTrackDbContext db)
         {
@@ -22,7 +26,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-        
+       
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
@@ -31,27 +35,29 @@ namespace OwnerTrack.App
             cbTipValjanosti.Items.Add(TipValjanostiKonstante.Vremenski);
             cbTipValjanosti.SelectedIndex = 0;
 
-            bool jeIzmjena = _direktorId.HasValue;
-            Text = jeIzmjena ? "Izmijeni direktora" : "Dodaj novog direktora";
-            btnSpremi.Text = jeIzmjena ? "💾 Spremi izmjene" : "💾 Dodaj";
+            bool isEditMode = _direktorId.HasValue;
+            Text = isEditMode ? "Izmijeni direktora" : "Dodaj novog direktora";
+            btnSpremi.Text = isEditMode ? "💾 Spremi izmjene" : "💾 Dodaj";
 
-            if (jeIzmjena)
-                UcitajDirektora(_direktorId!.Value);
+            if (isEditMode)
+                LoadDirektor(_direktorId!.Value);
         }
 
-        private void UcitajDirektora(int direktorId)
+        private void LoadDirektor(int direktorId)
         {
             var d = _db.Direktori.Find(direktorId);
-            if (d == null) return;
+            if (d is null) return;
 
             txtImePrezime.Text = d.ImePrezime ?? string.Empty;
             txtJmbg.Text = d.Jmbg ?? string.Empty;
             dtDatumValjanosti.Value = d.DatumValjanosti ?? DateTime.Now;
             cbTipValjanosti.Text = d.TipValjanosti ?? TipValjanostiKonstante.Trajno;
+
+           
             dtDatumValjanosti.Enabled = d.TipValjanosti == TipValjanostiKonstante.Vremenski;
         }
 
-       
+        
 
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -68,15 +74,15 @@ namespace OwnerTrack.App
                 return;
             }
 
-            bool jeTrajno = cbTipValjanosti.Text == TipValjanostiKonstante.Trajno;
-            DateTime? datumValjanosti = jeTrajno ? null : dtDatumValjanosti.Value;
+            bool isPermanent = cbTipValjanosti.Text == TipValjanostiKonstante.Trajno;
+            DateTime? dateOfValidity = isPermanent ? null : dtDatumValjanosti.Value;
 
             try
             {
                 if (_direktorId.HasValue)
-                    SpremiIzmjenu(_direktorId.Value, datumValjanosti);
+                    SaveChanges(_direktorId.Value, dateOfValidity);
                 else
-                    SpremiNovog(datumValjanosti);
+                    SaveNew(dateOfValidity);
 
                 DialogResult = DialogResult.OK;
                 Close();
@@ -95,36 +101,38 @@ namespace OwnerTrack.App
 
         
 
-        private void PrimijeniPolja(Direktor d, DateTime? datumValjanosti)
+        private void ApplyFormFieldsToDirektor(Direktor d, DateTime? dateOfValidity)
         {
             d.ImePrezime = txtImePrezime.Text.Trim();
-            d.DatumValjanosti = datumValjanosti;
+            d.DatumValjanosti = dateOfValidity;
             d.TipValjanosti = cbTipValjanosti.Text;
             d.Jmbg = FormHelper.NullAkoJePrazno(txtJmbg.Text);
         }
 
-        private void SpremiIzmjenu(int direktorId, DateTime? datumValjanosti)
+        
+
+        private void SaveChanges(int direktorId, DateTime? dateOfValidity)
         {
             var d = _db.Direktori.Find(direktorId);
-            if (d == null) return;
+            if (d is null) return;
 
-            string stariNaziv = d.ImePrezime ?? string.Empty;
-            PrimijeniPolja(d, datumValjanosti);
+            string previousName = d.ImePrezime ?? string.Empty;
+            ApplyFormFieldsToDirektor(d, dateOfValidity);
 
             TransactionHelper.Execute(_db, db =>
             {
                 db.SaveChanges();
-                _audit.Izmijenjeno("Direktori", direktorId, $"'{stariNaziv}' → '{d.ImePrezime}'");
+                _audit.Izmijenjeno("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'");
                 db.SaveChanges();
             });
 
             MessageBox.Show("Ažurirano!");
         }
 
-        private void SpremiNovog(DateTime? datumValjanosti)
+        private void SaveNew(DateTime? dateOfValidity)
         {
             var d = new Direktor { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
-            PrimijeniPolja(d, datumValjanosti);
+            ApplyFormFieldsToDirektor(d, dateOfValidity);
 
             TransactionHelper.Execute(_db, db =>
             {
