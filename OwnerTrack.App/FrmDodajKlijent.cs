@@ -115,7 +115,7 @@ namespace OwnerTrack.App
             }
         }
 
-       
+        
 
         private bool ValidirajPolja(string naziv, string idBroj)
         {
@@ -150,7 +150,7 @@ namespace OwnerTrack.App
             return true;
         }
 
-       
+        
 
         private void PrimijeniPoljaUKlijenta(Klijent k)
         {
@@ -180,7 +180,7 @@ namespace OwnerTrack.App
             ugovor.DatumUgovora = dtDatumUgovora.Value;
         }
 
-        
+       
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {

@@ -24,7 +24,7 @@ namespace OwnerTrack.App
             InitializeComponent();
         }
 
-        
+       
 
         private void FrmUpozorenja_Load(object sender, EventArgs e) => UcitajUpozorenja();
 
@@ -34,7 +34,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-        
+       
 
         private void UcitajUpozorenja()
         {
@@ -51,8 +51,7 @@ namespace OwnerTrack.App
             }
         }
 
-        
-
+       
         private void PrikaziSumarij(DateTime danas)
         {
             int istekli = _svaUpozorenja.Count(x => x.DatumIsteka < danas);
@@ -69,12 +68,15 @@ namespace OwnerTrack.App
                 $" Kritično (≤{AppKonstante.DanaKriticnoUpozorenje} dana): {kriticni}   " +
                 $" Uskoro ({AppKonstante.DanaKriticnoUpozorenje + 1}–{AppKonstante.DanaUpozerenja} dana): {ostali}";
 
-            panelTop.BackColor = istekli > 0
-                ? Color.FromArgb(160, 30, 30)
-                : kriticni > 0
-                    ? Color.FromArgb(180, 90, 20)
-                    : Color.FromArgb(130, 110, 20);
+            panelTop.BackColor = PanelBoja(istekli, kriticni);
         }
+
+        private static Color PanelBoja(int istekli, int kriticni) =>
+            istekli > 0 ? Color.FromArgb(160, 30, 30) :
+            kriticni > 0 ? Color.FromArgb(180, 90, 20) :
+                           Color.FromArgb(130, 110, 20);
+
+        
 
         private void PrikaziGridFirme(DateTime danas)
         {
@@ -102,7 +104,7 @@ namespace OwnerTrack.App
             GridHelper.KonfigurirajKolonu(gridFirme, "DanaDoIsteka", "Dana do isteka", 15);
         }
 
-        
+       
 
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
@@ -153,7 +155,7 @@ namespace OwnerTrack.App
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
 
-        
+       
 
         private static int DaniDoIsteka(DateTime datumIsteka, DateTime danas) =>
             (int)(datumIsteka - danas).TotalDays;

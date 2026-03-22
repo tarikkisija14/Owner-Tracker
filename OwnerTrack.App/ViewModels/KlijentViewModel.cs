@@ -1,7 +1,4 @@
-﻿
-using System;
-
-namespace OwnerTrack.App.Helpers
+﻿namespace OwnerTrack.App.ViewModels
 {
     public class KlijentViewModel
     {
@@ -28,25 +25,5 @@ namespace OwnerTrack.App.Helpers
         public int BrojDirektora { get; set; }
         public string? StatusKlijenta { get; set; }
         public string? Napomena { get; set; }
-    }
-
-    public class VlasnikViewModel
-    {
-        public int Id { get; set; }
-        public string? ImePrezime { get; set; }
-        public DateTime? DatumValjanostiDokumenta { get; set; }
-        public decimal ProcenatVlasnistva { get; set; }
-        public DateTime? DatumUtvrdjivanja { get; set; }
-        public string? IzvorPodatka { get; set; }
-        public string? StatusVlasnika { get; set; }
-    }
-
-    public class DirektorViewModel
-    {
-        public int Id { get; set; }
-        public string? ImePrezime { get; set; }
-        public DateTime? DatumValjanostiDokumenta { get; set; }
-        public string? TipValjanosti { get; set; }
-        public string? StatusDirektora { get; set; }
     }
 }

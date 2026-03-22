@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Windows.Forms;
-
-namespace OwnerTrack.App.Helpers
+﻿namespace OwnerTrack.App.Helpers
 {
+    
     public static class GridHelper
     {
        
@@ -20,6 +18,21 @@ namespace OwnerTrack.App.Helpers
                 if (format != null)
                     grid.Columns[ime].DefaultCellStyle.Format = format;
             }
+        }
+
+     
+        public static void KonfigurirajKolonu(
+            DataGridView grid,
+            string ime,
+            string zaglavlje,
+            float fillWeight,
+            string? format = null)
+        {
+            if (!grid.Columns.Contains(ime)) return;
+            grid.Columns[ime].HeaderText = zaglavlje;
+            grid.Columns[ime].FillWeight = fillWeight;
+            if (format != null)
+                grid.Columns[ime].DefaultCellStyle.Format = format;
         }
 
         
@@ -44,7 +57,7 @@ namespace OwnerTrack.App.Helpers
             return true;
         }
 
-        
+       
         public static void BindBezEventa<T>(
             DataGridView grid,
             EventHandler selectionChangedHandler,
@@ -54,21 +67,6 @@ namespace OwnerTrack.App.Helpers
             grid.DataSource = podaci;
             grid.ClearSelection();
             grid.SelectionChanged += selectionChangedHandler;
-        }
-
-        
-        public static void KonfigurirajKolonu(
-            DataGridView grid,
-            string ime,
-            string zaglavlje,
-            float fillWeight,
-            string? format = null)
-        {
-            if (!grid.Columns.Contains(ime)) return;
-            grid.Columns[ime].HeaderText = zaglavlje;
-            grid.Columns[ime].FillWeight = fillWeight;
-            if (format != null)
-                grid.Columns[ime].DefaultCellStyle.Format = format;
         }
     }
 }

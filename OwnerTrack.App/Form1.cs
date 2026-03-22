@@ -1,7 +1,9 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using Microsoft.EntityFrameworkCore;
 using OpenXmlSheet = DocumentFormat.OpenXml.Spreadsheet.Sheet;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
+using OwnerTrack.App.ViewModels;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using OwnerTrack.Infrastructure.Database;
@@ -18,7 +20,7 @@ namespace OwnerTrack.App
         {
             InitializeComponent();
 
-            _searchTimer = new System.Windows.Forms.Timer { Interval = 300 };
+            _searchTimer = new System.Windows.Forms.Timer { Interval = UiConstants.SearchDebounceMs };
             _searchTimer.Tick += (s, e) =>
             {
                 _searchTimer.Stop();
@@ -67,7 +69,7 @@ namespace OwnerTrack.App
         private void LoadVelicinaFilter()
         {
             cmbFilterVelicina.Items.Clear();
-            cmbFilterVelicina.Items.Add(new { Value = "", Display = "-- Sve --" });
+            cmbFilterVelicina.Items.Add(new { Value = UiConstants.FilterAllValue, Display = UiConstants.FilterAllDisplay });
             foreach (VelicinaFirme v in Enum.GetValues(typeof(VelicinaFirme)))
                 cmbFilterVelicina.Items.Add(new { Value = v.ToString(), Display = v.ToString() });
             cmbFilterVelicina.DisplayMember = "Display";
@@ -83,7 +85,7 @@ namespace OwnerTrack.App
                 var djelatnosti = db.Djelatnosti.OrderBy(d => d.Naziv).ToList();
 
                 cmbFilterDjelatnost.Items.Clear();
-                cmbFilterDjelatnost.Items.Add(new { Sifra = "", Naziv = "-- Sve djelatnosti --" });
+                cmbFilterDjelatnost.Items.Add(new { Sifra = UiConstants.FilterAllValue, Naziv = UiConstants.FilterAllDjelatnostDisplay });
                 foreach (var d in djelatnosti)
                     cmbFilterDjelatnost.Items.Add(new { d.Sifra, Naziv = $"{d.Sifra} - {d.Naziv}" });
 
@@ -94,7 +96,41 @@ namespace OwnerTrack.App
             catch (Exception ex) { DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju djelatnosti"); }
         }
 
-        
+        private string GetSelectedDjelatnostSifra()
+        {
+            if (cmbFilterDjelatnost.SelectedItem == null) return "";
+            dynamic item = cmbFilterDjelatnost.SelectedItem;
+            return item.Sifra ?? "";
+        }
+
+        private string GetSelectedVelicina()
+        {
+            if (cmbFilterVelicina.SelectedItem == null) return "";
+            dynamic item = cmbFilterVelicina.SelectedItem;
+            return item.Value ?? "";
+        }
+
+        private void ApplyCurrentFilters() =>
+            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
+
+        private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
+        {
+            _searchTimer.Stop();
+            _searchTimer.Start();
+        }
+
+        private void cmbFilterDjelatnost_SelectedIndexChanged(object sender, EventArgs e) => ApplyCurrentFilters();
+        private void cmbFilterVelicina_SelectedIndexChanged(object sender, EventArgs e) => ApplyCurrentFilters();
+
+        private void btnResetFilters_Click(object sender, EventArgs e)
+        {
+            txtSearchKlijent.Text = "";
+            cmbFilterDjelatnost.SelectedIndex = 0;
+            cmbFilterVelicina.SelectedIndex = 0;
+            LoadKlijenti();
+        }
+
+       
 
         private void LoadKlijenti(string filter = "", string sifraDjelatnosti = "", string velicina = "")
         {
@@ -139,7 +175,7 @@ namespace OwnerTrack.App
                     .ToList();
 
                 GridHelper.BindBezEventa(dataGridKlijenti, dataGridKlijenti_SelectionChanged, klijenti);
-                KonfigurirajKoloneKlijenata();
+                GridHelper.PostaviKolone(dataGridKlijenti, GridColumns.Klijenti);
             }
             catch (Exception ex) { DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju klijenata"); }
         }
@@ -166,16 +202,7 @@ namespace OwnerTrack.App
                     .ToList();
 
                 dataGridVlasnici.DataSource = vlasnici;
-                GridHelper.PostaviKolone(dataGridVlasnici, new[]
-                {
-                    ("Id",                       40,  "ID",                 (string?)null),
-                    ("ImePrezime",              180,  "Ime i prezime",      (string?)null),
-                    ("DatumValjanostiDokumenta",140,  "Datum važenja dok.", "dd.MM.yyyy"),
-                    ("ProcenatVlasnistva",      100,  "% vlasništva",       (string?)null),
-                    ("DatumUtvrdjivanja",       130,  "Datum utvrđivanja",  "dd.MM.yyyy"),
-                    ("IzvorPodatka",            150,  "Izvor podatka",      (string?)null),
-                    ("StatusVlasnika",           90,  "Status",             (string?)null),
-                });
+                GridHelper.PostaviKolone(dataGridVlasnici, GridColumns.Vlasnici);
                 dataGridVlasnici.ClearSelection();
             }
             catch (Exception ex) { DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju vlasnika"); }
@@ -201,50 +228,11 @@ namespace OwnerTrack.App
                     .ToList();
 
                 dataGridDirektori.DataSource = direktori;
-                GridHelper.PostaviKolone(dataGridDirektori, new[]
-                {
-                    ("Id",                       40,  "ID",                 (string?)null),
-                    ("ImePrezime",              200,  "Ime i prezime",      (string?)null),
-                    ("DatumValjanostiDokumenta",140,  "Datum važenja dok.", "dd.MM.yyyy"),
-                    ("TipValjanosti",           120,  "Tip valjanosti",     (string?)null),
-                    ("StatusDirektora",          90,  "Status",             (string?)null),
-                });
+                GridHelper.PostaviKolone(dataGridDirektori, GridColumns.Direktori);
                 dataGridDirektori.ClearSelection();
             }
             catch (Exception ex) { DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju direktora"); }
         }
-
-        private void KonfigurirajKoloneKlijenata()
-        {
-            GridHelper.PostaviKolone(dataGridKlijenti, new[]
-            {
-                ("Id",                    40, "ID",                     (string?)null),
-                ("Naziv",                220, "Naziv preduzeća",        (string?)null),
-                ("IdBroj",               130, "ID broj",                (string?)null),
-                ("Adresa",               200, "Adresa",                 (string?)null),
-                ("SifraDjelatnosti",      70, "Šifra",                  (string?)null),
-                ("Djelatnost",           220, "Djelatnost",             (string?)null),
-                ("DatumUspostaveOdnosa", 120, "Datum uspostave odnosa", "dd.MM.yyyy"),
-                ("VrstaKlijenta",        110, "Vrsta klijenta",         (string?)null),
-                ("DatumOsnivanjaFirme",  120, "Datum osnivanja",        "dd.MM.yyyy"),
-                ("Velicina",              80, "Veličina",               (string?)null),
-                ("PepRizik",              70, "PEP",                    (string?)null),
-                ("UboRizik",              70, "UBO",                    (string?)null),
-                ("GotovinaRizik",         90, "Gotovina rizik",         (string?)null),
-                ("GeografskiRizik",      100, "Geografski rizik",       (string?)null),
-                ("UkupnaProcjena",       120, "Ukupna procjena",        (string?)null),
-                ("DatumProcjeneRizika",  120, "Datum procjene rizika",  "dd.MM.yyyy"),
-                ("OvjeraCr",             150, "Ovjera/CR",              (string?)null),
-                ("StatusUgovora",        110, "Status ugovora",         (string?)null),
-                ("DatumPotpisaUgovora",  120, "Datum potpisa ugovora",  "dd.MM.yyyy"),
-                ("BrojVlasnika",          80, "Vlasnici",               (string?)null),
-                ("BrojDirektora",         80, "Direktori",              (string?)null),
-                ("StatusKlijenta",        90, "Status klijenta",        (string?)null),
-                ("Napomena",             200, "Napomena",               (string?)null),
-            });
-        }
-
-       
 
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
@@ -253,41 +241,7 @@ namespace OwnerTrack.App
             LoadDirektori(id);
         }
 
-        private void ApplyCurrentFilters() =>
-            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
-
-        private string GetSelectedDjelatnostSifra()
-        {
-            if (cmbFilterDjelatnost.SelectedItem == null) return "";
-            dynamic item = cmbFilterDjelatnost.SelectedItem;
-            return item.Sifra ?? "";
-        }
-
-        private string GetSelectedVelicina()
-        {
-            if (cmbFilterVelicina.SelectedItem == null) return "";
-            dynamic item = cmbFilterVelicina.SelectedItem;
-            return item.Value ?? "";
-        }
-
-        private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
-        {
-            _searchTimer.Stop();
-            _searchTimer.Start();
-        }
-
-        private void cmbFilterDjelatnost_SelectedIndexChanged(object sender, EventArgs e) => ApplyCurrentFilters();
-        private void cmbFilterVelicina_SelectedIndexChanged(object sender, EventArgs e) => ApplyCurrentFilters();
-
-        private void btnResetFilters_Click(object sender, EventArgs e)
-        {
-            txtSearchKlijent.Text = "";
-            cmbFilterDjelatnost.SelectedIndex = 0;
-            cmbFilterVelicina.SelectedIndex = 0;
-            LoadKlijenti();
-        }
-
-        
+       
 
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
@@ -321,7 +275,7 @@ namespace OwnerTrack.App
             successMessage: "Firma je arhivirana.");
         }
 
-        
+       
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
@@ -397,7 +351,7 @@ namespace OwnerTrack.App
             successMessage: "Direktor arhiviran.");
         }
 
-     
+       
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
@@ -447,8 +401,8 @@ namespace OwnerTrack.App
                 using var testDoc = SpreadsheetDocument.Open(filePath, false);
                 var wbPart = testDoc.WorkbookPart ?? throw new Exception("Fajl nema validan WorkbookPart.");
                 _ = wbPart.Workbook.Sheets?.Cast<OpenXmlSheet>()
-                      .FirstOrDefault(s => s.Name?.Value?.Contains("ZBIRNA") == true)
-                    ?? throw new Exception("Fajl ne sadrži list sa 'ZBIRNA'.");
+                      .FirstOrDefault(s => s.Name?.Value?.Contains(UiConstants.ExcelZirvanaKeyword) == true)
+                    ?? throw new Exception($"Fajl ne sadrži list sa '{UiConstants.ExcelZirvanaKeyword}'.");
                 return true;
             }
             catch (Exception ex)
@@ -493,7 +447,7 @@ namespace OwnerTrack.App
             }
         }
 
-       
+        
 
         private void OsvjeziUpozerenjaBadge()
         {
@@ -501,7 +455,7 @@ namespace OwnerTrack.App
             {
                 using var db = DbContextFactory.Kreiraj();
                 var stats = new WarningQueryService(db).DohvatiStats();
-                PostaviBadge(stats.Count, stats.ImaIsteklih);
+                PostaviBadge(BadgeState.FromStats(stats.Count, stats.ImaIsteklih));
             }
             catch (Exception ex)
             {
@@ -510,24 +464,18 @@ namespace OwnerTrack.App
             }
         }
 
-        private void PostaviBadge(int count, bool imaIsteklih)
+        private void PostaviBadge(BadgeState state)
         {
-            bool imaUpozorenja = count > 0;
-
-            btnUpozorenja.Text = imaUpozorenja ? $"🔔 Upozorenja ({count})" : "🔔 Upozorenja";
+            btnUpozorenja.Text = state.Label;
+            btnUpozorenja.BackColor = state.BackColor;
+            btnUpozorenja.ForeColor = state.ForeColor;
 
             var oldFont = btnUpozorenja.Font;
-            var noviStil = imaUpozorenja ? FontStyle.Bold : FontStyle.Regular;
-            if (oldFont.Style != noviStil)
+            if (oldFont.Style != state.FontStyle)
             {
-                btnUpozorenja.Font = new Font(oldFont.FontFamily, oldFont.Size, noviStil);
+                btnUpozorenja.Font = new Font(oldFont.FontFamily, oldFont.Size, state.FontStyle);
                 oldFont.Dispose();
             }
-
-            btnUpozorenja.BackColor = imaUpozorenja
-                ? (imaIsteklih ? Color.Firebrick : Color.FromArgb(220, 120, 20))
-                : SystemColors.Control;
-            btnUpozorenja.ForeColor = imaUpozorenja ? Color.White : SystemColors.ControlText;
         }
 
         private void btnUpozorenja_Click(object sender, EventArgs e)
@@ -536,7 +484,7 @@ namespace OwnerTrack.App
             new FrmUpozorenja(db).ShowDialog(this);
         }
 
-       
+        
 
         private async void btnExportTabelaPdf_Click(object sender, EventArgs e)
         {
@@ -589,7 +537,7 @@ namespace OwnerTrack.App
                 savedPath);
         }
 
-        
+       
 
         private void OsveziNakonIzmjene()
         {
@@ -598,10 +546,6 @@ namespace OwnerTrack.App
             OsvjeziUpozerenjaBadge();
         }
 
-        /// <summary>
-        /// Opens a fresh DbContext, wraps <paramref name="akcija"/> in a transaction,
-        /// shows <paramref name="successMessage"/> on success, then invokes <paramref name="nakonUspjeha"/>.
-        /// </summary>
         private void IzvrsiArhiviranje(
             int id,
             Action<OwnerTrackDbContext> akcija,

@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Infrastructure.Database;
-using System;
 using System.IO;
+using System.Linq;
 
 namespace OwnerTrack.Infrastructure.Services
 {
     public class DatabaseService
     {
+       
         private static readonly string[] DataTables =
             { "AuditLogs", "Ugovori", "Vlasnici", "Direktori", "Klijenti" };
 
@@ -45,7 +46,8 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
-      
+        
+
         private string KreirajBackup()
         {
             if (!File.Exists(_dbPath))
@@ -67,6 +69,8 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void ObrisiSvePodatke()
         {
+            string tableList = string.Join(",", DataTables.Select(t => $"'{t}'"));
+
             using var db = DbContextFactory.Kreiraj();
             using var tx = db.Database.BeginTransaction();
             try
@@ -75,8 +79,7 @@ namespace OwnerTrack.Infrastructure.Services
                     db.Database.ExecuteSqlRaw($"DELETE FROM {tabela}");
 
                 db.Database.ExecuteSqlRaw(
-                    "DELETE FROM sqlite_sequence WHERE name IN " +
-                    "('AuditLogs','Ugovori','Vlasnici','Direktori','Klijenti')");
+                    $"DELETE FROM sqlite_sequence WHERE name IN ({tableList})");
 
                 tx.Commit();
             }

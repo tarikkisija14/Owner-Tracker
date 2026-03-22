@@ -10,42 +10,44 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace OwnerTrack.Infrastructure
+namespace OwnerTrack.Infrastructure.Services
 {
     public class ExcelImportService
     {
         
+        private static class Columns
+        {
+            public const int Naziv = 2;
+            public const int IdBroj = 3;
+            public const int Adresa = 4;
+            public const int SifraDjelatnosti = 5;
+            public const int NazivDjelatnosti = 6;
+            public const int DatumUspostave = 7;
+            public const int VrstaKlijenta = 8;
+            public const int DatumOsnivanja = 9;
+            public const int Vlasnik = 10;
+            public const int DatVazVlasnika = 11;
+            public const int Procenat = 12;
+            public const int DatUtvrdjivanja = 13;
+            public const int IzvorPodatka = 14;
+            public const int Direktor = 15;
+            public const int DatVazDirektora = 16;
+            public const int Velicina = 17;
+            public const int PepRizik = 18;
+            public const int UboRizik = 19;
+            public const int GotovinaRizik = 20;
+            public const int GeografskiRizik = 21;
+            public const int UkupnaProcjena = 22;
+            public const int DatumProcjene = 23;
+            public const int OvjeraCr = 24;
+            public const int StatusUgovora = 25;
+            public const int DatumUgovora = 26;
+        }
 
-        private const int ColNaziv = 2;
-        private const int ColIdBroj = 3;
-        private const int ColAdresa = 4;
-        private const int ColSifraDjelatnosti = 5;
-        private const int ColNazivDjelatnosti = 6;
-        private const int ColDatumUspostave = 7;
-        private const int ColVrstaKlijenta = 8;
-        private const int ColDatumOsnivanja = 9;
-        private const int ColVlasnik = 10;
-        private const int ColDatVazVlasnika = 11;
-        private const int ColProcenat = 12;
-        private const int ColDatUtvrdjivanja = 13;
-        private const int ColIzvorPodatka = 14;
-        private const int ColDirektor = 15;
-        private const int ColDatVazDirektora = 16;
-        private const int ColVelicina = 17;
-        private const int ColPepRizik = 18;
-        private const int ColUboRizik = 19;
-        private const int ColGotovinaRizik = 20;
-        private const int ColGeografskiRizik = 21;
-        private const int ColUkupnaProcjena = 22;
-        private const int ColDatumProcjene = 23;
-        private const int ColOvjeraCr = 24;
-        private const int ColStatusUgovora = 25;
-        private const int ColDatumUgovora = 26;
+       
 
         private const int BatchSize = 50;
-        private const int ExcelHeaderRows = 2; // rows skipped before data
-
-        
+        private const int ExcelHeaderRows = 2;  // rows skipped before data
 
         private static readonly Dictionary<string, VelicinaFirme> VelicinaAliases =
             new(StringComparer.OrdinalIgnoreCase)
@@ -89,7 +91,7 @@ namespace OwnerTrack.Infrastructure
             _connectionString = connectionString;
         }
 
-        
+       
 
         public ImportResult ImportFromExcel(
             string filePath,
@@ -137,8 +139,8 @@ namespace OwnerTrack.Infrastructure
 
                     try
                     {
-                        naziv = (GetCellValue(wbPart, row, ColNaziv) ?? "").Trim();
-                        idBroj = (GetCellValue(wbPart, row, ColIdBroj) ?? "").Trim();
+                        naziv = (GetCellValue(wbPart, row, Columns.Naziv) ?? "").Trim();
+                        idBroj = (GetCellValue(wbPart, row, Columns.IdBroj) ?? "").Trim();
 
                         prog.CurrentRow = $"{naziv} ({idBroj})";
                         prog.ProcessedRows = i + 1;
@@ -149,34 +151,46 @@ namespace OwnerTrack.Infrastructure
                             continue;
                         }
 
-                        bool skipped = ImportRow(
-                            wbPart, row, i, naziv, idBroj,
-                            result, db,
-                            existingIdBrojevi, existingNazivi, existingDjelatnosti);
-
-                        if (!skipped)
-                        {
-                            result.SuccessCount++;
-                            prog.SuccessCount = result.SuccessCount;
-                            pendingChanges++;
-
-                            if (pendingChanges >= BatchSize)
-                            {
-                                db.SaveChanges();
-                                pendingChanges = 0;
-                            }
-                        }
-                        else
+                        if (existingIdBrojevi.Contains(idBroj) || existingNazivi.Contains(naziv))
                         {
                             result.SkipCount++;
+                            prog.ProcessedRows = i + 1;
+                            progress?.Report(prog);
+                            continue;
+                        }
+
+                        string sifraDjelatnosti = (GetCellValue(wbPart, row, Columns.SifraDjelatnosti) ?? "").Trim();
+                        string? nazivDjelatnosti = GetCellValue(wbPart, row, Columns.NazivDjelatnosti);
+
+                        if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
+                            EnsureDjelatnostExists(db, existingDjelatnosti, sifraDjelatnosti, nazivDjelatnosti);
+
+                        var klijent = MapKlijent(wbPart, row, naziv, idBroj, sifraDjelatnosti);
+                        db.Klijenti.Add(klijent);
+                        db.SaveChanges();
+
+                        existingIdBrojevi.Add(idBroj);
+                        existingNazivi.Add(naziv);
+
+                        ImportVlasnici(wbPart, row, klijent, result, db);
+                        ImportDirektori(wbPart, row, klijent, db);
+                        ImportUgovor(wbPart, row, klijent, db);
+
+                        result.SuccessCount++;
+                        pendingChanges++;
+
+                        if (pendingChanges >= BatchSize)
+                        {
+                            db.SaveChanges();
+                            pendingChanges = 0;
                         }
                     }
                     catch (Exception ex)
                     {
+                        string errMsg = BuildRowError(i, naziv, idBroj, ex);
+                        result.Errors.Add(errMsg);
                         result.ErrorCount++;
-                        prog.ErrorCount = result.ErrorCount;
-                        result.Errors.Add(BuildRowError(i, naziv, idBroj, ex));
-                        Debug.WriteLine(BuildRowError(i, naziv, idBroj, ex));
+                        Debug.WriteLine($"[IMPORT-ROW-ERROR] {errMsg}");
                     }
 
                     progress?.Report(prog);
@@ -186,95 +200,49 @@ namespace OwnerTrack.Infrastructure
                     db.SaveChanges();
 
                 tx.Commit();
-            }
-            catch (OperationCanceledException)
-            {
-                result.Success = true;
-                return result;
+                Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Skip={result.SkipCount} Errors={result.ErrorCount}");
             }
             catch (Exception ex)
             {
-                result.Success = false;
-                result.Errors.Add($"KRITIČNA GREŠKA: {ex.Message}");
-                return result;
+                Debug.WriteLine($"[IMPORT-FATAL] {ex.Message}");
+                throw;
             }
 
-            result.Success = true;
             return result;
         }
 
-        
 
-        /// <returns>True if the row was skipped (duplicate), false if it was imported.</returns>
-        private bool ImportRow(
-            WorkbookPart wbPart, Row row, int rowIndex,
-            string naziv, string idBroj,
-            ImportResult result,
-            OwnerTrackDbContext db,
-            HashSet<string> existingIdBrojevi,
-            HashSet<string> existingNazivi,
-            HashSet<string> existingDjelatnosti)
+        private Klijent MapKlijent(WorkbookPart wbPart, Row row, string naziv, string idBroj, string sifraDjelatnosti)
         {
-            string sifraDjelatnosti = GetCellValue(wbPart, row, ColSifraDjelatnosti)?.Trim()
-                                      ?? AppKonstante.DefaultSifraDjelatnosti;
-            if (string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                sifraDjelatnosti = AppKonstante.DefaultSifraDjelatnosti;
-
-            string? nazivDjelatnosti = GetCellValue(wbPart, row, ColNazivDjelatnosti)?.Trim();
-
-            EnsureDjelatnostExists(db, existingDjelatnosti, sifraDjelatnosti, nazivDjelatnosti);
-
-            if (existingIdBrojevi.Contains(idBroj))
-            {
-                Debug.WriteLine($"[SKIP-DUPLICATE-ID] Red={rowIndex + ExcelHeaderRows + 1} ID='{idBroj}'");
-                return true;
-            }
-
-            if (existingNazivi.Contains(naziv))
-                throw new Exception($"Naziv '{naziv}' već postoji s drugačijim ID brojem.");
-
-            var klijent = new Klijent
+            return new Klijent
             {
                 Naziv = naziv,
                 IdBroj = idBroj,
-                Adresa = GetCellValue(wbPart, row, ColAdresa)?.Trim(),
+                Adresa = GetCellValue(wbPart, row, Columns.Adresa)?.Trim(),
                 SifraDjelatnosti = sifraDjelatnosti,
-                DatumUspostave = ParseDate(GetCellValue(wbPart, row, ColDatumUspostave)),
-                VrstaKlijenta = NormalizeVrstaKlijenta(GetCellValue(wbPart, row, ColVrstaKlijenta)),
-                DatumOsnivanja = ParseDate(GetCellValue(wbPart, row, ColDatumOsnivanja)),
-                Velicina = NormalizeVelicina(GetCellValue(wbPart, row, ColVelicina)),
-                PepRizik = NormalizeDaNe(GetCellValue(wbPart, row, ColPepRizik)),
-                UboRizik = NormalizeDaNe(GetCellValue(wbPart, row, ColUboRizik)),
-                GotovinaRizik = NormalizeDaNe(GetCellValue(wbPart, row, ColGotovinaRizik)),
-                GeografskiRizik = NormalizeDaNe(GetCellValue(wbPart, row, ColGeografskiRizik)),
-                UkupnaProcjena = GetCellValue(wbPart, row, ColUkupnaProcjena)?.Trim(),
-                DatumProcjene = ParseDate(GetCellValue(wbPart, row, ColDatumProcjene)),
-                OvjeraCr = GetCellValue(wbPart, row, ColOvjeraCr)?.Trim(),
-                Status = StatusEntiteta.AKTIVAN,
+                DatumUspostave = ParseDate(GetCellValue(wbPart, row, Columns.DatumUspostave)),
+                VrstaKlijenta = NormalizeVrstaKlijenta(GetCellValue(wbPart, row, Columns.VrstaKlijenta)),
+                DatumOsnivanja = ParseDate(GetCellValue(wbPart, row, Columns.DatumOsnivanja)),
+                Velicina = NormalizeVelicina(GetCellValue(wbPart, row, Columns.Velicina)),
+                PepRizik = NormalizeDaNe(GetCellValue(wbPart, row, Columns.PepRizik)),
+                UboRizik = NormalizeDaNe(GetCellValue(wbPart, row, Columns.UboRizik)),
+                GotovinaRizik = NormalizeDaNe(GetCellValue(wbPart, row, Columns.GotovinaRizik)),
+                GeografskiRizik = NormalizeDaNe(GetCellValue(wbPart, row, Columns.GeografskiRizik)),
+                UkupnaProcjena = GetCellValue(wbPart, row, Columns.UkupnaProcjena)?.Trim(),
+                DatumProcjene = ParseDate(GetCellValue(wbPart, row, Columns.DatumProcjene)),
+                OvjeraCr = GetCellValue(wbPart, row, Columns.OvjeraCr)?.Trim(),
                 Kreiran = DateTime.Now,
+                Status = StatusEntiteta.AKTIVAN,
             };
-
-            db.Klijenti.Add(klijent);
-            db.SaveChanges();
-
-            existingIdBrojevi.Add(idBroj);
-            existingNazivi.Add(naziv);
-
-            ImportVlasnici(wbPart, row, klijent, result, db);
-            ImportDirektori(wbPart, row, klijent, db);
-            ImportUgovor(wbPart, row, klijent, db);
-
-            Debug.WriteLine($"[OK] Red={rowIndex + ExcelHeaderRows + 1} KlijentId={klijent.Id} '{naziv}'");
-            return false;
         }
 
         private void ImportVlasnici(WorkbookPart wbPart, Row row, Klijent klijent, ImportResult result, OwnerTrackDbContext db)
         {
-            string? vlasnikRaw = GetCellValue(wbPart, row, ColVlasnik);
-            string? datVazVlasnika = GetCellValue(wbPart, row, ColDatVazVlasnika);
-            string? procenatRaw = GetCellValue(wbPart, row, ColProcenat);
-            string? datUtvrdjivanja = GetCellValue(wbPart, row, ColDatUtvrdjivanja);
-            string? izvorPodatka = GetCellValue(wbPart, row, ColIzvorPodatka);
+            string? vlasnikRaw = GetCellValue(wbPart, row, Columns.Vlasnik);
+            string? datVazVlasnika = GetCellValue(wbPart, row, Columns.DatVazVlasnika);
+            string? procenatRaw = GetCellValue(wbPart, row, Columns.Procenat);
+            string? datUtvrdjivanja = GetCellValue(wbPart, row, Columns.DatUtvrdjivanja);
+            string? izvorPodatka = GetCellValue(wbPart, row, Columns.IzvorPodatka);
 
             if (string.IsNullOrWhiteSpace(vlasnikRaw)) return;
 
@@ -291,8 +259,8 @@ namespace OwnerTrack.Infrastructure
 
         private void ImportDirektori(WorkbookPart wbPart, Row row, Klijent klijent, OwnerTrackDbContext db)
         {
-            string? direktorRaw = GetCellValue(wbPart, row, ColDirektor);
-            string? datVazDirektora = GetCellValue(wbPart, row, ColDatVazDirektora);
+            string? direktorRaw = GetCellValue(wbPart, row, Columns.Direktor);
+            string? datVazDirektora = GetCellValue(wbPart, row, Columns.DatVazDirektora);
 
             if (string.IsNullOrWhiteSpace(direktorRaw)) return;
 
@@ -306,8 +274,8 @@ namespace OwnerTrack.Infrastructure
 
         private void ImportUgovor(WorkbookPart wbPart, Row row, Klijent klijent, OwnerTrackDbContext db)
         {
-            string? statusUgovora = GetCellValue(wbPart, row, ColStatusUgovora);
-            string? datumUgovora = GetCellValue(wbPart, row, ColDatumUgovora);
+            string? statusUgovora = GetCellValue(wbPart, row, Columns.StatusUgovora);
+            string? datumUgovora = GetCellValue(wbPart, row, Columns.DatumUgovora);
 
             if (string.IsNullOrWhiteSpace(statusUgovora)) return;
 
@@ -335,7 +303,7 @@ namespace OwnerTrack.Infrastructure
             existingDjelatnosti.Add(sifra);
         }
 
-        
+       
 
         private List<Vlasnik> ParseVlasnici(string raw, string? datVazRaw, string? procenatRaw)
         {
@@ -548,7 +516,6 @@ namespace OwnerTrack.Infrastructure
 
         
 
-        /// Builds a consistent error string for a failed row (for both log and result.Errors).
         private static string BuildRowError(int rowIndex, string naziv, string idBroj, Exception ex)
         {
             string inner = ex.InnerException?.Message ?? "";

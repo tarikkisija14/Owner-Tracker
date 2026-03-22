@@ -1,7 +1,8 @@
 ﻿using System;
 
-namespace OwnerTrack.App.Helpers
+namespace OwnerTrack.Infrastructure.Models
 {
+  
     public class UpozorenjeDetalj
     {
         public int KlijentId { get; set; }

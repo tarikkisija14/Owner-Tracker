@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Models;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-   
     public class WarningQueryService
     {
         private readonly OwnerTrackDbContext _db;
@@ -16,7 +14,6 @@ namespace OwnerTrack.Infrastructure.Services
             _db = db;
         }
 
-        
         public WarningStats DohvatiStats()
         {
             var danas = DateTime.Today;
@@ -47,7 +44,6 @@ namespace OwnerTrack.Infrastructure.Services
             return new WarningStats(count, imaIsteklih);
         }
 
-        
         public List<UpozorenjeDetalj> DohvatiUpozorenja()
         {
             var granica = DateTime.Today.AddDays(AppKonstante.DanaUpozerenja);
@@ -57,8 +53,6 @@ namespace OwnerTrack.Infrastructure.Services
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
         }
-
-        
 
         private List<UpozorenjeDetalj> DohvatiUpozorenjaVlasnika(DateTime granica) =>
             _db.Vlasnici

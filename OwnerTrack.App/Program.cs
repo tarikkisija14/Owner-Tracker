@@ -1,4 +1,5 @@
-﻿using OwnerTrack.Infrastructure.Database;
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.Infrastructure.Database;
 using System.IO;
 using System.Text;
 
@@ -29,6 +30,8 @@ namespace OwnerTrack.App
             ApplicationConfiguration.Initialize();
             Application.Run(new Form1());
         }
+
+       
 
         public static void LogException(Exception? ex)
         {
@@ -62,10 +65,11 @@ namespace OwnerTrack.App
         {
             string dir = Path.GetDirectoryName(DbContextFactory.DbPath)
                          ?? AppDomain.CurrentDomain.BaseDirectory;
-            return Path.Combine(dir, "ownertrack_errors.log");
+            return Path.Combine(dir, UiConstants.ErrorLogFileName);
         }
 
-        
+       
+
         private static void AppendInnerExceptions(StringBuilder sb, Exception? inner, string indent = "")
         {
             int depth = 1;

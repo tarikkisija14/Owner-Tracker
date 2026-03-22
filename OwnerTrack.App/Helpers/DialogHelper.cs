@@ -1,13 +1,12 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using OwnerTrack.App.Constants;
 
 namespace OwnerTrack.App.Helpers
 {
+    
     public static class DialogHelper
     {
+       
+
         public static bool PotvrdiArhiviranje(string poruka) =>
             MessageBox.Show(
                 poruka + "\n\nNastavi?",
@@ -15,27 +14,28 @@ namespace OwnerTrack.App.Helpers
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) == DialogResult.Yes;
 
+       
+
         public static SaveFileDialog KreirajSaveDialogPdf(string title, string fileName) =>
             new SaveFileDialog
             {
                 Title = title,
-                Filter = "PDF dokument (*.pdf)|*.pdf",
-                DefaultExt = "pdf",
+                Filter = UiConstants.PdfFilter,
+                DefaultExt = UiConstants.PdfExt,
                 FileName = fileName,
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             };
 
         public static OpenFileDialog KreirajOpenDialogExcel(string? title = null)
         {
-            var dlg = new OpenFileDialog { Filter = "Excel Files (*.xlsx)|*.xlsx" };
+            var dlg = new OpenFileDialog { Filter = UiConstants.ExcelFilter };
             if (title != null) dlg.Title = title;
             return dlg;
         }
 
-        /// <summary>
-        /// Disables <paramref name="btn"/>, runs <paramref name="generatorPdf"/> on a background
-        /// thread, then offers to open the result. Restores button state in all cases.
-        /// </summary>
+        
+
+       
         public static async Task IzvrsiPdfExport(
             Button btn,
             string originalniTekst,
@@ -43,8 +43,8 @@ namespace OwnerTrack.App.Helpers
             string outputPath)
         {
             btn.Enabled = false;
-            btn.Text = "Generišem...";
-            System.Windows.Forms.Cursor.Current = Cursors.WaitCursor;
+            btn.Text = UiConstants.PdfExportBusyLabel;
+            Cursor.Current = Cursors.WaitCursor;
 
             try
             {
@@ -69,9 +69,11 @@ namespace OwnerTrack.App.Helpers
             {
                 btn.Enabled = true;
                 btn.Text = originalniTekst;
-                System.Windows.Forms.Cursor.Current = Cursors.Default;
+                Cursor.Current = Cursors.Default;
             }
         }
+
+        
 
         public static void LogirajIPokaziGresku(Exception ex, string? prefiks = null)
         {
@@ -80,7 +82,7 @@ namespace OwnerTrack.App.Helpers
             MessageBox.Show(poruka);
         }
 
-        /// <summary>Converts <paramref name="naziv"/> into a safe PDF filename with today's date.</summary>
+        
         public static string SigurnoIme(string naziv)
         {
             var invalid = Path.GetInvalidFileNameChars();
