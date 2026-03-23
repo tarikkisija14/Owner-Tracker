@@ -1,6 +1,6 @@
 ﻿namespace OwnerTrack.Data.Enums
 {
-    public static class AppKonstante
+    public static class AppConstants
     {
         public const string DefaultSifraDjelatnosti = "69.20";
 

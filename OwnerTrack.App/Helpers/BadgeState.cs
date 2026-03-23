@@ -2,10 +2,6 @@
 
 namespace OwnerTrack.App.ViewModels
 {
-    /// <summary>
-    /// Immutable value object that describes the visual state of the warnings badge button.
-    /// Encapsulates all badge display decisions so Form1 only needs to apply them.
-    /// </summary>
     public sealed class BadgeState
     {
         public string Label { get; }
@@ -21,7 +17,7 @@ namespace OwnerTrack.App.ViewModels
             FontStyle = fontStyle;
         }
 
-        public static BadgeState FromStats(int count, bool imaIsteklih)
+        public static BadgeState FromStats(int count, bool hasExpired)
         {
             if (count == 0)
                 return new BadgeState(
@@ -30,7 +26,7 @@ namespace OwnerTrack.App.ViewModels
                     SystemColors.ControlText,
                     FontStyle.Regular);
 
-            Color backColor = imaIsteklih
+            Color backColor = hasExpired
                 ? Color.Firebrick
                 : Color.FromArgb(220, 120, 20);
 

@@ -1,18 +1,15 @@
 ﻿namespace OwnerTrack.App.Helpers
 {
-  
     public static class FormHelper
     {
-        
-        public static void PopuniEnumCombo<TEnum>(ComboBox cb) where TEnum : struct, Enum
+        public static void PopulateEnumCombo<TEnum>(ComboBox cb) where TEnum : struct, Enum
         {
             cb.Items.Clear();
             foreach (TEnum v in Enum.GetValues(typeof(TEnum)))
                 cb.Items.Add(v.ToString());
         }
 
-      
-        public static void PopuniEnumComboSPraznim<TEnum>(ComboBox cb) where TEnum : struct, Enum
+        public static void PopulateEnumComboWithEmpty<TEnum>(ComboBox cb) where TEnum : struct, Enum
         {
             cb.Items.Clear();
             cb.Items.Add(string.Empty);
@@ -20,7 +17,6 @@
                 cb.Items.Add(v.ToString());
         }
 
-       
         public static void SetCombo(ComboBox cb, string? value)
         {
             if (string.IsNullOrEmpty(value)) { cb.SelectedIndex = 0; return; }
@@ -28,8 +24,7 @@
             cb.SelectedIndex = idx >= 0 ? idx : 0;
         }
 
-        
-        public static string? NullAkoJePrazno(string? s)
+        public static string? NullIfEmpty(string? s)
             => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     }
 }

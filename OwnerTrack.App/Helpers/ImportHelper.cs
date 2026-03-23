@@ -1,9 +1,9 @@
-﻿using OwnerTrack.Infrastructure.Models;
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.Infrastructure.Models;
 using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App.Helpers
 {
-
     public class ImportHelper
     {
         private const int MaxErrorsShownInDialog = 10;
@@ -15,44 +15,105 @@ namespace OwnerTrack.App.Helpers
             _connectionString = connectionString;
         }
 
-
-        public void PokreniImport(
+        public void RunImport(
             string filePath,
             Form owner,
-            Action? onZavrsetak = null,
-            Action? onGreska = null)
+            Action? onCompleted = null,
+            Action? onError = null)
         {
             using var cts = new CancellationTokenSource();
-            bool importFinished = false;
+            bool importDone = false;
 
-            using var progressForm = ImportProgressFormFactory.Kreiraj(
+            using var progressForm = ImportProgressFormFactory.Create(
                 out var progressBar,
                 out var lblStatus,
                 out var btnClose,
                 out var btnCancel);
 
-            progressForm.FormClosing += (_, args) =>
+            WireFormClosingGuard(progressForm, () => importDone);
+            WireCancelButton(btnCancel, cts, () => importDone);
+
+            var progress = BuildProgressReporter(progressForm, progressBar, lblStatus);
+
+            progressForm.Shown += async (_, _) =>
             {
-                if (!importFinished)
+                ImportResult? result = null;
+
+                try
                 {
-                    args.Cancel = true;
-                    MessageBox.Show(
-                        "Import je u toku. Molimo sačekajte da se završi ili pritisnite Otkaži.",
-                        "Import u toku", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    var service = new ExcelImportService(_connectionString);
+                    result = await Task.Run(
+                        () => service.ImportFromExcel(filePath, progress, cts.Token),
+                        cts.Token);
+
+                    importDone = true;
+                    ActivateCloseButton(btnClose, btnCancel);
+                    lblStatus.Text = FormatResultLabel(result, cts.IsCancellationRequested);
+
+                    if (result.Errors.Count > 0)
+                        ShowImportErrors(result.Errors);
                 }
+                catch (OperationCanceledException)
+                {
+                    importDone = true;
+                    lblStatus.Text = UiMessages.ImportCancelledByUser;
+                    ActivateCloseButton(btnClose, btnCancel);
+                }
+                catch (Exception ex)
+                {
+                    importDone = true;
+                    AppLogger.LogException(ex);
+                    MessageBox.Show(
+                        string.Format(UiMessages.ImportErrorFormat, ex.Message),
+                        UiMessages.ImportErrorTitle,
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    progressForm.Close();
+                    onError?.Invoke();
+                    return;
+                }
+
+                void OnCloseClicked(object? s, EventArgs e)
+                {
+                    btnClose.Click -= OnCloseClicked;
+                    progressForm.Close();
+                    if (!cts.IsCancellationRequested)
+                        onCompleted?.Invoke();
+                }
+
+                btnClose.Click += OnCloseClicked;
             };
 
+            progressForm.ShowDialog(owner);
+        }
+
+        private static void WireFormClosingGuard(Form form, Func<bool> isDone)
+        {
+            form.FormClosing += (_, args) =>
+            {
+                if (isDone()) return;
+                args.Cancel = true;
+                MessageBox.Show(
+                    UiMessages.ImportInProgressMessage,
+                    UiMessages.ImportInProgressTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            };
+        }
+
+        private static void WireCancelButton(Button btnCancel, CancellationTokenSource cts, Func<bool> isDone)
+        {
             btnCancel.Click += (_, _) =>
             {
-                if (!importFinished)
-                {
-                    btnCancel.Enabled = false;
-                    btnCancel.Text = "Otkazivanje...";
-                    cts.Cancel();
-                }
+                if (isDone()) return;
+                btnCancel.Enabled = false;
+                btnCancel.Text = UiMessages.ImportCancellingText;
+                cts.Cancel();
             };
+        }
 
-            var progress = new Progress<ImportProgress>(p =>
+        private static IProgress<ImportProgress> BuildProgressReporter(
+            Form progressForm, ProgressBar progressBar, Label lblStatus)
+        {
+            return new Progress<ImportProgress>(p =>
             {
                 if (!progressForm.IsHandleCreated || progressForm.IsDisposed)
                     return;
@@ -68,56 +129,18 @@ namespace OwnerTrack.App.Helpers
                     progressForm.Refresh();
                 });
             });
-
-            progressForm.Shown += async (_, _) =>
-            {
-                try
-                {
-                    var service = new ExcelImportService(_connectionString);
-                    var result = await Task.Run(
-                        () => service.ImportFromExcel(filePath, progress, cts.Token),
-                        cts.Token);
-
-                    importFinished = true;
-                    EnableCloseButton(btnClose, btnCancel);
-                    lblStatus.Text = FormatResultLabel(result, cts.IsCancellationRequested);
-
-                    if (result.Errors.Count > 0)
-                        MessageBox.Show(
-                            $"Greške tokom importa:\n{string.Join("\n", result.Errors.Take(MaxErrorsShownInDialog))}",
-                            "Upozorenje", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-                catch (OperationCanceledException)
-                {
-                    importFinished = true;
-                    lblStatus.Text = "Import je otkazan od strane korisnika.";
-                    EnableCloseButton(btnClose, btnCancel);
-                }
-                catch (Exception ex)
-                {
-                    importFinished = true;
-                    AppLogger.LogException(ex);
-                    MessageBox.Show($"Greška: {ex.Message}", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    progressForm.Close();
-                    onGreska?.Invoke();
-                    return;
-                }
-
-                void OnCloseClicked(object? s, EventArgs e)
-                {
-                    btnClose.Click -= OnCloseClicked;
-                    progressForm.Close();
-                    if (!cts.IsCancellationRequested)
-                        onZavrsetak?.Invoke();
-                }
-                btnClose.Click += OnCloseClicked;
-            };
-
-            progressForm.ShowDialog(owner);
         }
 
+        private static void ShowImportErrors(List<string> errors)
+        {
+            MessageBox.Show(
+                string.Format(UiMessages.ImportErrorsFormat,
+                    string.Join("\n", errors.Take(MaxErrorsShownInDialog))),
+                UiMessages.ImportErrorsTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
 
-        private static void EnableCloseButton(Button btnClose, Button btnCancel)
+        private static void ActivateCloseButton(Button btnClose, Button btnCancel)
         {
             btnClose.Enabled = true;
             btnCancel.Enabled = false;

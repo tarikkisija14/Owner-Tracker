@@ -14,55 +14,55 @@ namespace OwnerTrack.Infrastructure.Services
             _db = db;
         }
 
-        public WarningStats DohvatiStats()
+        public WarningStats GetStats()
         {
-            var danas = DateTime.Today;
-            var granica = danas.AddDays(AppKonstante.DanaUpozerenja);
+            var today = DateTime.Today;
+            var threshold = today.AddDays(AppConstants.DanaUpozerenja);
 
-            bool imaIsteklih =
+            bool hasExpired =
                 _db.Vlasnici.AsNoTracking().Any(v =>
-                    v.DatumValjanostiDokumenta < danas
+                    v.DatumValjanostiDokumenta < today
                     && v.Status == StatusEntiteta.AKTIVAN
                     && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 || _db.Direktori.AsNoTracking().Any(d =>
-                    d.DatumValjanosti < danas
-                    && d.TipValjanosti == TipValjanostiKonstante.Vremenski
+                    d.DatumValjanosti < today
+                    && d.TipValjanosti == ValidityTypeConstants.Vremenski
                     && d.Status == StatusEntiteta.AKTIVAN
                     && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
 
             int count =
                 _db.Vlasnici.AsNoTracking().Count(v =>
-                    v.DatumValjanostiDokumenta <= granica
+                    v.DatumValjanostiDokumenta <= threshold
                     && v.Status == StatusEntiteta.AKTIVAN
                     && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 + _db.Direktori.AsNoTracking().Count(d =>
-                    d.DatumValjanosti <= granica
-                    && d.TipValjanosti == TipValjanostiKonstante.Vremenski
+                    d.DatumValjanosti <= threshold
+                    && d.TipValjanosti == ValidityTypeConstants.Vremenski
                     && d.Status == StatusEntiteta.AKTIVAN
                     && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
 
-            return new WarningStats(count, imaIsteklih);
+            return new WarningStats(count, hasExpired);
         }
 
-        public List<UpozorenjeDetalj> DohvatiUpozorenja()
+        public List<WarningDetail> GetWarnings()
         {
-            var granica = DateTime.Today.AddDays(AppKonstante.DanaUpozerenja);
+            var threshold = DateTime.Today.AddDays(AppConstants.DanaUpozerenja);
 
-            return DohvatiUpozorenjaVlasnika(granica)
-                .Concat(DohvatiUpozerenjaDirektora(granica))
+            return GetOwnerWarnings(threshold)
+                .Concat(GetDirectorWarnings(threshold))
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
         }
 
-        private List<UpozorenjeDetalj> DohvatiUpozorenjaVlasnika(DateTime granica) =>
+        private List<WarningDetail> GetOwnerWarnings(DateTime threshold) =>
             _db.Vlasnici
                 .AsNoTracking()
                 .Where(v => v.DatumValjanostiDokumenta != null
-                         && v.DatumValjanostiDokumenta <= granica
+                         && v.DatumValjanostiDokumenta <= threshold
                          && v.Status == StatusEntiteta.AKTIVAN
                          && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 .Include(v => v.Klijent)
-                .Select(v => new UpozorenjeDetalj
+                .Select(v => new WarningDetail
                 {
                     KlijentId = v.KlijentId,
                     NazivFirme = v.Klijent.Naziv,
@@ -72,16 +72,16 @@ namespace OwnerTrack.Infrastructure.Services
                 })
                 .ToList();
 
-        private List<UpozorenjeDetalj> DohvatiUpozerenjaDirektora(DateTime granica) =>
+        private List<WarningDetail> GetDirectorWarnings(DateTime threshold) =>
             _db.Direktori
                 .AsNoTracking()
                 .Where(d => d.DatumValjanosti != null
-                         && d.DatumValjanosti <= granica
-                         && d.TipValjanosti == TipValjanostiKonstante.Vremenski
+                         && d.DatumValjanosti <= threshold
+                         && d.TipValjanosti == ValidityTypeConstants.Vremenski
                          && d.Status == StatusEntiteta.AKTIVAN
                          && d.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 .Include(d => d.Klijent)
-                .Select(d => new UpozorenjeDetalj
+                .Select(d => new WarningDetail
                 {
                     KlijentId = d.KlijentId,
                     NazivFirme = d.Klijent.Naziv,

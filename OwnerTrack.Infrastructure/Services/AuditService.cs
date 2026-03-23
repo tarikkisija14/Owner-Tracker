@@ -4,7 +4,6 @@ using OwnerTrack.Infrastructure.Database;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-   
     public class AuditService
     {
         private readonly OwnerTrackDbContext _db;
@@ -13,8 +12,6 @@ namespace OwnerTrack.Infrastructure.Services
         {
             _db = db;
         }
-
-       
 
         public void Log(string tabela, int? entitetId, string akcija, string opis)
         {
@@ -28,28 +25,25 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-       
+        public void LogAdded(string tabela, int id, string opis)
+            => Log(tabela, id, AuditConstants.Dodano, opis);
 
-        public void Dodano(string tabela, int id, string opis)
-            => Log(tabela, id, AuditKonstante.Dodano, opis);
+        public void LogUpdated(string tabela, int id, string opis)
+            => Log(tabela, id, AuditConstants.Izmijenjeno, opis);
 
-        public void Izmijenjeno(string tabela, int id, string opis)
-            => Log(tabela, id, AuditKonstante.Izmijenjeno, opis);
-
-        
-        public void Arhiviraj(IArchivable entitet, string tabela, int id, string opis)
+        public void Archive(IArchivable entity, string tabela, int id, string opis)
         {
-            entitet.Status = StatusEntiteta.ARHIVIRAN;
-            entitet.Obrisan = DateTime.Now;
-            Log(tabela, id, AuditKonstante.Obrisano, opis);
+            entity.Status = StatusEntiteta.ARHIVIRAN;
+            entity.Obrisan = DateTime.Now;
+            Log(tabela, id, AuditConstants.Obrisano, opis);
         }
 
-        /// <inheritdoc cref="Arhiviraj"/>
-        [Obsolete("Use Arhiviraj() which also sets Status = ARHIVIRAN.")]
-        public void SoftDelete(ISoftDeletable entitet, string tabela, int id, string opis)
+        /// <inheritdoc cref="Archive"/>
+        [Obsolete("Use Archive() which also sets Status = ARHIVIRAN.")]
+        public void SoftDelete(ISoftDeletable entity, string tabela, int id, string opis)
         {
-            entitet.Obrisan = DateTime.Now;
-            Log(tabela, id, AuditKonstante.Obrisano, opis);
+            entity.Obrisan = DateTime.Now;
+            Log(tabela, id, AuditConstants.Obrisano, opis);
         }
     }
 }

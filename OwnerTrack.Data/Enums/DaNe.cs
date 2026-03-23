@@ -6,7 +6,7 @@
         NE
     }
 
-    public static class DaNeKonstante
+    public static class DaNeConstants
     {
         public const string Da = "DA";
         public const string Ne = "NE";

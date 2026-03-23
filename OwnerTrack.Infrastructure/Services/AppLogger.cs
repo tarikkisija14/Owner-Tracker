@@ -3,12 +3,14 @@ using System.Text;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-    
+  
     public static class AppLogger
     {
+        
         private const string LogFileName = "ownertrack_errors.log";
 
         
+
         public static void LogException(Exception? ex)
         {
             try
@@ -30,7 +32,7 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
-        
+      
         public static string FormatException(Exception? ex)
         {
             if (ex is null)
@@ -42,7 +44,6 @@ namespace OwnerTrack.Infrastructure.Services
             return sb.ToString();
         }
 
-       
         public static string GetLogPath()
         {
             string directory = Path.GetDirectoryName(DbContextFactory.DbPath)
@@ -50,7 +51,7 @@ namespace OwnerTrack.Infrastructure.Services
             return Path.Combine(directory, LogFileName);
         }
 
-      
+       
 
         private static void AppendInnerExceptions(StringBuilder sb, Exception? inner, string indent = "")
         {

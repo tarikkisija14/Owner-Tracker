@@ -1,4 +1,5 @@
-﻿using OwnerTrack.App.Helpers;
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
@@ -8,14 +9,10 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajDirektora : Form
     {
-        
-
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _direktorId;
-
-        
 
         public FrmDodajDirektora(int klijentId, int? direktorId, OwnerTrackDbContext db)
         {
@@ -26,18 +23,18 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-       
+        
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
             cbTipValjanosti.Items.Clear();
-            cbTipValjanosti.Items.Add(TipValjanostiKonstante.Trajno);
-            cbTipValjanosti.Items.Add(TipValjanostiKonstante.Vremenski);
+            cbTipValjanosti.Items.Add(ValidityTypeConstants.Trajno);
+            cbTipValjanosti.Items.Add(ValidityTypeConstants.Vremenski);
             cbTipValjanosti.SelectedIndex = 0;
 
             bool isEditMode = _direktorId.HasValue;
-            Text = isEditMode ? "Izmijeni direktora" : "Dodaj novog direktora";
-            btnSpremi.Text = isEditMode ? "💾 Spremi izmjene" : "💾 Dodaj";
+            Text = isEditMode ? UiMessages.DirektorEditTitle : UiMessages.DirektorAddTitle;
+            btnSpremi.Text = isEditMode ? UiMessages.KlijentSaveChangesButton : UiMessages.KlijentSaveNewButton;
 
             if (isEditMode)
                 LoadDirektor(_direktorId!.Value);
@@ -51,17 +48,16 @@ namespace OwnerTrack.App
             txtImePrezime.Text = d.ImePrezime ?? string.Empty;
             txtJmbg.Text = d.Jmbg ?? string.Empty;
             dtDatumValjanosti.Value = d.DatumValjanosti ?? DateTime.Now;
-            cbTipValjanosti.Text = d.TipValjanosti ?? TipValjanostiKonstante.Trajno;
+            cbTipValjanosti.Text = d.TipValjanosti ?? ValidityTypeConstants.Trajno;
 
-           
-            dtDatumValjanosti.Enabled = d.TipValjanosti == TipValjanostiKonstante.Vremenski;
+            dtDatumValjanosti.Enabled = d.TipValjanosti == ValidityTypeConstants.Vremenski;
         }
 
         
 
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
-            dtDatumValjanosti.Enabled = cbTipValjanosti.Text == TipValjanostiKonstante.Vremenski;
+            dtDatumValjanosti.Enabled = cbTipValjanosti.Text == ValidityTypeConstants.Vremenski;
         }
 
         
@@ -70,11 +66,11 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
-                MessageBox.Show("Upiši ime i prezime direktora!");
+                MessageBox.Show(UiMessages.DirektorNameRequired);
                 return;
             }
 
-            bool isPermanent = cbTipValjanosti.Text == TipValjanostiKonstante.Trajno;
+            bool isPermanent = cbTipValjanosti.Text == ValidityTypeConstants.Trajno;
             DateTime? dateOfValidity = isPermanent ? null : dtDatumValjanosti.Value;
 
             try
@@ -89,7 +85,7 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex);
+                DialogHelper.LogAndShowError(ex);
             }
         }
 
@@ -99,17 +95,16 @@ namespace OwnerTrack.App
             Close();
         }
 
-        
 
         private void ApplyFormFieldsToDirektor(Direktor d, DateTime? dateOfValidity)
         {
             d.ImePrezime = txtImePrezime.Text.Trim();
             d.DatumValjanosti = dateOfValidity;
             d.TipValjanosti = cbTipValjanosti.Text;
-            d.Jmbg = FormHelper.NullAkoJePrazno(txtJmbg.Text);
+            d.Jmbg = FormHelper.NullIfEmpty(txtJmbg.Text);
         }
 
-        
+      
 
         private void SaveChanges(int direktorId, DateTime? dateOfValidity)
         {
@@ -122,11 +117,11 @@ namespace OwnerTrack.App
             TransactionHelper.Execute(_db, db =>
             {
                 db.SaveChanges();
-                _audit.Izmijenjeno("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'");
+                _audit.LogUpdated("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'");
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Ažurirano!");
+            MessageBox.Show(UiMessages.DirektorSavedUpdate);
         }
 
         private void SaveNew(DateTime? dateOfValidity)
@@ -138,11 +133,11 @@ namespace OwnerTrack.App
             {
                 db.Direktori.Add(d);
                 db.SaveChanges();
-                _audit.Dodano("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'");
+                _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'");
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Dodano!");
+            MessageBox.Show(UiMessages.DirektorSavedNew);
         }
     }
 }

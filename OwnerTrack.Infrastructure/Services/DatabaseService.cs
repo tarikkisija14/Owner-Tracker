@@ -1,13 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Infrastructure.Database;
-using System.IO;
-using System.Linq;
 
 namespace OwnerTrack.Infrastructure.Services
 {
     public class DatabaseService
     {
-       
         private static readonly string[] DataTables =
             { "AuditLogs", "Ugovori", "Vlasnici", "Direktori", "Klijenti" };
 
@@ -20,15 +17,14 @@ namespace OwnerTrack.Infrastructure.Services
             _connectionString = connectionString;
         }
 
-        
-        public string ResetirajBazu()
+        public string ResetDatabase()
         {
-            string backupPath = KreirajBackup();
-            ObrisiSvePodatke();
+            string backupPath = CreateBackup();
+            DeleteAllData();
             return backupPath;
         }
 
-        public void VratiBackup(string backupPath)
+        public void RestoreBackup(string backupPath)
         {
             if (string.IsNullOrEmpty(backupPath) || !File.Exists(backupPath))
                 return;
@@ -46,14 +42,13 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
-        
-
-        private string KreirajBackup()
+        private string CreateBackup()
         {
             if (!File.Exists(_dbPath))
                 return string.Empty;
 
-            string backupPath = $"{_dbPath}.backup_{DateTime.Now:yyyyMMdd_HHmmss}";
+            string backupPath = BuildBackupPath();
+
             try
             {
                 File.Copy(_dbPath, backupPath, overwrite: true);
@@ -67,16 +62,20 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
-        private void ObrisiSvePodatke()
+        private string BuildBackupPath() =>
+            $"{_dbPath}.backup_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+        private void DeleteAllData()
         {
             string tableList = string.Join(",", DataTables.Select(t => $"'{t}'"));
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             using var tx = db.Database.BeginTransaction();
+
             try
             {
-                foreach (var tabela in DataTables)
-                    db.Database.ExecuteSqlRaw($"DELETE FROM {tabela}");
+                foreach (var table in DataTables)
+                    db.Database.ExecuteSqlRaw($"DELETE FROM {table}");
 
                 db.Database.ExecuteSqlRaw(
                     $"DELETE FROM sqlite_sequence WHERE name IN ({tableList})");

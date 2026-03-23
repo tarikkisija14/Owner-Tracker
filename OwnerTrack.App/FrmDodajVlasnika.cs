@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
@@ -9,12 +10,10 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajVlasnika : Form
     {
-
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _vlasnikId;
-
 
         public FrmDodajVlasnika(int klijentId, int? vlasnikId, OwnerTrackDbContext db)
         {
@@ -25,12 +24,13 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
+       
 
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
             bool isEditMode = _vlasnikId.HasValue;
-            Text = isEditMode ? "Izmijeni vlasnika" : "Dodaj novog vlasnika";
-            btnSpremi.Text = isEditMode ? "💾 Spremi izmjene" : "💾 Dodaj";
+            Text = isEditMode ? UiMessages.VlasnikEditTitle : UiMessages.VlasnikAddTitle;
+            btnSpremi.Text = isEditMode ? UiMessages.KlijentSaveChangesButton : UiMessages.KlijentSaveNewButton;
 
             if (isEditMode)
                 LoadVlasnik(_vlasnikId!.Value);
@@ -48,12 +48,13 @@ namespace OwnerTrack.App
             dtDatumUtvrdjivanja.Value = v.DatumUtvrdjivanja ?? DateTime.Now;
         }
 
+        
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
-                MessageBox.Show("Upiši ime i prezime!");
+                MessageBox.Show(UiMessages.VlasnikNameRequired);
                 return;
             }
 
@@ -68,8 +69,10 @@ namespace OwnerTrack.App
                            && v.Id != currentId
                            && v.Obrisan == null))
             {
-                MessageBox.Show($"Vlasnik '{imePrezime}' već postoji za ovu firmu!",
-                    "Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    string.Format(UiMessages.VlasnikDuplicateFormat, imePrezime),
+                    UiMessages.VlasnikDuplicateTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtImePrezime.Focus();
                 return;
             }
@@ -86,7 +89,7 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex);
+                DialogHelper.LogAndShowError(ex);
             }
         }
 
@@ -96,20 +99,23 @@ namespace OwnerTrack.App
             Close();
         }
 
+       
 
         private bool TryParsePercentage(out decimal percentage)
         {
             string normalised = txtProcetat.Text.Replace(",", ".").Trim();
             bool valid = decimal.TryParse(normalised,
-                             System.Globalization.NumberStyles.Number,
-                             System.Globalization.CultureInfo.InvariantCulture,
-                             out percentage)
-                         && percentage is >= 0 and <= 100;
+                                    System.Globalization.NumberStyles.Number,
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    out percentage)
+                                && percentage is >= 0 and <= 100;
 
             if (!valid)
             {
-                MessageBox.Show("Procenat vlasništva mora biti broj između 0 i 100!",
-                    "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    UiMessages.VlasnikPercentageError,
+                    UiMessages.VlasnikPercentageErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtProcetat.Focus();
                 percentage = 0;
             }
@@ -117,6 +123,7 @@ namespace OwnerTrack.App
             return valid;
         }
 
+        
 
         private void ApplyFormFieldsToVlasnik(Vlasnik v, string imePrezime, decimal percentage)
         {
@@ -127,6 +134,7 @@ namespace OwnerTrack.App
             v.IzvorPodatka = txtIzvorPodatka.Text;
         }
 
+        
 
         private void SaveChanges(int vlasnikId, string imePrezime, decimal percentage)
         {
@@ -139,11 +147,11 @@ namespace OwnerTrack.App
             TransactionHelper.Execute(_db, db =>
             {
                 db.SaveChanges();
-                _audit.Izmijenjeno("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'");
+                _audit.LogUpdated("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'");
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Ažurirano!");
+            MessageBox.Show(UiMessages.VlasnikSavedUpdate);
         }
 
         private void SaveNew(string imePrezime, decimal percentage)
@@ -155,11 +163,11 @@ namespace OwnerTrack.App
             {
                 db.Vlasnici.Add(v);
                 db.SaveChanges();
-                _audit.Dodano("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'");
+                _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'");
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Dodano!");
+            MessageBox.Show(UiMessages.VlasnikSavedNew);
         }
     }
 }

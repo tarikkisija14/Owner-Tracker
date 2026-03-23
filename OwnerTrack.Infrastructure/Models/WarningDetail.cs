@@ -2,8 +2,7 @@
 
 namespace OwnerTrack.Infrastructure.Models
 {
-  
-    public class UpozorenjeDetalj
+    public class WarningDetail
     {
         public int KlijentId { get; set; }
         public string NazivFirme { get; set; } = string.Empty;

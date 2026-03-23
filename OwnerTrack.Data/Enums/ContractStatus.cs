@@ -1,6 +1,6 @@
 ﻿namespace OwnerTrack.Data.Enums
 {
-    public static class StatusUgovora
+    public static class ContractStatus
     {
         public const string Potpisan = "POTPISAN";
         public const string Aneks = "ANEKS";

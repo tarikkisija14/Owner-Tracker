@@ -1,8 +1,7 @@
 ﻿namespace OwnerTrack.Infrastructure.Models
 {
-   
-    public sealed record WarningStats(int Count, bool ImaIsteklih)
+    public sealed record WarningStats(int Count, bool HasExpired)
     {
-        public bool ImaUpozorenja => Count > 0;
+        public bool HasWarnings => Count > 0;
     }
 }

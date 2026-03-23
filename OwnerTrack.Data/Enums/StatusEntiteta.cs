@@ -7,7 +7,7 @@
         ARHIVIRAN
     }
 
-    public static class StatusKonstante
+    public static class StatusConstants
     {
         public const string Aktivan = "AKTIVAN";
         public const string Neaktivan = "NEAKTIVAN";

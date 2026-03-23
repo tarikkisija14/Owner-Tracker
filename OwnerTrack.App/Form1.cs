@@ -1,5 +1,4 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
-using Microsoft.EntityFrameworkCore;
 using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.App.ViewModels;
@@ -7,15 +6,14 @@ using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
+using OwnerTrack.Infrastructure.ViewModels;
 using OpenXmlSheet = DocumentFormat.OpenXml.Spreadsheet.Sheet;
 
 namespace OwnerTrack.App
 {
     public partial class Form1 : Form
     {
-
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
-
 
         public Form1()
         {
@@ -34,7 +32,7 @@ namespace OwnerTrack.App
             Load += Form1_Load;
         }
 
-
+        
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -42,9 +40,9 @@ namespace OwnerTrack.App
             {
                 new SchemaManager(DbContextFactory.ConnectionString).ApplyMigrations();
 
-                LoadDjelatnostiFilter();
-                LoadVelicinaFilter();
-                LoadKlijenti();
+                LoadActivityCodeFilter();
+                LoadSizeFilter();
+                LoadClients();
                 RefreshWarningsBadge();
 
                 Text = $"OwnerTrack v{Application.ProductVersion}";
@@ -53,11 +51,12 @@ namespace OwnerTrack.App
             {
                 AppLogger.LogException(ex);
                 MessageBox.Show(
-                    $"Greška pri pokretanju aplikacije:\n\n{ex.Message}\n\n" +
-                    $"Baza podataka: {DbContextFactory.DbPath}\n\n" +
-                    $"Detalji su sačuvani u log fajlu:\n{AppLogger.GetLogPath()}\n\n" +
-                    "Ako problem ostane, kontaktiraj podršku.",
-                    "Greška pokretanja", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    string.Format(UiMessages.StartupErrorFormat,
+                        ex.Message,
+                        DbContextFactory.DbPath,
+                        AppLogger.GetLogPath()),
+                    UiMessages.StartupErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Application.Exit();
             }
         }
@@ -68,9 +67,9 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
+        
 
-
-        private void LoadVelicinaFilter()
+        private void LoadSizeFilter()
         {
             cmbFilterVelicina.Items.Clear();
             cmbFilterVelicina.Items.Add(new { Value = UiConstants.FilterAllValue, Display = UiConstants.FilterAllDisplay });
@@ -83,17 +82,17 @@ namespace OwnerTrack.App
             cmbFilterVelicina.SelectedIndex = 0;
         }
 
-        private void LoadDjelatnostiFilter()
+        private void LoadActivityCodeFilter()
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
-                var djelatnosti = db.Djelatnosti.OrderBy(d => d.Naziv).ToList();
+                using var db = DbContextFactory.Create();
+                var activityCodes = db.Djelatnosti.OrderBy(d => d.Naziv).ToList();
 
                 cmbFilterDjelatnost.Items.Clear();
                 cmbFilterDjelatnost.Items.Add(new { Sifra = UiConstants.FilterAllValue, Naziv = UiConstants.FilterAllDjelatnostDisplay });
 
-                foreach (var d in djelatnosti)
+                foreach (var d in activityCodes)
                     cmbFilterDjelatnost.Items.Add(new { d.Sifra, Naziv = $"{d.Sifra} - {d.Naziv}" });
 
                 cmbFilterDjelatnost.DisplayMember = "Naziv";
@@ -102,20 +101,20 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju djelatnosti");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju djelatnosti");
             }
         }
 
+        
 
-
-        private string GetSelectedDjelatnostSifra()
+        private string GetSelectedActivityCode()
         {
             if (cmbFilterDjelatnost.SelectedItem is null) return string.Empty;
             dynamic item = cmbFilterDjelatnost.SelectedItem;
             return item.Sifra ?? string.Empty;
         }
 
-        private string GetSelectedVelicina()
+        private string GetSelectedSize()
         {
             if (cmbFilterVelicina.SelectedItem is null) return string.Empty;
             dynamic item = cmbFilterVelicina.SelectedItem;
@@ -123,9 +122,9 @@ namespace OwnerTrack.App
         }
 
         private void ApplyCurrentFilters() =>
-            LoadKlijenti(txtSearchKlijent.Text, GetSelectedDjelatnostSifra(), GetSelectedVelicina());
+            LoadClients(txtSearchKlijent.Text, GetSelectedActivityCode(), GetSelectedSize());
 
-
+       
 
         private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
         {
@@ -141,266 +140,207 @@ namespace OwnerTrack.App
             txtSearchKlijent.Text = string.Empty;
             cmbFilterDjelatnost.SelectedIndex = 0;
             cmbFilterVelicina.SelectedIndex = 0;
-            LoadKlijenti();
+            LoadClients();
         }
 
+        
 
-
-        private void LoadKlijenti(string searchText = "", string sifraDjelatnosti = "", string velicina = "")
+        private void LoadClients(string searchText = "", string sifraDjelatnosti = "", string velicina = "")
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
-
-                var klijenti = db.Klijenti
-                    .Where(k =>
-                        (string.IsNullOrWhiteSpace(searchText) ||
-                         k.Naziv.ToLower().Contains(searchText.ToLower()) ||
-                         k.IdBroj.ToLower().Contains(searchText.ToLower()))
-                        && (string.IsNullOrWhiteSpace(sifraDjelatnosti) || k.SifraDjelatnosti == sifraDjelatnosti)
-                        && (string.IsNullOrWhiteSpace(velicina) || k.Velicina == velicina))
-                    .AsNoTracking()
-                    .Select(k => new KlijentViewModel
-                    {
-                        Id = k.Id,
-                        Naziv = k.Naziv,
-                        IdBroj = k.IdBroj,
-                        Adresa = k.Adresa,
-                        SifraDjelatnosti = k.SifraDjelatnosti,
-                        Djelatnost = k.Djelatnost != null ? k.Djelatnost.Naziv : string.Empty,
-                        DatumUspostaveOdnosa = k.DatumUspostave,
-                        VrstaKlijenta = k.VrstaKlijenta != null ? k.VrstaKlijenta.ToString() : null,
-                        DatumOsnivanjaFirme = k.DatumOsnivanja,
-                        Velicina = k.Velicina,
-                        PepRizik = k.PepRizik,
-                        UboRizik = k.UboRizik,
-                        GotovinaRizik = k.GotovinaRizik,
-                        GeografskiRizik = k.GeografskiRizik,
-                        UkupnaProcjena = k.UkupnaProcjena,
-                        DatumProcjeneRizika = k.DatumProcjene,
-                        OvjeraCr = k.OvjeraCr,
-                        StatusUgovora = k.Ugovor != null ? k.Ugovor.StatusUgovora : string.Empty,
-                        DatumPotpisaUgovora = k.Ugovor != null ? k.Ugovor.DatumUgovora : null,
-                        BrojVlasnika = k.Vlasnici.Count(),
-                        BrojDirektora = k.Direktori.Count(),
-                        StatusKlijenta = k.Status.ToString(),
-                        Napomena = k.Napomena,
-                    })
-                    .ToList();
-
-                GridHelper.BindBezEventa(dataGridKlijenti, dataGridKlijenti_SelectionChanged, klijenti);
-                GridHelper.PostaviKolone(dataGridKlijenti, GridColumns.Klijenti);
+                var clients = KlijentQueryService.GetClients(searchText, sifraDjelatnosti, velicina);
+                GridHelper.BindWithoutEvent(dataGridKlijenti, dataGridKlijenti_SelectionChanged, clients);
+                GridHelper.ApplyColumns(dataGridKlijenti, GridColumns.Klijenti);
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju klijenata");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju klijenata");
             }
         }
 
-        private void LoadVlasnici(int klijentId)
+        private void LoadOwners(int klijentId)
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
-
-                var vlasnici = db.Vlasnici
-                    .Where(v => v.KlijentId == klijentId)
-                    .AsNoTracking()
-                    .Select(v => new VlasnikViewModel
-                    {
-                        Id = v.Id,
-                        ImePrezime = v.ImePrezime,
-                        DatumValjanostiDokumenta = v.DatumValjanostiDokumenta,
-                        ProcenatVlasnistva = v.ProcenatVlasnistva,
-                        DatumUtvrdjivanja = v.DatumUtvrdjivanja,
-                        IzvorPodatka = v.IzvorPodatka,
-                        StatusVlasnika = v.Status.ToString(),
-                    })
-                    .ToList();
-
-                dataGridVlasnici.DataSource = vlasnici;
-                GridHelper.PostaviKolone(dataGridVlasnici, GridColumns.Vlasnici);
+                dataGridVlasnici.DataSource = KlijentQueryService.GetOwners(klijentId);
+                GridHelper.ApplyColumns(dataGridVlasnici, GridColumns.Vlasnici);
                 dataGridVlasnici.ClearSelection();
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju vlasnika");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju vlasnika");
             }
         }
 
-        private void LoadDirektori(int klijentId)
+        private void LoadDirectors(int klijentId)
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
-
-                var direktori = db.Direktori
-                    .Where(d => d.KlijentId == klijentId)
-                    .AsNoTracking()
-                    .Select(d => new DirektorViewModel
-                    {
-                        Id = d.Id,
-                        ImePrezime = d.ImePrezime,
-                        DatumValjanostiDokumenta = d.DatumValjanosti,
-                        TipValjanosti = d.TipValjanosti,
-                        StatusDirektora = d.Status.ToString(),
-                    })
-                    .ToList();
-
-                dataGridDirektori.DataSource = direktori;
-                GridHelper.PostaviKolone(dataGridDirektori, GridColumns.Direktori);
+                dataGridDirektori.DataSource = KlijentQueryService.GetDirectors(klijentId);
+                GridHelper.ApplyColumns(dataGridDirektori, GridColumns.Direktori);
                 dataGridDirektori.ClearSelection();
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju direktora");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju direktora");
             }
         }
 
         private void dataGridKlijenti_SelectionChanged(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int id)) return;
-            LoadVlasnici(id);
-            LoadDirektori(id);
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int id)) return;
+            LoadOwners(id);
+            LoadDirectors(id);
         }
 
-
+        
 
         private void btnDodajKlijent_Click(object sender, EventArgs e)
         {
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajKlijent(klijentId: null, db).ShowDialog() == DialogResult.OK)
                 RefreshAfterChange();
         }
 
         private void btnIzmijeniKlijent_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int id, "Odaberi firmu!")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int id, UiMessages.SelectFirm)) return;
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajKlijent(id, db).ShowDialog() == DialogResult.OK)
                 RefreshAfterChange();
         }
 
         private void btnObrisiKlijent_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int id, "Odaberi firmu!")) return;
-            if (!DialogHelper.PotvrdiArhiviranje("Firma će biti arhivirana i neće biti vidljiva.")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int id, UiMessages.SelectFirm)) return;
+            if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveKlijentPrompt)) return;
 
-            ExecuteArchive(id,
+            ExecuteArchive(
                 db =>
                 {
                     var k = db.Klijenti.Find(id);
                     if (k is null) return;
-                    new AuditService(db).Arhiviraj(k, "Klijenti", id, $"Arhivirana firma: '{k.Naziv}'");
+                    new AuditService(db).Archive(
+                        k, "Klijenti", id,
+                        string.Format(UiMessages.AuditArchivedKlijent, k.Naziv));
                     db.SaveChanges();
                 },
                 onSuccess: RefreshAfterChange,
-                successMessage: "Firma je arhivirana.");
+                successMessage: UiMessages.ArchiveKlijentSuccess);
         }
 
-
+       
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Prvo odaberi firmu!")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirmFirst)) return;
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajVlasnika(klijentId, vlasnikId: null, db).ShowDialog() == DialogResult.OK)
-                LoadVlasnici(klijentId);
+                LoadOwners(klijentId);
         }
 
         private void btnIzmijeniVlasnika_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridVlasnici, out int vlasnikId, "Odaberi vlasnika!")) return;
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Odaberi firmu!")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridVlasnici, out int vlasnikId, UiMessages.SelectVlasnik)) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajVlasnika(klijentId, vlasnikId, db).ShowDialog() == DialogResult.OK)
-                LoadVlasnici(klijentId);
+                LoadOwners(klijentId);
         }
 
         private void btnObrisiVlasnika_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridVlasnici, out int vlasnikId, "Odaberi vlasnika!")) return;
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Odaberi firmu!")) return;
-            if (!DialogHelper.PotvrdiArhiviranje("Arhivirati vlasnika?")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridVlasnici, out int vlasnikId, UiMessages.SelectVlasnik)) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
+            if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveVlasnikPrompt)) return;
 
-            ExecuteArchive(vlasnikId,
+            ExecuteArchive(
                 db =>
                 {
                     var v = db.Vlasnici.Find(vlasnikId);
                     if (v is null) return;
-                    new AuditService(db).Arhiviraj(v, "Vlasnici", vlasnikId, $"Arhiviran: '{v.ImePrezime}'");
+                    new AuditService(db).Archive(
+                        v, "Vlasnici", vlasnikId,
+                        string.Format(UiMessages.AuditArchivedVlasnik, v.ImePrezime));
                     db.SaveChanges();
                 },
-                onSuccess: () => LoadVlasnici(klijentId),
-                successMessage: "Vlasnik arhiviran.");
+                onSuccess: () => LoadOwners(klijentId),
+                successMessage: UiMessages.ArchiveVlasnikSuccess);
         }
 
-
+        
 
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Prvo odaberi firmu!")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirmFirst)) return;
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajDirektora(klijentId, direktorId: null, db).ShowDialog() == DialogResult.OK)
-                LoadDirektori(klijentId);
+                LoadDirectors(klijentId);
         }
 
         private void btnIzmijeniDirektora_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridDirektori, out int direktorId, "Odaberi direktora!")) return;
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Odaberi firmu!")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridDirektori, out int direktorId, UiMessages.SelectDirektor)) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
 
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             if (new FrmDodajDirektora(klijentId, direktorId, db).ShowDialog() == DialogResult.OK)
-                LoadDirektori(klijentId);
+                LoadDirectors(klijentId);
         }
 
         private void btnObrisiDirektora_Click(object sender, EventArgs e)
         {
-            if (!GridHelper.PokupiOdabraniId(dataGridDirektori, out int direktorId, "Odaberi direktora!")) return;
-            if (!GridHelper.PokupiOdabraniId(dataGridKlijenti, out int klijentId, "Odaberi firmu!")) return;
-            if (!DialogHelper.PotvrdiArhiviranje("Arhivirati direktora?")) return;
+            if (!GridHelper.TryGetSelectedId(dataGridDirektori, out int direktorId, UiMessages.SelectDirektor)) return;
+            if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
+            if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveDirektorPrompt)) return;
 
-            ExecuteArchive(direktorId,
+            ExecuteArchive(
                 db =>
                 {
                     var d = db.Direktori.Find(direktorId);
                     if (d is null) return;
-                    new AuditService(db).Arhiviraj(d, "Direktori", direktorId, $"Arhiviran: '{d.ImePrezime}'");
+                    new AuditService(db).Archive(
+                        d, "Direktori", direktorId,
+                        string.Format(UiMessages.AuditArchivedDirektor, d.ImePrezime));
                     db.SaveChanges();
                 },
-                onSuccess: () => LoadDirektori(klijentId),
-                successMessage: "Direktor arhiviran.");
+                onSuccess: () => LoadDirectors(klijentId),
+                successMessage: UiMessages.ArchiveDirektorSuccess);
         }
 
-
+        
 
         private void btnImportExcel_Click(object sender, EventArgs e)
         {
-            using var dialog = DialogHelper.KreirajOpenDialogExcel();
+            using var dialog = DialogHelper.CreateOpenDialogExcel();
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
             new ImportHelper(DbContextFactory.ConnectionString)
-                .PokreniImport(dialog.FileName, this, RefreshAfterChange);
+                .RunImport(dialog.FileName, this, RefreshAfterChange);
         }
 
         private void btnResetImport_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show(
-                    "Ovo će obrisati SVE podatke i pokrenuti novi import.\n\nJesi li siguran?",
-                    "RESET BAZE", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                    UiConstants.ResetImportConfirmMessage,
+                    UiConstants.ResetImportTitle,
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            using var dialog = DialogHelper.KreirajOpenDialogExcel("Odaberi Excel fajl za reimport");
+            using var dialog = DialogHelper.CreateOpenDialogExcel(UiMessages.ResetImportDialogTitle);
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
             if (!File.Exists(dialog.FileName))
             {
-                MessageBox.Show("Odabrani fajl nije pronađen.", "Greška", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    UiMessages.ResetImportFileNotFound,
+                    UiMessages.ResetImportFileNotFoundTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -409,16 +349,16 @@ namespace OwnerTrack.App
             try
             {
                 var dbService = new DatabaseService(DbContextFactory.DbPath, DbContextFactory.ConnectionString);
-                string backupPath = dbService.ResetirajBazu();
+                string backupPath = dbService.ResetDatabase();
 
-                new ImportHelper(DbContextFactory.ConnectionString).PokreniImport(
+                new ImportHelper(DbContextFactory.ConnectionString).RunImport(
                     dialog.FileName, this,
-                    onZavrsetak: RefreshAfterChange,
-                    onGreska: () => OfferBackupRestore(dbService, backupPath));
+                    onCompleted: RefreshAfterChange,
+                    onError: () => OfferBackupRestore(dbService, backupPath));
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri resetu baze");
+                DialogHelper.LogAndShowError(ex, "Greška pri resetu baze");
             }
         }
 
@@ -428,19 +368,22 @@ namespace OwnerTrack.App
             {
                 using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
                 var workbookPart = doc.WorkbookPart
-                                   ?? throw new InvalidOperationException("Fajl nema validan WorkbookPart.");
+                    ?? throw new InvalidOperationException("Fajl nema validan WorkbookPart.");
 
                 _ = workbookPart.Workbook.Sheets
                       ?.Cast<OpenXmlSheet>()
                       .FirstOrDefault(s => s.Name?.Value?.Contains(UiConstants.ExcelZirvanaKeyword) == true)
-                    ?? throw new InvalidOperationException($"Fajl ne sadrži list sa '{UiConstants.ExcelZirvanaKeyword}'.");
+                    ?? throw new InvalidOperationException(
+                        $"Fajl ne sadrži list sa '{UiConstants.ExcelZirvanaKeyword}'.");
 
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Odabrani fajl nije validan:\n\n{ex.Message}",
-                    "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    string.Format(UiMessages.ExcelValidationErrorFormat, ex.Message),
+                    UiMessages.ExcelValidationErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -450,32 +393,35 @@ namespace OwnerTrack.App
             if (string.IsNullOrEmpty(backupPath)) return;
 
             var answer = MessageBox.Show(
-                $"Import nije uspio, a baza je već bila obrisana.\n\n" +
-                $"Hoćeš li vratiti podatke iz backupa?\n\nBackup: {backupPath}",
-                "Vraćanje podataka", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                string.Format(UiMessages.BackupRestorePromptFormat, backupPath),
+                UiMessages.BackupRestoreTitle,
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (answer != DialogResult.Yes)
             {
                 MessageBox.Show(
-                    $"Backup ostaje sačuvan na:\n{backupPath}\n\nMožeš ga ručno vratiti ako zatreba.",
-                    "Backup sačuvan", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    string.Format(UiMessages.BackupKeptFormat, backupPath),
+                    UiMessages.BackupKeptTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             try
             {
-                dbService.VratiBackup(backupPath);
+                dbService.RestoreBackup(backupPath);
                 RefreshAfterChange();
-                MessageBox.Show("Podaci su uspješno vraćeni iz backupa.", "Vraćanje uspješno",
+                MessageBox.Show(
+                    UiMessages.BackupRestoredSuccess,
+                    UiMessages.BackupRestoredSuccessTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
                 AppLogger.LogException(ex);
                 MessageBox.Show(
-                    $"Vraćanje nije uspjelo automatski.\n\n" +
-                    $"Ručno kopiraj ovaj fajl:\n{backupPath}\n\ni preimenuj ga u 'Firme.db' na istoj lokaciji.",
-                    "Ručno vraćanje", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    string.Format(UiMessages.BackupRestoreFailedFormat, backupPath),
+                    UiMessages.BackupRestoreFailedTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -485,9 +431,9 @@ namespace OwnerTrack.App
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
-                var stats = new WarningQueryService(db).DohvatiStats();
-                ApplyBadgeState(BadgeState.FromStats(stats.Count, stats.ImaIsteklih));
+                using var db = DbContextFactory.Create();
+                var stats = new WarningQueryService(db).GetStats();
+                ApplyBadgeState(BadgeState.FromStats(stats.Count, stats.HasExpired));
             }
             catch (Exception ex)
             {
@@ -512,7 +458,7 @@ namespace OwnerTrack.App
 
         private void btnUpozorenja_Click(object sender, EventArgs e)
         {
-            using var db = DbContextFactory.Kreiraj();
+            using var db = DbContextFactory.Create();
             new FrmUpozorenja(db).ShowDialog(this);
         }
 
@@ -522,7 +468,7 @@ namespace OwnerTrack.App
         {
             if (dataGridKlijenti.Rows.Count == 0)
             {
-                MessageBox.Show("Nema klijenata za export.");
+                MessageBox.Show(UiMessages.PdfNoClientsToExport);
                 return;
             }
 
@@ -533,18 +479,18 @@ namespace OwnerTrack.App
                 .Where(id => id > 0)
                 .ToList();
 
-            using var dialog = DialogHelper.KreirajSaveDialogPdf(
-                "Sačuvaj tabelu klijenata",
-                $"Klijenti_tabela_{DateTime.Now:yyyyMMdd}.pdf");
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                UiMessages.PdfTableSaveTitle,
+                $"{UiMessages.PdfTableFilePrefix}{DateTime.Now:yyyyMMdd}.pdf");
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
             string savedPath = dialog.FileName;
-            await DialogHelper.IzvrsiPdfExport(
+            await DialogHelper.ExecutePdfExport(
                 btnExportTabelaPdf, "📋 Export tabele u PDF",
                 path =>
                 {
-                    using var db = DbContextFactory.Kreiraj();
-                    return new PdfExportService(db).GenerirajTabeluKlijenata(ids, path);
+                    using var db = DbContextFactory.Create();
+                    return new PdfExportService(db).GenerateClientTable(ids, path);
                 },
                 savedPath);
         }
@@ -553,28 +499,28 @@ namespace OwnerTrack.App
         {
             if (dataGridKlijenti.SelectedRows.Count == 0)
             {
-                MessageBox.Show("Odaberi firmu iz liste.");
+                MessageBox.Show(UiMessages.PdfNoClientSelected);
                 return;
             }
 
             if (dataGridKlijenti.SelectedRows[0].DataBoundItem is not KlijentViewModel row)
             {
-                MessageBox.Show("Nije moguće pročitati odabranu firmu.");
+                MessageBox.Show(UiMessages.PdfCannotReadSelected);
                 return;
             }
 
-            using var dialog = DialogHelper.KreirajSaveDialogPdf(
-                "Sačuvaj izvještaj firme",
-                DialogHelper.SigurnoIme(row.Naziv ?? string.Empty));
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                UiMessages.PdfReportSaveTitle,
+                DialogHelper.BuildSafeFileName(row.Naziv ?? string.Empty));
             if (dialog.ShowDialog() != DialogResult.OK) return;
 
             string savedPath = dialog.FileName;
-            await DialogHelper.IzvrsiPdfExport(
+            await DialogHelper.ExecutePdfExport(
                 btnSacuvajPdf, "📄 Sačuvaj kao PDF",
                 path =>
                 {
-                    using var db = DbContextFactory.Kreiraj();
-                    return new PdfExportService(db).GenerirajPdf(row.Id, path);
+                    using var db = DbContextFactory.Create();
+                    return new PdfExportService(db).GeneratePdf(row.Id, path);
                 },
                 savedPath);
         }
@@ -583,22 +529,19 @@ namespace OwnerTrack.App
 
         private void RefreshAfterChange()
         {
-            LoadDjelatnostiFilter();
-            LoadKlijenti();
+            LoadActivityCodeFilter();
+            LoadClients();
             RefreshWarningsBadge();
         }
 
-        
-
-        private void ExecuteArchive(
-            int entityId,
+        private static void ExecuteArchive(
             Action<OwnerTrackDbContext> archiveAction,
             Action? onSuccess = null,
             string successMessage = "")
         {
             try
             {
-                using var db = DbContextFactory.Kreiraj();
+                using var db = DbContextFactory.Create();
                 TransactionHelper.Execute(db, archiveAction);
 
                 if (!string.IsNullOrEmpty(successMessage))
@@ -608,7 +551,7 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex);
+                DialogHelper.LogAndShowError(ex);
             }
         }
     }

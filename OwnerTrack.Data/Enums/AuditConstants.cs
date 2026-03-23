@@ -1,6 +1,6 @@
 ﻿namespace OwnerTrack.Data.Enums
 {
-    public static class AuditKonstante
+    public static class AuditConstants
     {
         public const string Dodano = "DODANO";
         public const string Izmijenjeno = "IZMIJENJENO";

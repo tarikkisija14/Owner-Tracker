@@ -3,11 +3,8 @@ using System.IO;
 
 namespace OwnerTrack.Infrastructure.Database
 {
-   
     public static class DbContextFactory
     {
-        
-
         public static string DbPath { get; } = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OwnerTrack",
@@ -16,8 +13,6 @@ namespace OwnerTrack.Infrastructure.Database
 
         public static string ConnectionString { get; } = $"Data Source={DbPath}";
 
-        
-
         static DbContextFactory()
         {
             string? dir = Path.GetDirectoryName(DbPath);
@@ -25,9 +20,7 @@ namespace OwnerTrack.Infrastructure.Database
                 Directory.CreateDirectory(dir);
         }
 
-        
-
-        public static OwnerTrackDbContext Kreiraj()
+        public static OwnerTrackDbContext Create()
         {
             var options = new DbContextOptionsBuilder<OwnerTrackDbContext>()
                 .UseSqlite(ConnectionString, sqliteOpts =>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
@@ -10,13 +11,9 @@ namespace OwnerTrack.App
 {
     public partial class FrmDodajKlijent : Form
     {
-        
-
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int? _klijentId;
-
-        
 
         public FrmDodajKlijent(int? klijentId, OwnerTrackDbContext db)
         {
@@ -26,7 +23,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-        
+       
 
         private void FrmDodajKlijent_Load(object sender, EventArgs e)
         {
@@ -36,23 +33,23 @@ namespace OwnerTrack.App
             if (_klijentId.HasValue)
             {
                 LoadKlijent(_klijentId.Value);
-                Text = "Izmijeni firmu";
-                btnSpremi.Text = "💾 Spremi izmjene";
+                Text = UiMessages.KlijentEditTitle;
+                btnSpremi.Text = UiMessages.KlijentSaveChangesButton;
             }
         }
 
         private void PopulateComboBoxes()
         {
-            FormHelper.PopuniEnumCombo<VrstaKlijenta>(cbVrstaKlijenta);
-            FormHelper.PopuniEnumCombo<VelicinaFirme>(cbVelicina);
-            FormHelper.PopuniEnumComboSPraznim<DaNe>(cbPepRizik);
-            FormHelper.PopuniEnumComboSPraznim<DaNe>(cbUboRizik);
-            FormHelper.PopuniEnumComboSPraznim<DaNe>(cbGotovinaRizik);
-            FormHelper.PopuniEnumComboSPraznim<DaNe>(cbGeografskiRizik);
-            FormHelper.PopuniEnumCombo<StatusEntiteta>(cbStatus);
+            FormHelper.PopulateEnumCombo<VrstaKlijenta>(cbVrstaKlijenta);
+            FormHelper.PopulateEnumCombo<VelicinaFirme>(cbVelicina);
+            FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbPepRizik);
+            FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbUboRizik);
+            FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbGotovinaRizik);
+            FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbGeografskiRizik);
+            FormHelper.PopulateEnumCombo<StatusEntiteta>(cbStatus);
 
             cbStatusUgovora.Items.Clear();
-            cbStatusUgovora.Items.AddRange(StatusUgovora.Svi);
+            cbStatusUgovora.Items.AddRange(ContractStatus.Svi);
             cbStatusUgovora.Items.Insert(0, string.Empty);
 
             if (!_klijentId.HasValue)
@@ -119,11 +116,10 @@ namespace OwnerTrack.App
             }
         }
 
-        
-
+      
         private bool ValidateFields(string naziv, string idBroj)
         {
-            string? jibError = JibValidator.GreskaValidacije(idBroj);
+            string? jibError = JibValidator.GetValidationError(idBroj);
             if (jibError is not null)
             {
                 MessageBox.Show(jibError, "Greška validacije", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -136,7 +132,9 @@ namespace OwnerTrack.App
             if (_db.Set<Klijent>().IgnoreQueryFilters()
                     .Any(k => k.IdBroj == idBroj && k.Id != currentId && k.Obrisan == null))
             {
-                MessageBox.Show($"Klijent s ID brojem '{idBroj}' već postoji!", "Duplikat",
+                MessageBox.Show(
+                    string.Format(UiMessages.KlijentDuplicateIdBrojFormat, idBroj),
+                    UiMessages.KlijentDuplicateTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtIdBroj.Focus();
                 return false;
@@ -145,7 +143,9 @@ namespace OwnerTrack.App
             if (_db.Set<Klijent>().IgnoreQueryFilters()
                     .Any(k => k.Naziv == naziv && k.Id != currentId && k.Obrisan == null))
             {
-                MessageBox.Show($"Klijent s nazivom '{naziv}' već postoji!", "Duplikat",
+                MessageBox.Show(
+                    string.Format(UiMessages.KlijentDuplicateNazivFormat, naziv),
+                    UiMessages.KlijentDuplicateTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtNaziv.Focus();
                 return false;
@@ -163,16 +163,16 @@ namespace OwnerTrack.App
             k.DatumUspostave = dtDatumUspostave.Value;
             k.DatumOsnivanja = dtDatumOsnivanja.Value;
             k.Velicina = cbVelicina.Text;
-            k.PepRizik = FormHelper.NullAkoJePrazno(cbPepRizik.Text);
-            k.UboRizik = FormHelper.NullAkoJePrazno(cbUboRizik.Text);
-            k.GotovinaRizik = FormHelper.NullAkoJePrazno(cbGotovinaRizik.Text);
-            k.GeografskiRizik = FormHelper.NullAkoJePrazno(cbGeografskiRizik.Text);
+            k.PepRizik = FormHelper.NullIfEmpty(cbPepRizik.Text);
+            k.UboRizik = FormHelper.NullIfEmpty(cbUboRizik.Text);
+            k.GotovinaRizik = FormHelper.NullIfEmpty(cbGotovinaRizik.Text);
+            k.GeografskiRizik = FormHelper.NullIfEmpty(cbGeografskiRizik.Text);
             k.UkupnaProcjena = txtUkupnaProcjena.Text;
             k.DatumProcjene = dtDatumProcjene.Value;
             k.OvjeraCr = txtOvjeraCr.Text;
             k.Napomena = txtNapomena.Text;
-            k.Email = FormHelper.NullAkoJePrazno(txtEmail.Text);
-            k.Telefon = FormHelper.NullAkoJePrazno(txtTelefon.Text);
+            k.Email = FormHelper.NullIfEmpty(txtEmail.Text);
+            k.Telefon = FormHelper.NullIfEmpty(txtTelefon.Text);
             k.VrstaKlijenta = Enum.TryParse<VrstaKlijenta>(cbVrstaKlijenta.Text, out var vk) ? vk : null;
             k.Status = Enum.TryParse<StatusEntiteta>(cbStatus.Text, out var se) ? se : StatusEntiteta.AKTIVAN;
         }
@@ -190,7 +190,7 @@ namespace OwnerTrack.App
         {
             if (string.IsNullOrWhiteSpace(txtNaziv.Text) || string.IsNullOrWhiteSpace(txtIdBroj.Text))
             {
-                MessageBox.Show("Popuni obavezna polja: Naziv i ID Broj!");
+                MessageBox.Show(UiMessages.KlijentRequiredFields);
                 return;
             }
 
@@ -211,7 +211,7 @@ namespace OwnerTrack.App
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri snimanju");
+                DialogHelper.LogAndShowError(ex, "Greška pri snimanju");
             }
         }
 
@@ -253,11 +253,11 @@ namespace OwnerTrack.App
             TransactionHelper.Execute(_db, db =>
             {
                 db.SaveChanges();
-                _audit.Izmijenjeno("Klijenti", id, $"'{previousName}' → '{naziv}'");
+                _audit.LogUpdated("Klijenti", id, $"'{previousName}' → '{naziv}'");
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Klijent ažuriran!");
+            MessageBox.Show(UiMessages.KlijentSavedUpdate);
         }
 
         private void SaveNew(string naziv, string idBroj)
@@ -270,7 +270,7 @@ namespace OwnerTrack.App
                 db.Klijenti.Add(k);
                 db.SaveChanges();
 
-                _audit.Dodano("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
+                _audit.LogAdded("Klijenti", k.Id, $"Novi klijent: '{naziv}' ({idBroj})");
 
                 if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
                 {
@@ -282,7 +282,7 @@ namespace OwnerTrack.App
                 db.SaveChanges();
             });
 
-            MessageBox.Show("Klijent dodan!");
+            MessageBox.Show(UiMessages.KlijentSavedNew);
         }
     }
 }

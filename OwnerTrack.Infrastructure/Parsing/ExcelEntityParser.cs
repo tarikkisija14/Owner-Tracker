@@ -6,11 +6,8 @@ using System.Text.RegularExpressions;
 
 namespace OwnerTrack.Infrastructure.Parsing
 {
-   
     internal static class ExcelEntityParser
     {
-        
-
         private static readonly Regex CompanyKeywordRegex = new(
             @"\b(d\.o\.o\.|doo|d\.d\.|dd|a\.d\.|ltd|gmbh|inc|zajednica|dioničar|fond|komisija|općina|kanton|vlada)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -18,9 +15,6 @@ namespace OwnerTrack.Infrastructure.Parsing
         private static readonly Regex DateTokenRegex =
             new(@"\d{1,2}\.\d{1,2}\.\d{4}\.?", RegexOptions.Compiled);
 
-        
-
-       
         public static List<Vlasnik> ParseVlasnici(
             string rawNames,
             string? rawDatesOfValidity,
@@ -70,11 +64,11 @@ namespace OwnerTrack.Infrastructure.Parsing
                 : new List<string> { rawNames };
 
             string normalizedDateRaw = rawDateOfValidity?.Trim().ToUpperInvariant() ?? string.Empty;
-            bool isPermanent = normalizedDateRaw == TipValjanostiKonstante.Trajno;
+            bool isPermanent = normalizedDateRaw == ValidityTypeConstants.Trajno;
             DateTime? dateOfValidity = isPermanent ? null : ExcelValueNormalizer.ParseDate(rawDateOfValidity);
             string validityType = (isPermanent || dateOfValidity is null)
-                ? TipValjanostiKonstante.Trajno
-                : TipValjanostiKonstante.Vremenski;
+                ? ValidityTypeConstants.Trajno
+                : ValidityTypeConstants.Vremenski;
 
             foreach (string name in names)
             {
@@ -92,8 +86,6 @@ namespace OwnerTrack.Infrastructure.Parsing
 
             return results;
         }
-
-        
 
         private static List<string> SplitNames(string normalized)
         {
@@ -116,7 +108,7 @@ namespace OwnerTrack.Infrastructure.Parsing
 
             string full = string.Join(" ", words);
 
-           
+            
             if (CompanyKeywordRegex.IsMatch(full) || words.Length > 4 || words.Length % 2 != 0)
             {
                 list.Add(full);

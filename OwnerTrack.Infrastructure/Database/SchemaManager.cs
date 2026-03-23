@@ -48,8 +48,6 @@ namespace OwnerTrack.Infrastructure
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
 
-        
-
         private void ApplyV1(SqliteConnection conn) =>
             ApplyMigration(conn, 1, "kreiranje svih osnovnih tabela", (c, tx) =>
             {
@@ -268,8 +266,6 @@ namespace OwnerTrack.Infrastructure
                 AddColumnIfMissing(c, tx, "Ugovori", "Obrisan", "TEXT");
             });
 
-        
-
         public void ReseedDjelatnosti()
         {
             using var conn = new SqliteConnection(_connectionString);
@@ -358,13 +354,7 @@ namespace OwnerTrack.Infrastructure
             Debug.WriteLine($"[SCHEMA] InsertDjelatnosti — obrađeno {djelatnosti.Length} šifara.");
         }
 
-        // ── Migration runner ──────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Wraps <paramref name="work"/> in a transaction. Rolls back and rethrows on failure.
-        /// When <paramref name="recordVersion"/> is true, records <paramref name="version"/>
-        /// in __SchemaVersion before committing.
-        /// </summary>
+       
         private void ApplyMigration(
             SqliteConnection conn,
             int version,
@@ -387,8 +377,6 @@ namespace OwnerTrack.Infrastructure
                 throw new InvalidOperationException($"V{version} neuspješna: {ex.Message}", ex);
             }
         }
-
-        
 
         private void ExecSql(SqliteConnection conn, SqliteTransaction? tx, string sql)
         {

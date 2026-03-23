@@ -9,11 +9,8 @@ using QuestPDF.Infrastructure;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-
     public class PdfExportService
     {
-
-
         private const float SinglePageMarginMm = 18f;
         private const float TablePageMarginMm = 12f;
         private const float SinglePageFontSize = 9f;
@@ -27,8 +24,7 @@ namespace OwnerTrack.Infrastructure.Services
             QuestPDF.Settings.License = LicenseType.Community;
         }
 
-
-        public string GenerirajPdf(int klijentId, string outputPath)
+        public string GeneratePdf(int klijentId, string outputPath)
         {
             var klijent = LoadKlijent(klijentId)
                 ?? throw new InvalidOperationException($"Klijent ID={klijentId} nije pronađen.");
@@ -37,10 +33,7 @@ namespace OwnerTrack.Infrastructure.Services
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4);
-                    page.Margin(SinglePageMarginMm, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(SinglePageFontSize).FontColor(PdfColours.Text));
-
+                    ApplySinglePageStyle(page);
                     page.Header().Element(c => BuildKlijentHeader(c, klijent));
                     page.Content().Element(c => BuildKlijentContent(c, klijent));
                     page.Footer().Element(BuildFooter);
@@ -50,9 +43,8 @@ namespace OwnerTrack.Infrastructure.Services
             return outputPath;
         }
 
-        public string GenerirajTabeluKlijenata(List<int> klijentIds, string outputPath)
+        public string GenerateClientTable(List<int> klijentIds, string outputPath)
         {
-           
             var byId = _db.Klijenti
                 .AsNoTracking()
                 .Include(x => x.Djelatnost)
@@ -62,6 +54,7 @@ namespace OwnerTrack.Infrastructure.Services
                 .Where(x => klijentIds.Contains(x.Id))
                 .ToDictionary(k => k.Id);
 
+            // Preserve original ordering from the input list
             var klijenti = klijentIds
                 .Where(id => byId.ContainsKey(id))
                 .Select(id => byId[id])
@@ -71,10 +64,7 @@ namespace OwnerTrack.Infrastructure.Services
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4.Landscape());
-                    page.Margin(TablePageMarginMm, Unit.Millimetre);
-                    page.DefaultTextStyle(t => t.FontFamily(Fonts.Arial).FontSize(TablePageFontSize).FontColor(PdfColours.Text));
-
+                    ApplyTablePageStyle(page);
                     page.Header().Element(c => BuildTableHeader(c, klijenti.Count));
                     page.Content().Element(c => BuildTableContent(c, klijenti));
                     page.Footer().Element(BuildFooter);
@@ -84,6 +74,25 @@ namespace OwnerTrack.Infrastructure.Services
             return outputPath;
         }
 
+        private static void ApplySinglePageStyle(PageDescriptor page)
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(SinglePageMarginMm, Unit.Millimetre);
+            page.DefaultTextStyle(t => t
+                .FontFamily(Fonts.Arial)
+                .FontSize(SinglePageFontSize)
+                .FontColor(PdfColours.Text));
+        }
+
+        private static void ApplyTablePageStyle(PageDescriptor page)
+        {
+            page.Size(PageSizes.A4.Landscape());
+            page.Margin(TablePageMarginMm, Unit.Millimetre);
+            page.DefaultTextStyle(t => t
+                .FontFamily(Fonts.Arial)
+                .FontSize(TablePageFontSize)
+                .FontColor(PdfColours.Text));
+        }
 
         private static void BuildKlijentHeader(IContainer c, Klijent k)
         {
@@ -205,7 +214,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     var (l1, v1, l2, v2) = rows[i];
                     string bg = PdfRenderHelpers.AlternatingBackground(i);
-                    bool isRiskRow = i < 2;  // first two rows have colour-coded values
+                    bool isRiskRow = i < 2; // first two rows use colour-coded Da/Ne values
 
                     tbl.Cell().Background(bg).PaddingHorizontal(8).PaddingVertical(5)
                        .Text(txt => txt.Span(l1).FontColor(PdfColours.TextMuted));
@@ -325,8 +334,8 @@ namespace OwnerTrack.Infrastructure.Services
                     Direktor d = direktori[i];
                     string bg = PdfRenderHelpers.AlternatingBackground(i);
                     string sc = d.Status == StatusEntiteta.AKTIVAN ? PdfColours.Green : PdfColours.Red;
-                    string datVal = d.TipValjanosti == TipValjanostiKonstante.Trajno
-                        ? TipValjanostiKonstante.Trajno
+                    string datVal = d.TipValjanosti == ValidityTypeConstants.Trajno
+                        ? ValidityTypeConstants.Trajno
                         : PdfRenderHelpers.FmtDate(d.DatumValjanosti);
 
                     PdfRenderHelpers.RenderTableCell(tbl, bg, (i + 1).ToString(), center: true);
@@ -338,8 +347,6 @@ namespace OwnerTrack.Infrastructure.Services
                 }
             });
         }
-
-
 
         private static void BuildTableHeader(IContainer c, int total)
         {
@@ -384,7 +391,6 @@ namespace OwnerTrack.Infrastructure.Services
                     Klijent k = klijenti[i];
                     string bg = PdfRenderHelpers.AlternatingBackground(i);
                     string sc = PdfRenderHelpers.EntityStatusColour(k.Status);
-
                     string djelatnost = k.Djelatnost?.Naziv ?? k.SifraDjelatnosti ?? "—";
                     string statusUgovora = k.Ugovor?.StatusUgovora ?? "—";
 
@@ -404,8 +410,6 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-
-
         private static void BuildFooter(IContainer c)
         {
             c.PaddingTop(5).Row(row =>
@@ -423,8 +427,6 @@ namespace OwnerTrack.Infrastructure.Services
                 });
             });
         }
-
-
 
         private Klijent? LoadKlijent(int klijentId) =>
             _db.Klijenti

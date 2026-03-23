@@ -1,4 +1,4 @@
-﻿namespace OwnerTrack.App.ViewModels
+﻿namespace OwnerTrack.Infrastructure.ViewModels
 {
     public class DirektorViewModel
     {

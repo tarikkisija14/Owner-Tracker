@@ -1,6 +1,5 @@
 ﻿namespace OwnerTrack.Infrastructure.Database
 {
-   
     public static class TransactionHelper
     {
         public static void Execute(OwnerTrackDbContext db, Action<OwnerTrackDbContext> work)

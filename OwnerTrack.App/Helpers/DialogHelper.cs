@@ -3,21 +3,16 @@ using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App.Helpers
 {
-
     public static class DialogHelper
     {
-
-
-        public static bool PotvrdiArhiviranje(string poruka) =>
+        public static bool ConfirmArchive(string message) =>
             MessageBox.Show(
-                poruka + "\n\nNastavi?",
+                message + "\n\nNastavi?",
                 "Potvrda",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) == DialogResult.Yes;
 
-
-
-        public static SaveFileDialog KreirajSaveDialogPdf(string title, string fileName) =>
+        public static SaveFileDialog CreateSaveDialogPdf(string title, string fileName) =>
             new SaveFileDialog
             {
                 Title = title,
@@ -27,7 +22,7 @@ namespace OwnerTrack.App.Helpers
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             };
 
-        public static OpenFileDialog KreirajOpenDialogExcel(string? title = null)
+        public static OpenFileDialog CreateOpenDialogExcel(string? title = null)
         {
             var dialog = new OpenFileDialog { Filter = UiConstants.ExcelFilter };
             if (title is not null)
@@ -35,9 +30,7 @@ namespace OwnerTrack.App.Helpers
             return dialog;
         }
 
-
-
-        public static async Task IzvrsiPdfExport(
+        public static async Task ExecutePdfExport(
             Button button,
             string originalButtonText,
             Func<string, string> pdfGenerator,
@@ -52,8 +45,8 @@ namespace OwnerTrack.App.Helpers
                 string savedPath = await Task.Run(() => pdfGenerator(outputPath));
 
                 if (MessageBox.Show(
-                        $"PDF je sačuvan:\n{savedPath}\n\nŽeliš li ga otvoriti?",
-                        "PDF kreiran",
+                        string.Format(UiMessages.PdfSavedPromptFormat, savedPath),
+                        UiMessages.PdfSavedTitle,
                         MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     System.Diagnostics.Process.Start(
@@ -63,8 +56,7 @@ namespace OwnerTrack.App.Helpers
             catch (Exception ex)
             {
                 AppLogger.LogException(ex);
-                MessageBox.Show(
-                    $"Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{AppLogger.GetLogPath()}");
+                MessageBox.Show(string.Format(UiMessages.PdfErrorFormat, AppLogger.GetLogPath()));
             }
             finally
             {
@@ -74,17 +66,16 @@ namespace OwnerTrack.App.Helpers
             }
         }
 
-
-
-        public static void LogirajIPokaziGresku(Exception ex, string? prefix = null)
+        public static void LogAndShowError(Exception ex, string? prefix = null)
         {
             AppLogger.LogException(ex);
-            string message = prefix is not null ? $"{prefix}: {ex.Message}" : $"Greška: {ex.Message}";
+            string message = prefix is not null
+                ? string.Format(UiMessages.GenericErrorWithPrefixFormat, prefix, ex.Message)
+                : string.Format(UiMessages.GenericErrorFormat, ex.Message);
             MessageBox.Show(message);
         }
 
-
-        public static string SigurnoIme(string naziv)
+        public static string BuildSafeFileName(string naziv)
         {
             char[] invalidChars = Path.GetInvalidFileNameChars();
             string safeName = string.Concat(naziv.Select(c => invalidChars.Contains(c) ? '_' : c));

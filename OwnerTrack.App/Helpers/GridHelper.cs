@@ -1,16 +1,14 @@
 ﻿namespace OwnerTrack.App.Helpers
 {
-    
     public static class GridHelper
     {
-       
-        public static void PostaviKolone(
+        public static void ApplyColumns(
             DataGridView grid,
-            (string Ime, int Sirina, string Zaglavlje, string? Format)[] kolone)
+            (string Ime, int Sirina, string Zaglavlje, string? Format)[] columns)
         {
             if (grid.Columns.Count == 0) return;
 
-            foreach (var (ime, sirina, zaglavlje, format) in kolone)
+            foreach (var (ime, sirina, zaglavlje, format) in columns)
             {
                 if (!grid.Columns.Contains(ime)) continue;
                 grid.Columns[ime].Width = sirina;
@@ -20,33 +18,31 @@
             }
         }
 
-     
-        public static void KonfigurirajKolonu(
+        public static void ConfigureColumn(
             DataGridView grid,
-            string ime,
-            string zaglavlje,
+            string name,
+            string header,
             float fillWeight,
             string? format = null)
         {
-            if (!grid.Columns.Contains(ime)) return;
-            grid.Columns[ime].HeaderText = zaglavlje;
-            grid.Columns[ime].FillWeight = fillWeight;
+            if (!grid.Columns.Contains(name)) return;
+            grid.Columns[name].HeaderText = header;
+            grid.Columns[name].FillWeight = fillWeight;
             if (format != null)
-                grid.Columns[ime].DefaultCellStyle.Format = format;
+                grid.Columns[name].DefaultCellStyle.Format = format;
         }
 
-        
-        public static bool PokupiOdabraniId(
+        public static bool TryGetSelectedId(
             DataGridView grid,
             out int id,
-            string? porukaAkoNema = null)
+            string? messageIfNone = null)
         {
             id = 0;
 
             if (grid.SelectedRows.Count == 0)
             {
-                if (porukaAkoNema != null)
-                    MessageBox.Show(porukaAkoNema);
+                if (messageIfNone != null)
+                    MessageBox.Show(messageIfNone);
                 return false;
             }
 
@@ -57,14 +53,13 @@
             return true;
         }
 
-       
-        public static void BindBezEventa<T>(
+        public static void BindWithoutEvent<T>(
             DataGridView grid,
             EventHandler selectionChangedHandler,
-            List<T> podaci)
+            List<T> data)
         {
             grid.SelectionChanged -= selectionChangedHandler;
-            grid.DataSource = podaci;
+            grid.DataSource = data;
             grid.ClearSelection();
             grid.SelectionChanged += selectionChangedHandler;
         }

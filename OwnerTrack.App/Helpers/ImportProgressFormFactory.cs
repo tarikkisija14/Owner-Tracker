@@ -1,13 +1,12 @@
 ﻿namespace OwnerTrack.App.Helpers
 {
-    
     internal static class ImportProgressFormFactory
     {
-        public static Form Kreiraj(
+        public static Form Create(
             out ProgressBar progressBar,
             out Label lblStatus,
-            out Button btnZatvori,
-            out Button btnOtkazi)
+            out Button btnClose,
+            out Button btnCancel)
         {
             var frm = new Form
             {
@@ -37,7 +36,7 @@
                 AutoSize = false,
             };
 
-            btnZatvori = new Button
+            btnClose = new Button
             {
                 Text = "Zatvori",
                 Location = new Point(290, 165),
@@ -45,7 +44,7 @@
                 Enabled = false,
             };
 
-            btnOtkazi = new Button
+            btnCancel = new Button
             {
                 Text = "Otkaži",
                 Location = new Point(390, 165),
@@ -53,7 +52,7 @@
                 Enabled = true,
             };
 
-            frm.Controls.AddRange(new Control[] { progressBar, lblStatus, btnZatvori, btnOtkazi });
+            frm.Controls.AddRange(new Control[] { progressBar, lblStatus, btnClose, btnCancel });
             return frm;
         }
     }

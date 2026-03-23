@@ -6,15 +6,14 @@ namespace OwnerTrack.Infrastructure.Validators
     {
         private const int RequiredLength = 13;
 
-        public static bool JeValidan(string jib)
+        public static bool IsValid(string jib)
         {
             if (string.IsNullOrWhiteSpace(jib)) return false;
             jib = jib.Trim();
             return jib.Length == RequiredLength && jib.All(char.IsDigit);
         }
 
-        
-        public static string? GreskaValidacije(string jib)
+        public static string? GetValidationError(string jib)
         {
             if (string.IsNullOrWhiteSpace(jib))
                 return "ID broj je obavezan.";

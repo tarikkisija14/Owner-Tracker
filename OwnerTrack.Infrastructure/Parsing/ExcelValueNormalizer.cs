@@ -4,12 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace OwnerTrack.Infrastructure.Parsing
 {
-   
     internal static class ExcelValueNormalizer
     {
-        
-
-        private static readonly Dictionary<string, VelicinaFirme> VelicinaAliases =
+        private static readonly Dictionary<string, VelicinaFirme> SizeAliases =
             new(StringComparer.OrdinalIgnoreCase)
             {
                 ["MIKRO"] = VelicinaFirme.MIKRO,
@@ -40,7 +37,6 @@ namespace OwnerTrack.Infrastructure.Parsing
         private static readonly Regex WhitespaceRegex =
             new(@" {2,}", RegexOptions.Compiled);
 
-        
         public static string NormalizeWhitespace(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -51,7 +47,6 @@ namespace OwnerTrack.Infrastructure.Parsing
                 .Trim();
         }
 
-        
         public static DateTime? ParseDate(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
@@ -66,9 +61,9 @@ namespace OwnerTrack.Infrastructure.Parsing
                 try { return DateTime.FromOADate(oaDate); } catch { /* fall through */ }
             }
 
-            
+           
             string upper = s.ToUpperInvariant();
-            if (upper == TipValjanostiKonstante.Trajno || upper is "STEČAJ" or "STECAJ")
+            if (upper == ValidityTypeConstants.Trajno || upper is "STEČAJ" or "STECAJ")
                 return null;
 
             foreach (string fmt in DateFormats)
@@ -79,7 +74,6 @@ namespace OwnerTrack.Infrastructure.Parsing
             return null;
         }
 
-        
         public static decimal ParseDecimal(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw) || raw == "-")
@@ -92,7 +86,6 @@ namespace OwnerTrack.Infrastructure.Parsing
                 : 0m;
         }
 
-       
         public static string? NormalizeVelicina(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
@@ -100,7 +93,7 @@ namespace OwnerTrack.Infrastructure.Parsing
 
             string upper = raw.ToUpperInvariant().Trim();
 
-            if (VelicinaAliases.TryGetValue(upper, out VelicinaFirme matched))
+            if (SizeAliases.TryGetValue(upper, out VelicinaFirme matched))
                 return matched.ToString();
 
             if (Enum.TryParse<VelicinaFirme>(upper, ignoreCase: true, out VelicinaFirme parsed))
@@ -109,7 +102,6 @@ namespace OwnerTrack.Infrastructure.Parsing
             return raw.Trim();
         }
 
-        
         public static string? NormalizeDaNe(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
@@ -119,12 +111,11 @@ namespace OwnerTrack.Infrastructure.Parsing
                 .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[0]
                 .ToUpperInvariant();
 
-            return first == DaNeKonstante.Da ? DaNeKonstante.Da
-                 : first == DaNeKonstante.Ne ? DaNeKonstante.Ne
+            return first == DaNeConstants.Da ? DaNeConstants.Da
+                 : first == DaNeConstants.Ne ? DaNeConstants.Ne
                  : null;
         }
 
-        
         public static VrstaKlijenta NormalizeVrstaKlijenta(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))

@@ -10,11 +10,8 @@ using System.Diagnostics;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-    
     public class ExcelImportService
     {
-        
-
         private static class Columns
         {
             public const int Naziv = 2;
@@ -44,13 +41,9 @@ namespace OwnerTrack.Infrastructure.Services
             public const int DatumUgovora = 26;
         }
 
-        
-
         private const int BatchSize = 50;
-        private const int ExcelHeaderRows = 2;  
-        private const string ZbiraSheetKeyword = "ZBIRNA";
-
-        
+        private const int ExcelHeaderRows = 2;
+        private const string SummarySheetKeyword = "ZBIRNA";
 
         private readonly string _connectionString;
 
@@ -58,8 +51,6 @@ namespace OwnerTrack.Infrastructure.Services
         {
             _connectionString = connectionString;
         }
-
-        
 
         public ImportResult ImportFromExcel(
             string filePath,
@@ -75,25 +66,25 @@ namespace OwnerTrack.Infrastructure.Services
 
                 using var document = SpreadsheetDocument.Open(filePath, isEditable: false);
                 var workbookPart = document.WorkbookPart
-                                     ?? throw new InvalidOperationException("Excel fajl nema validan WorkbookPart!");
+                                         ?? throw new InvalidOperationException("Excel fajl nema validan WorkbookPart!");
 
-                var worksheetPart = OpenZbirnaSheet(workbookPart);
+                var worksheetPart = OpenSummarySheet(workbookPart);
                 var dataRows = worksheetPart.Worksheet
-                                     .Elements<SheetData>().First()
-                                     .Elements<Row>()
-                                     .Skip(ExcelHeaderRows)
-                                     .ToList();
+                                        .Elements<SheetData>().First()
+                                        .Elements<Row>()
+                                        .Skip(ExcelHeaderRows)
+                                        .ToList();
 
                 prog.TotalRows = dataRows.Count;
 
                 using var db = CreateDbContext();
-                
+
                 db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
                 using var tx = db.Database.BeginTransaction();
 
                 var existingIdBrojevi = db.Klijenti.AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var existingNazivi = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var existingDjelatnosti = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingNames = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingActivityCodes = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                 int pendingChanges = 0;
 
@@ -123,7 +114,7 @@ namespace OwnerTrack.Infrastructure.Services
                             continue;
                         }
 
-                        if (existingIdBrojevi.Contains(idBroj) || existingNazivi.Contains(naziv))
+                        if (existingIdBrojevi.Contains(idBroj) || existingNames.Contains(naziv))
                         {
                             result.SkipCount++;
                             progress?.Report(prog);
@@ -134,14 +125,14 @@ namespace OwnerTrack.Infrastructure.Services
                         string? nazivDjelatnosti = GetCellOrNull(workbookPart, row, Columns.NazivDjelatnosti);
 
                         if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                            EnsureDjelatnostExists(db, existingDjelatnosti, sifraDjelatnosti, nazivDjelatnosti);
+                            EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti);
 
                         var klijent = MapKlijent(workbookPart, row, naziv, idBroj, sifraDjelatnosti);
                         db.Klijenti.Add(klijent);
                         db.SaveChanges();
 
                         existingIdBrojevi.Add(idBroj);
-                        existingNazivi.Add(naziv);
+                        existingNames.Add(naziv);
 
                         ImportVlasnici(workbookPart, row, klijent, result, db);
                         ImportDirektori(workbookPart, row, klijent, db);
@@ -162,8 +153,6 @@ namespace OwnerTrack.Infrastructure.Services
                         result.Errors.Add(errorMessage);
                         result.ErrorCount++;
                         Debug.WriteLine($"[IMPORT-ROW-ERROR] {errorMessage}");
-
-                     
                         ClearTrackedEntities(db);
                     }
 
@@ -175,6 +164,7 @@ namespace OwnerTrack.Infrastructure.Services
 
                 db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
                 tx.Commit();
+
                 Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Skip={result.SkipCount} Errors={result.ErrorCount}");
             }
             catch (Exception ex)
@@ -185,8 +175,6 @@ namespace OwnerTrack.Infrastructure.Services
 
             return result;
         }
-
-       
 
         private Klijent MapKlijent(WorkbookPart wbp, Row row, string naziv, string idBroj, string sifraDjelatnosti) =>
             new()
@@ -265,7 +253,7 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        private static void EnsureDjelatnostExists(
+        private static void EnsureActivityCodeExists(
             OwnerTrackDbContext db,
             HashSet<string> existingCodes,
             string code,
@@ -282,25 +270,21 @@ namespace OwnerTrack.Infrastructure.Services
             existingCodes.Add(code);
         }
 
-        
         private static string GetCell(WorkbookPart wbp, Row row, int column) =>
             ExcelCellReader.GetCellValue(wbp, row, column).Trim();
 
-        
         private static string? GetCellOrNull(WorkbookPart wbp, Row row, int column)
         {
             string value = ExcelCellReader.GetCellValue(wbp, row, column).Trim();
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }
 
-       
-
-        private static WorksheetPart OpenZbirnaSheet(WorkbookPart workbookPart)
+        private static WorksheetPart OpenSummarySheet(WorkbookPart workbookPart)
         {
             var sheet = workbookPart.Workbook.Sheets
                 ?.Cast<Sheet>()
-                .FirstOrDefault(s => s.Name?.Value?.Contains(ZbiraSheetKeyword) == true)
-                ?? throw new InvalidOperationException($"Nije pronađen list sa '{ZbiraSheetKeyword}'!");
+                .FirstOrDefault(s => s.Name?.Value?.Contains(SummarySheetKeyword) == true)
+                ?? throw new InvalidOperationException($"Nije pronađen list sa '{SummarySheetKeyword}'!");
 
             return (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
         }
@@ -312,7 +296,6 @@ namespace OwnerTrack.Infrastructure.Services
             return $"Red {rowIndex + ExcelHeaderRows + 1} | {naziv} | {idBroj} | {ex.Message}{suffix}";
         }
 
-       
         private static void ClearTrackedEntities(OwnerTrackDbContext db)
         {
             foreach (var entry in db.ChangeTracker.Entries().ToList())

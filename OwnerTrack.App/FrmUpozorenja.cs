@@ -1,4 +1,5 @@
-﻿using OwnerTrack.App.Helpers;
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Models;
@@ -8,14 +9,14 @@ namespace OwnerTrack.App
 {
     public partial class FrmUpozorenja : Form
     {
-
         private readonly OwnerTrackDbContext _db;
         private readonly bool _dbOwned;
 
-        private List<UpozorenjeDetalj> _allWarnings = new();
+        private List<WarningDetail> _allWarnings = new();
 
+       
 
-        public FrmUpozorenja() : this(DbContextFactory.Kreiraj(), dbOwned: true) { }
+        public FrmUpozorenja() : this(DbContextFactory.Create(), dbOwned: true) { }
 
         public FrmUpozorenja(OwnerTrackDbContext db) : this(db, dbOwned: false) { }
 
@@ -26,6 +27,7 @@ namespace OwnerTrack.App
             InitializeComponent();
         }
 
+      
 
         private void FrmUpozorenja_Load(object sender, EventArgs e) => LoadWarnings();
 
@@ -35,37 +37,43 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
+       
 
         private void LoadWarnings()
         {
             try
             {
-                _allWarnings = new WarningQueryService(_db).DohvatiUpozorenja();
+                _allWarnings = new WarningQueryService(_db).GetWarnings();
                 RenderSummaryPanel(DateTime.Today);
                 RenderFirmsGrid(DateTime.Today);
             }
             catch (Exception ex)
             {
-                DialogHelper.LogirajIPokaziGresku(ex, "Greška pri učitavanju upozorenja");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju upozorenja");
             }
         }
 
+      
 
         private void RenderSummaryPanel(DateTime today)
         {
             int expired = _allWarnings.Count(x => x.DatumIsteka < today);
             int critical = _allWarnings.Count(x =>
                 x.DatumIsteka >= today &&
-                x.DatumIsteka <= today.AddDays(AppKonstante.DanaKriticnoUpozorenje));
+                x.DatumIsteka <= today.AddDays(AppConstants.DanaKriticnoUpozorenje));
             int upcoming = _allWarnings.Count(x =>
-                x.DatumIsteka > today.AddDays(AppKonstante.DanaKriticnoUpozorenje));
+                x.DatumIsteka > today.AddDays(AppConstants.DanaKriticnoUpozorenje));
             int firmCount = _allWarnings.Select(x => x.KlijentId).Distinct().Count();
 
-            lblSumarij.Text =
-                $"Ukupno {firmCount} firma s upozorenjima   |   " +
-                $" Isteklo: {expired}   " +
-                $" Kritično (≤{AppKonstante.DanaKriticnoUpozorenje} dana): {critical}   " +
-                $" Uskoro ({AppKonstante.DanaKriticnoUpozorenje + 1}–{AppKonstante.DanaUpozerenja} dana): {upcoming}";
+            lblSumarij.Text = string.Format(
+                UiMessages.WarningSummaryFormat,
+                firmCount,
+                expired,
+                AppConstants.DanaKriticnoUpozorenje,
+                critical,
+                AppConstants.DanaKriticnoUpozorenje + 1,
+                AppConstants.DanaUpozerenja,
+                upcoming);
 
             panelTop.BackColor = SummaryPanelColor(expired, critical);
         }
@@ -75,6 +83,7 @@ namespace OwnerTrack.App
             critical > 0 ? Color.FromArgb(180, 90, 20) :
                            Color.FromArgb(130, 110, 20);
 
+       
 
         private void RenderFirmsGrid(DateTime today)
         {
@@ -91,19 +100,20 @@ namespace OwnerTrack.App
                 .OrderBy(x => x.NajbliziDatum)
                 .ToList();
 
-            GridHelper.BindBezEventa(gridFirme, gridFirme_SelectionChanged, grouped);
+            GridHelper.BindWithoutEvent(gridFirme, gridFirme_SelectionChanged, grouped);
 
             if (gridFirme.Columns.Count == 0) return;
 
             if (gridFirme.Columns.Contains("KlijentId"))
                 gridFirme.Columns["KlijentId"].Visible = false;
 
-            GridHelper.KonfigurirajKolonu(gridFirme, "Firma", "Naziv firme", 50);
-            GridHelper.KonfigurirajKolonu(gridFirme, "Upozorenja", "Br. upozorenja", 15);
-            GridHelper.KonfigurirajKolonu(gridFirme, "NajbliziDatum", "Najbliži datum isteka", 20, "dd.MM.yyyy");
-            GridHelper.KonfigurirajKolonu(gridFirme, "DanaDoIsteka", "Dana do isteka", 15);
+            GridHelper.ConfigureColumn(gridFirme, "Firma", "Naziv firme", 50);
+            GridHelper.ConfigureColumn(gridFirme, "Upozorenja", "Br. upozorenja", 15);
+            GridHelper.ConfigureColumn(gridFirme, "NajbliziDatum", "Najbliži datum isteka", 20, "dd.MM.yyyy");
+            GridHelper.ConfigureColumn(gridFirme, "DanaDoIsteka", "Dana do isteka", 15);
         }
 
+       
 
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
@@ -135,13 +145,14 @@ namespace OwnerTrack.App
 
             if (gridDetalji.Columns.Count == 0) return;
 
-            GridHelper.KonfigurirajKolonu(gridDetalji, "Tip", "Tip", 15);
-            GridHelper.KonfigurirajKolonu(gridDetalji, "ImePrezime", "Ime i prezime", 35);
-            GridHelper.KonfigurirajKolonu(gridDetalji, "DatumIsteka", "Datum isteka", 20, "dd.MM.yyyy");
-            GridHelper.KonfigurirajKolonu(gridDetalji, "DanaDoIsteka", "Dana do isteka", 15);
-            GridHelper.KonfigurirajKolonu(gridDetalji, "Status", "Status", 15);
+            GridHelper.ConfigureColumn(gridDetalji, "Tip", "Tip", 15);
+            GridHelper.ConfigureColumn(gridDetalji, "ImePrezime", "Ime i prezime", 35);
+            GridHelper.ConfigureColumn(gridDetalji, "DatumIsteka", "Datum isteka", 20, "dd.MM.yyyy");
+            GridHelper.ConfigureColumn(gridDetalji, "DanaDoIsteka", "Dana do isteka", 15);
+            GridHelper.ConfigureColumn(gridDetalji, "Status", "Status", 15);
         }
 
+       
 
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
             => ColorizeRow(gridFirme, e);
@@ -158,18 +169,18 @@ namespace OwnerTrack.App
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
 
-
+        
         private static int DaysUntilExpiry(DateTime expiryDate, DateTime today) =>
             (int)(expiryDate - today).TotalDays;
 
         private static string WarningStatusText(DateTime expiryDate, DateTime today) =>
-            expiryDate < today ? "⛔ ISTEKLO"
-            : expiryDate <= today.AddDays(AppKonstante.DanaKriticnoUpozorenje) ? "⚠ Kritično"
-            : "🕐 Uskoro";
+            expiryDate < today ? UiMessages.WarningStatusExpired :
+            expiryDate <= today.AddDays(AppConstants.DanaKriticnoUpozorenje) ? UiMessages.WarningStatusCritical :
+                                                                               UiMessages.WarningStatusUpcoming;
 
         private static Color RowColorForDays(int days) =>
-            days < 0 ? Color.FromArgb(220, 80, 80)
-            : days <= AppKonstante.DanaKriticnoUpozorenje ? Color.FromArgb(255, 200, 120)
-            : Color.FromArgb(255, 245, 150);
+            days < 0 ? Color.FromArgb(220, 80, 80) :
+            days <= AppConstants.DanaKriticnoUpozorenje ? Color.FromArgb(255, 200, 120) :
+                                                          Color.FromArgb(255, 245, 150);
     }
 }

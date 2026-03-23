@@ -1,12 +1,12 @@
 ﻿namespace OwnerTrack.Data.Enums
 {
-    public enum TipValjanosti
+    public enum ValidityType
     {
         VREMENSKI,
         TRAJNO
     }
 
-    public static class TipValjanostiKonstante
+    public static class ValidityTypeConstants
     {
         public const string Vremenski = "VREMENSKI";
         public const string Trajno = "TRAJNO";

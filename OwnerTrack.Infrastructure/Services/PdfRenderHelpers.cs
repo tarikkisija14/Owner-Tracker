@@ -5,17 +5,14 @@ using QuestPDF.Infrastructure;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-
     internal static class PdfRenderHelpers
     {
-
         public static string Fmt(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
         public static string Fmt(StatusEntiteta s) => s.ToString();
         public static string Fmt(VrstaKlijenta? v) => v.HasValue ? v.Value.ToString() : "—";
 
         public static string FmtDate(DateTime? date) =>
             date.HasValue ? date.Value.ToString("dd.MM.yyyy.") : "—";
-
 
         public static string AlternatingBackground(int rowIndex) =>
             rowIndex % 2 == 0 ? PdfColours.White : PdfColours.Grey;
@@ -85,7 +82,6 @@ namespace OwnerTrack.Infrastructure.Services
                      .Text(txt => txt.Span(message).FontColor(PdfColours.Footer).Italic());
         }
 
-
         public static string EntityStatusColour(StatusEntiteta status) =>
             status == StatusEntiteta.AKTIVAN ? PdfColours.Green :
             status == StatusEntiteta.NEAKTIVAN ? PdfColours.Red : PdfColours.Orange;
@@ -93,14 +89,14 @@ namespace OwnerTrack.Infrastructure.Services
         public static string DaNeColour(string? value) =>
             (value ?? string.Empty).Trim().ToUpperInvariant() switch
             {
-                var s when s == DaNeKonstante.Da => PdfColours.Red,
-                var s when s == DaNeKonstante.Ne => PdfColours.Green,
+                var s when s == DaNeConstants.Da => PdfColours.Red,
+                var s when s == DaNeConstants.Ne => PdfColours.Green,
                 _ => PdfColours.Text,
             };
 
         public static string ContractStatusColour(string? statusText) =>
-            statusText == StatusUgovora.Potpisan ? PdfColours.Green :
-            statusText is StatusUgovora.Otkazan or StatusUgovora.Neaktivan ? PdfColours.Red :
+            statusText == ContractStatus.Potpisan ? PdfColours.Green :
+            statusText is ContractStatus.Otkazan or ContractStatus.Neaktivan ? PdfColours.Red :
             PdfColours.Orange;
     }
 }

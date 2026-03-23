@@ -1,4 +1,5 @@
-﻿using OwnerTrack.Infrastructure.Services;
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App
 {
@@ -13,10 +14,10 @@ namespace OwnerTrack.App
             {
                 AppLogger.LogException(e.Exception);
                 MessageBox.Show(
-                    $"Desila se neočekivana greška.\n\n" +
-                    $"Detalji su sačuvani u:\n{AppLogger.GetLogPath()}\n\n" +
-                    $"Greška: {AppLogger.FormatException(e.Exception)}",
-                    "Neočekivana greška",
+                    string.Format(UiMessages.UnhandledExceptionFormat,
+                        AppLogger.GetLogPath(),
+                        AppLogger.FormatException(e.Exception)),
+                    UiMessages.UnhandledExceptionTitle,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             };
@@ -27,11 +28,5 @@ namespace OwnerTrack.App
             ApplicationConfiguration.Initialize();
             Application.Run(new Form1());
         }
-
-        
-
-        public static void LogException(Exception? ex) => AppLogger.LogException(ex);
-        public static string FormatExceptionFull(Exception? ex) => AppLogger.FormatException(ex);
-        public static string GetLogPath() => AppLogger.GetLogPath();
     }
 }
