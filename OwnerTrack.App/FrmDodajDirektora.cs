@@ -23,7 +23,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-        
+       
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
@@ -53,14 +53,12 @@ namespace OwnerTrack.App
             dtDatumValjanosti.Enabled = d.TipValjanosti == ValidityTypeConstants.Vremenski;
         }
 
-        
 
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
             dtDatumValjanosti.Enabled = cbTipValjanosti.Text == ValidityTypeConstants.Vremenski;
         }
-
-        
+ 
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -95,6 +93,7 @@ namespace OwnerTrack.App
             Close();
         }
 
+       
 
         private void ApplyFormFieldsToDirektor(Direktor d, DateTime? dateOfValidity)
         {
@@ -104,7 +103,7 @@ namespace OwnerTrack.App
             d.Jmbg = FormHelper.NullIfEmpty(txtJmbg.Text);
         }
 
-      
+        
 
         private void SaveChanges(int direktorId, DateTime? dateOfValidity)
         {

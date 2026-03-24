@@ -11,13 +11,11 @@ namespace OwnerTrack.App
     {
         private readonly OwnerTrackDbContext _db;
         private readonly bool _dbOwned;
-
         private List<WarningDetail> _allWarnings = new();
 
-       
+        // ── Constructors ──────────────────────────────────────────────────────
 
         public FrmUpozorenja() : this(DbContextFactory.Create(), dbOwned: true) { }
-
         public FrmUpozorenja(OwnerTrackDbContext db) : this(db, dbOwned: false) { }
 
         private FrmUpozorenja(OwnerTrackDbContext db, bool dbOwned)
@@ -27,7 +25,7 @@ namespace OwnerTrack.App
             InitializeComponent();
         }
 
-      
+        // ── Lifecycle ─────────────────────────────────────────────────────────
 
         private void FrmUpozorenja_Load(object sender, EventArgs e) => LoadWarnings();
 
@@ -37,7 +35,7 @@ namespace OwnerTrack.App
             base.OnFormClosed(e);
         }
 
-       
+        // ── Data loading ──────────────────────────────────────────────────────
 
         private void LoadWarnings()
         {
@@ -53,7 +51,7 @@ namespace OwnerTrack.App
             }
         }
 
-      
+        // ── Summary panel ─────────────────────────────────────────────────────
 
         private void RenderSummaryPanel(DateTime today)
         {
@@ -83,7 +81,7 @@ namespace OwnerTrack.App
             critical > 0 ? Color.FromArgb(180, 90, 20) :
                            Color.FromArgb(130, 110, 20);
 
-       
+        // ── Firms grid ────────────────────────────────────────────────────────
 
         private void RenderFirmsGrid(DateTime today)
         {
@@ -113,7 +111,7 @@ namespace OwnerTrack.App
             GridHelper.ConfigureColumn(gridFirme, "DanaDoIsteka", "Dana do isteka", 15);
         }
 
-       
+        // ── Detail grid ───────────────────────────────────────────────────────
 
         private void gridFirme_SelectionChanged(object sender, EventArgs e)
         {
@@ -152,7 +150,7 @@ namespace OwnerTrack.App
             GridHelper.ConfigureColumn(gridDetalji, "Status", "Status", 15);
         }
 
-       
+        // ── Row colourisation ─────────────────────────────────────────────────
 
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
             => ColorizeRow(gridFirme, e);
@@ -170,6 +168,7 @@ namespace OwnerTrack.App
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
 
         
+
         private static int DaysUntilExpiry(DateTime expiryDate, DateTime today) =>
             (int)(expiryDate - today).TotalDays;
 

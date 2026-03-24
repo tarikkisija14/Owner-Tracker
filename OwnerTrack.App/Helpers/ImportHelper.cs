@@ -4,6 +4,7 @@ using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App.Helpers
 {
+    
     public class ImportHelper
     {
         private const int MaxErrorsShownInDialog = 10;
@@ -48,7 +49,7 @@ namespace OwnerTrack.App.Helpers
 
                     importDone = true;
                     ActivateCloseButton(btnClose, btnCancel);
-                    lblStatus.Text = FormatResultLabel(result, cts.IsCancellationRequested);
+                    lblStatus.Text = ImportProgressFormatter.FormatResult(result, cts.IsCancellationRequested);
 
                     if (result.Errors.Count > 0)
                         ShowImportErrors(result.Errors);
@@ -85,6 +86,8 @@ namespace OwnerTrack.App.Helpers
 
             progressForm.ShowDialog(owner);
         }
+
+      
 
         private static void WireFormClosingGuard(Form form, Func<bool> isDone)
         {
@@ -125,7 +128,7 @@ namespace OwnerTrack.App.Helpers
                         progressBar.Maximum = p.TotalRows;
                         progressBar.Value = Math.Min(p.ProcessedRows, p.TotalRows);
                     }
-                    lblStatus.Text = FormatProgressLabel(p);
+                    lblStatus.Text = ImportProgressFormatter.FormatProgress(p);
                     progressForm.Refresh();
                 });
             });
@@ -145,15 +148,5 @@ namespace OwnerTrack.App.Helpers
             btnClose.Enabled = true;
             btnCancel.Enabled = false;
         }
-
-        private static string FormatProgressLabel(ImportProgress p) =>
-            $"Obrađeno: {p.ProcessedRows}/{p.TotalRows}\n" +
-            $"Dodato: {p.SuccessCount}  |  Greške: {p.ErrorCount}\n" +
-            $"{p.CurrentRow}";
-
-        private static string FormatResultLabel(ImportResult result, bool wasCancelled) =>
-            wasCancelled
-                ? $"Import otkazan.\nDodano: {result.SuccessCount}  |  Preskočeno: {result.SkipCount}\nGreške: {result.ErrorCount}"
-                : $"Import završen!\nDodano: {result.SuccessCount}  |  Preskočeno (duplikati): {result.SkipCount}\nGreške: {result.ErrorCount}  |  Vlasnici: {result.VlasnikCount}";
     }
 }

@@ -12,7 +12,8 @@ namespace OwnerTrack.Infrastructure.Services
 {
     public class ExcelImportService
     {
-        private static class Columns
+        
+        private static class Column
         {
             public const int Naziv = 2;
             public const int IdBroj = 3;
@@ -52,6 +53,8 @@ namespace OwnerTrack.Infrastructure.Services
             _connectionString = connectionString;
         }
 
+       
+
         public ImportResult ImportFromExcel(
             string filePath,
             IProgress<ImportProgress>? progress = null,
@@ -78,7 +81,6 @@ namespace OwnerTrack.Infrastructure.Services
                 prog.TotalRows = dataRows.Count;
 
                 using var db = CreateDbContext();
-
                 db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
                 using var tx = db.Database.BeginTransaction();
 
@@ -102,8 +104,8 @@ namespace OwnerTrack.Infrastructure.Services
 
                     try
                     {
-                        naziv = GetCell(workbookPart, row, Columns.Naziv).Trim();
-                        idBroj = GetCell(workbookPart, row, Columns.IdBroj).Trim();
+                        naziv = ReadCell(workbookPart, row, Column.Naziv);
+                        idBroj = ReadCell(workbookPart, row, Column.IdBroj);
 
                         prog.CurrentRow = $"{naziv} ({idBroj})";
                         prog.ProcessedRows = i + 1;
@@ -121,8 +123,8 @@ namespace OwnerTrack.Infrastructure.Services
                             continue;
                         }
 
-                        string sifraDjelatnosti = GetCell(workbookPart, row, Columns.SifraDjelatnosti).Trim();
-                        string? nazivDjelatnosti = GetCellOrNull(workbookPart, row, Columns.NazivDjelatnosti);
+                        string sifraDjelatnosti = ReadCell(workbookPart, row, Column.SifraDjelatnosti);
+                        string? nazivDjelatnosti = ReadCellOrNull(workbookPart, row, Column.NazivDjelatnosti);
 
                         if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
                             EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti);
@@ -176,38 +178,39 @@ namespace OwnerTrack.Infrastructure.Services
             return result;
         }
 
+       
+
         private Klijent MapKlijent(WorkbookPart wbp, Row row, string naziv, string idBroj, string sifraDjelatnosti) =>
             new()
             {
                 Naziv = naziv,
                 IdBroj = idBroj,
-                Adresa = GetCellOrNull(wbp, row, Columns.Adresa),
+                Adresa = ReadCellOrNull(wbp, row, Column.Adresa),
                 SifraDjelatnosti = sifraDjelatnosti,
-                DatumUspostave = ExcelValueNormalizer.ParseDate(GetCellOrNull(wbp, row, Columns.DatumUspostave)),
-                VrstaKlijenta = ExcelValueNormalizer.NormalizeVrstaKlijenta(GetCellOrNull(wbp, row, Columns.VrstaKlijenta)),
-                DatumOsnivanja = ExcelValueNormalizer.ParseDate(GetCellOrNull(wbp, row, Columns.DatumOsnivanja)),
-                Velicina = ExcelValueNormalizer.NormalizeVelicina(GetCellOrNull(wbp, row, Columns.Velicina)),
-                PepRizik = ExcelValueNormalizer.NormalizeDaNe(GetCellOrNull(wbp, row, Columns.PepRizik)),
-                UboRizik = ExcelValueNormalizer.NormalizeDaNe(GetCellOrNull(wbp, row, Columns.UboRizik)),
-                GotovinaRizik = ExcelValueNormalizer.NormalizeDaNe(GetCellOrNull(wbp, row, Columns.GotovinaRizik)),
-                GeografskiRizik = ExcelValueNormalizer.NormalizeDaNe(GetCellOrNull(wbp, row, Columns.GeografskiRizik)),
-                UkupnaProcjena = GetCellOrNull(wbp, row, Columns.UkupnaProcjena),
-                DatumProcjene = ExcelValueNormalizer.ParseDate(GetCellOrNull(wbp, row, Columns.DatumProcjene)),
-                OvjeraCr = GetCellOrNull(wbp, row, Columns.OvjeraCr),
+                DatumUspostave = ExcelValueNormalizer.ParseDate(ReadCellOrNull(wbp, row, Column.DatumUspostave)),
+                VrstaKlijenta = ExcelValueNormalizer.NormalizeVrstaKlijenta(ReadCellOrNull(wbp, row, Column.VrstaKlijenta)),
+                DatumOsnivanja = ExcelValueNormalizer.ParseDate(ReadCellOrNull(wbp, row, Column.DatumOsnivanja)),
+                Velicina = ExcelValueNormalizer.NormalizeVelicina(ReadCellOrNull(wbp, row, Column.Velicina)),
+                PepRizik = ExcelValueNormalizer.NormalizeDaNe(ReadCellOrNull(wbp, row, Column.PepRizik)),
+                UboRizik = ExcelValueNormalizer.NormalizeDaNe(ReadCellOrNull(wbp, row, Column.UboRizik)),
+                GotovinaRizik = ExcelValueNormalizer.NormalizeDaNe(ReadCellOrNull(wbp, row, Column.GotovinaRizik)),
+                GeografskiRizik = ExcelValueNormalizer.NormalizeDaNe(ReadCellOrNull(wbp, row, Column.GeografskiRizik)),
+                UkupnaProcjena = ReadCellOrNull(wbp, row, Column.UkupnaProcjena),
+                DatumProcjene = ExcelValueNormalizer.ParseDate(ReadCellOrNull(wbp, row, Column.DatumProcjene)),
+                OvjeraCr = ReadCellOrNull(wbp, row, Column.OvjeraCr),
                 Kreiran = DateTime.Now,
                 Status = StatusEntiteta.AKTIVAN,
             };
 
         private void ImportVlasnici(WorkbookPart wbp, Row row, Klijent klijent, ImportResult result, OwnerTrackDbContext db)
         {
-            string? rawNames = GetCellOrNull(wbp, row, Columns.Vlasnik);
-            string? rawDates = GetCellOrNull(wbp, row, Columns.DatVazVlasnika);
-            string? rawPercentages = GetCellOrNull(wbp, row, Columns.Procenat);
-            string? rawDatUtvrdjivanja = GetCellOrNull(wbp, row, Columns.DatUtvrdjivanja);
-            string? rawIzvorPodatka = GetCellOrNull(wbp, row, Columns.IzvorPodatka);
+            string? rawNames = ReadCellOrNull(wbp, row, Column.Vlasnik);
+            string? rawDates = ReadCellOrNull(wbp, row, Column.DatVazVlasnika);
+            string? rawPercentages = ReadCellOrNull(wbp, row, Column.Procenat);
+            string? rawDatUtvrdjivanja = ReadCellOrNull(wbp, row, Column.DatUtvrdjivanja);
+            string? rawIzvorPodatka = ReadCellOrNull(wbp, row, Column.IzvorPodatka);
 
-            if (string.IsNullOrWhiteSpace(rawNames))
-                return;
+            if (string.IsNullOrWhiteSpace(rawNames)) return;
 
             foreach (var vlasnik in ExcelEntityParser.ParseVlasnici(rawNames, rawDates, rawPercentages))
             {
@@ -223,11 +226,10 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void ImportDirektori(WorkbookPart wbp, Row row, Klijent klijent, OwnerTrackDbContext db)
         {
-            string? rawNames = GetCellOrNull(wbp, row, Columns.Direktor);
-            string? rawDate = GetCellOrNull(wbp, row, Columns.DatVazDirektora);
+            string? rawNames = ReadCellOrNull(wbp, row, Column.Direktor);
+            string? rawDate = ReadCellOrNull(wbp, row, Column.DatVazDirektora);
 
-            if (string.IsNullOrWhiteSpace(rawNames))
-                return;
+            if (string.IsNullOrWhiteSpace(rawNames)) return;
 
             foreach (var direktor in ExcelEntityParser.ParseDirektori(rawNames, rawDate))
             {
@@ -239,11 +241,10 @@ namespace OwnerTrack.Infrastructure.Services
 
         private void ImportUgovor(WorkbookPart wbp, Row row, Klijent klijent, OwnerTrackDbContext db)
         {
-            string? statusUgovora = GetCellOrNull(wbp, row, Columns.StatusUgovora);
-            string? datumUgovora = GetCellOrNull(wbp, row, Columns.DatumUgovora);
+            string? statusUgovora = ReadCellOrNull(wbp, row, Column.StatusUgovora);
+            string? datumUgovora = ReadCellOrNull(wbp, row, Column.DatumUgovora);
 
-            if (string.IsNullOrWhiteSpace(statusUgovora))
-                return;
+            if (string.IsNullOrWhiteSpace(statusUgovora)) return;
 
             db.Ugovori.Add(new Ugovor
             {
@@ -253,14 +254,15 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
+        
+
         private static void EnsureActivityCodeExists(
             OwnerTrackDbContext db,
             HashSet<string> existingCodes,
             string code,
             string? rawName)
         {
-            if (existingCodes.Contains(code))
-                return;
+            if (existingCodes.Contains(code)) return;
 
             string displayName = string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("=")
                 ? $"Djelatnost {code}"
@@ -270,10 +272,12 @@ namespace OwnerTrack.Infrastructure.Services
             existingCodes.Add(code);
         }
 
-        private static string GetCell(WorkbookPart wbp, Row row, int column) =>
+       
+        private static string ReadCell(WorkbookPart wbp, Row row, int column) =>
             ExcelCellReader.GetCellValue(wbp, row, column).Trim();
 
-        private static string? GetCellOrNull(WorkbookPart wbp, Row row, int column)
+       
+        private static string? ReadCellOrNull(WorkbookPart wbp, Row row, int column)
         {
             string value = ExcelCellReader.GetCellValue(wbp, row, column).Trim();
             return string.IsNullOrWhiteSpace(value) ? null : value;
@@ -299,7 +303,7 @@ namespace OwnerTrack.Infrastructure.Services
         private static void ClearTrackedEntities(OwnerTrackDbContext db)
         {
             foreach (var entry in db.ChangeTracker.Entries().ToList())
-                entry.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+                entry.State = EntityState.Detached;
         }
 
         private OwnerTrackDbContext CreateDbContext()

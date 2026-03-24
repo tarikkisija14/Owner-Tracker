@@ -24,7 +24,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-       
+        
 
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
@@ -48,7 +48,7 @@ namespace OwnerTrack.App
             dtDatumUtvrdjivanja.Value = v.DatumUtvrdjivanja ?? DateTime.Now;
         }
 
-        
+       
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -99,7 +99,7 @@ namespace OwnerTrack.App
             Close();
         }
 
-       
+        
 
         private bool TryParsePercentage(out decimal percentage)
         {
@@ -123,7 +123,7 @@ namespace OwnerTrack.App
             return valid;
         }
 
-        
+       
 
         private void ApplyFormFieldsToVlasnik(Vlasnik v, string imePrezime, decimal percentage)
         {
@@ -134,7 +134,7 @@ namespace OwnerTrack.App
             v.IzvorPodatka = txtIzvorPodatka.Text;
         }
 
-        
+       
 
         private void SaveChanges(int vlasnikId, string imePrezime, decimal percentage)
         {

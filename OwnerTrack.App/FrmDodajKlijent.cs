@@ -116,7 +116,8 @@ namespace OwnerTrack.App
             }
         }
 
-      
+        
+
         private bool ValidateFields(string naziv, string idBroj)
         {
             string? jibError = JibValidator.GetValidationError(idBroj);
@@ -154,7 +155,7 @@ namespace OwnerTrack.App
             return true;
         }
 
-        
+       
 
         private void ApplyFormFieldsToKlijent(Klijent k)
         {
@@ -184,7 +185,7 @@ namespace OwnerTrack.App
             ugovor.DatumUgovora = dtDatumUgovora.Value;
         }
 
-        
+       
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -221,7 +222,7 @@ namespace OwnerTrack.App
             Close();
         }
 
-        
+       
 
         private void SaveChanges(int id, string naziv, string idBroj)
         {

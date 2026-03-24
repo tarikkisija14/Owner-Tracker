@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
+using OwnerTrack.App.Presenters;
 using OwnerTrack.App.ViewModels;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
@@ -14,6 +15,8 @@ namespace OwnerTrack.App
     public partial class Form1 : Form
     {
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
+        private readonly ArchivePresenter _archivePresenter;
+        private readonly PdfExportPresenter _pdfPresenter;
 
         public Form1()
         {
@@ -29,10 +32,13 @@ namespace OwnerTrack.App
                 ApplyCurrentFilters();
             };
 
+            _archivePresenter = new ArchivePresenter();
+            _pdfPresenter = new PdfExportPresenter();
+
             Load += Form1_Load;
         }
 
-        
+       
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -124,7 +130,7 @@ namespace OwnerTrack.App
         private void ApplyCurrentFilters() =>
             LoadClients(txtSearchKlijent.Text, GetSelectedActivityCode(), GetSelectedSize());
 
-       
+        
 
         private void txtSearchKlijent_TextChanged(object sender, EventArgs e)
         {
@@ -217,21 +223,10 @@ namespace OwnerTrack.App
             if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int id, UiMessages.SelectFirm)) return;
             if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveKlijentPrompt)) return;
 
-            ExecuteArchive(
-                db =>
-                {
-                    var k = db.Klijenti.Find(id);
-                    if (k is null) return;
-                    new AuditService(db).Archive(
-                        k, "Klijenti", id,
-                        string.Format(UiMessages.AuditArchivedKlijent, k.Naziv));
-                    db.SaveChanges();
-                },
-                onSuccess: RefreshAfterChange,
-                successMessage: UiMessages.ArchiveKlijentSuccess);
+            _archivePresenter.ArchiveKlijent(id, onSuccess: RefreshAfterChange);
         }
 
-       
+        
 
         private void btnDodajVlasnika_Click(object sender, EventArgs e)
         {
@@ -258,21 +253,10 @@ namespace OwnerTrack.App
             if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
             if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveVlasnikPrompt)) return;
 
-            ExecuteArchive(
-                db =>
-                {
-                    var v = db.Vlasnici.Find(vlasnikId);
-                    if (v is null) return;
-                    new AuditService(db).Archive(
-                        v, "Vlasnici", vlasnikId,
-                        string.Format(UiMessages.AuditArchivedVlasnik, v.ImePrezime));
-                    db.SaveChanges();
-                },
-                onSuccess: () => LoadOwners(klijentId),
-                successMessage: UiMessages.ArchiveVlasnikSuccess);
+            _archivePresenter.ArchiveVlasnik(vlasnikId, onSuccess: () => LoadOwners(klijentId));
         }
 
-        
+       
 
         private void btnDodajDirektora_Click(object sender, EventArgs e)
         {
@@ -299,18 +283,7 @@ namespace OwnerTrack.App
             if (!GridHelper.TryGetSelectedId(dataGridKlijenti, out int klijentId, UiMessages.SelectFirm)) return;
             if (!DialogHelper.ConfirmArchive(UiMessages.ArchiveDirektorPrompt)) return;
 
-            ExecuteArchive(
-                db =>
-                {
-                    var d = db.Direktori.Find(direktorId);
-                    if (d is null) return;
-                    new AuditService(db).Archive(
-                        d, "Direktori", direktorId,
-                        string.Format(UiMessages.AuditArchivedDirektor, d.ImePrezime));
-                    db.SaveChanges();
-                },
-                onSuccess: () => LoadDirectors(klijentId),
-                successMessage: UiMessages.ArchiveDirektorSuccess);
+            _archivePresenter.ArchiveDirektor(direktorId, onSuccess: () => LoadDirectors(klijentId));
         }
 
         
@@ -464,66 +437,11 @@ namespace OwnerTrack.App
 
         
 
-        private async void btnExportTabelaPdf_Click(object sender, EventArgs e)
-        {
-            if (dataGridKlijenti.Rows.Count == 0)
-            {
-                MessageBox.Show(UiMessages.PdfNoClientsToExport);
-                return;
-            }
+        private async void btnExportTabelaPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportTableAsync(dataGridKlijenti, btnExportTabelaPdf);
 
-            var ids = dataGridKlijenti.Rows
-                .Cast<DataGridViewRow>()
-                .Where(r => r.DataBoundItem is not null)
-                .Select(r => r.Cells["Id"].Value is int id ? id : 0)
-                .Where(id => id > 0)
-                .ToList();
-
-            using var dialog = DialogHelper.CreateSaveDialogPdf(
-                UiMessages.PdfTableSaveTitle,
-                $"{UiMessages.PdfTableFilePrefix}{DateTime.Now:yyyyMMdd}.pdf");
-            if (dialog.ShowDialog() != DialogResult.OK) return;
-
-            string savedPath = dialog.FileName;
-            await DialogHelper.ExecutePdfExport(
-                btnExportTabelaPdf, "📋 Export tabele u PDF",
-                path =>
-                {
-                    using var db = DbContextFactory.Create();
-                    return new PdfExportService(db).GenerateClientTable(ids, path);
-                },
-                savedPath);
-        }
-
-        private async void btnSacuvajPdf_Click(object sender, EventArgs e)
-        {
-            if (dataGridKlijenti.SelectedRows.Count == 0)
-            {
-                MessageBox.Show(UiMessages.PdfNoClientSelected);
-                return;
-            }
-
-            if (dataGridKlijenti.SelectedRows[0].DataBoundItem is not KlijentViewModel row)
-            {
-                MessageBox.Show(UiMessages.PdfCannotReadSelected);
-                return;
-            }
-
-            using var dialog = DialogHelper.CreateSaveDialogPdf(
-                UiMessages.PdfReportSaveTitle,
-                DialogHelper.BuildSafeFileName(row.Naziv ?? string.Empty));
-            if (dialog.ShowDialog() != DialogResult.OK) return;
-
-            string savedPath = dialog.FileName;
-            await DialogHelper.ExecutePdfExport(
-                btnSacuvajPdf, "📄 Sačuvaj kao PDF",
-                path =>
-                {
-                    using var db = DbContextFactory.Create();
-                    return new PdfExportService(db).GeneratePdf(row.Id, path);
-                },
-                savedPath);
-        }
+        private async void btnSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportSingleClientAsync(dataGridKlijenti, btnSacuvajPdf);
 
         
 
@@ -532,27 +450,6 @@ namespace OwnerTrack.App
             LoadActivityCodeFilter();
             LoadClients();
             RefreshWarningsBadge();
-        }
-
-        private static void ExecuteArchive(
-            Action<OwnerTrackDbContext> archiveAction,
-            Action? onSuccess = null,
-            string successMessage = "")
-        {
-            try
-            {
-                using var db = DbContextFactory.Create();
-                TransactionHelper.Execute(db, archiveAction);
-
-                if (!string.IsNullOrEmpty(successMessage))
-                    MessageBox.Show(successMessage);
-
-                onSuccess?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                DialogHelper.LogAndShowError(ex);
-            }
         }
     }
 }
