@@ -35,6 +35,11 @@ namespace OwnerTrack.App
             _archivePresenter = new ArchivePresenter();
             _pdfPresenter = new PdfExportPresenter();
 
+            GridHelper.EnableClickToDeselect(dataGridKlijenti);
+            GridHelper.EnableClickToDeselect(dataGridVlasnici);
+            GridHelper.EnableClickToDeselect(dataGridDirektori);
+            GridHelper.EnableColumnSort(dataGridKlijenti, StyleKlijentiGrid);
+
             Load += Form1_Load;
         }
 
@@ -155,9 +160,17 @@ namespace OwnerTrack.App
         {
             try
             {
-                var clients = KlijentQueryService.GetClients(searchText, sifraDjelatnosti, velicina);
+                using var db = DbContextFactory.Create();
+                var service = new KlijentQueryService(db);
+                var clients = service.GetClients(searchText, sifraDjelatnosti, velicina);
                 GridHelper.BindWithoutEvent(dataGridKlijenti, dataGridKlijenti_SelectionChanged, clients);
-                GridHelper.ApplyColumns(dataGridKlijenti, GridColumns.Klijenti);
+                StyleKlijentiGrid();
+                lblEmptyKlijenti.Visible = clients.Count == 0;
+
+                int total = service.GetTotalCount();
+                lblKlijentiCount.Text = clients.Count == total
+                    ? $"Prikazano: {total} firmi"
+                    : $"Prikazano: {clients.Count} od {total} firmi";
             }
             catch (Exception ex)
             {
@@ -165,13 +178,26 @@ namespace OwnerTrack.App
             }
         }
 
+        private void StyleKlijentiGrid()
+        {
+            GridHelper.ApplyColumns(dataGridKlijenti, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridKlijenti, "Id", "Naziv");
+            GridHelper.AlignCenter(dataGridKlijenti,
+                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora");
+            GridHelper.Emphasize(dataGridKlijenti, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
+        }
+
         private void LoadOwners(int klijentId)
         {
             try
             {
-                dataGridVlasnici.DataSource = KlijentQueryService.GetOwners(klijentId);
+                using var db = DbContextFactory.Create();
+                var owners = new KlijentQueryService(db).GetOwners(klijentId);
+                dataGridVlasnici.DataSource = owners;
                 GridHelper.ApplyColumns(dataGridVlasnici, GridColumns.Vlasnici);
                 dataGridVlasnici.ClearSelection();
+                lblEmptyVlasnici.Visible = owners.Count == 0;
             }
             catch (Exception ex)
             {
@@ -183,9 +209,12 @@ namespace OwnerTrack.App
         {
             try
             {
-                dataGridDirektori.DataSource = KlijentQueryService.GetDirectors(klijentId);
+                using var db = DbContextFactory.Create();
+                var directors = new KlijentQueryService(db).GetDirectors(klijentId);
+                dataGridDirektori.DataSource = directors;
                 GridHelper.ApplyColumns(dataGridDirektori, GridColumns.Direktori);
                 dataGridDirektori.ClearSelection();
+                lblEmptyDirektori.Visible = directors.Count == 0;
             }
             catch (Exception ex)
             {

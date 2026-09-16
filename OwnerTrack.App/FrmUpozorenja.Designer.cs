@@ -1,4 +1,7 @@
-﻿namespace OwnerTrack.App
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Controls;
+
+namespace OwnerTrack.App
 {
     partial class FrmUpozorenja
     {
@@ -14,15 +17,21 @@
         private void InitializeComponent()
         {
             panelTop = new System.Windows.Forms.Panel();
-            lblSumarij = new System.Windows.Forms.Label();
-            btnZatvori = new System.Windows.Forms.Button();
+            panelTopBorder = new System.Windows.Forms.Panel();
+            lblStatFirmi = new System.Windows.Forms.Label();
+            lblStatIsteklo = new System.Windows.Forms.Label();
+            lblStatKriticno = new System.Windows.Forms.Label();
+            lblStatUskoro = new System.Windows.Forms.Label();
+            btnZatvori = new IconButton();
             split = new System.Windows.Forms.SplitContainer();
             panelGornji = new System.Windows.Forms.Panel();
             gridFirme = new System.Windows.Forms.DataGridView();
             lblFirme = new System.Windows.Forms.Label();
+            lblEmptyFirme = new System.Windows.Forms.Label();
             panelDonji = new System.Windows.Forms.Panel();
             gridDetalji = new System.Windows.Forms.DataGridView();
             lblDetalji = new System.Windows.Forms.Label();
+            lblEmptyDetalji = new System.Windows.Forms.Label();
 
             panelTop.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)split).BeginInit();
@@ -35,66 +44,71 @@
             ((System.ComponentModel.ISupportInitialize)gridDetalji).BeginInit();
             SuspendLayout();
 
-            // ── Shared grid style ─────────────────────────────────
-            static void StyleGrid(System.Windows.Forms.DataGridView g)
+            // ── panelTop (statistika kao "dashboard" kartice) ──────
+            panelTop.Controls.Add(lblStatFirmi);
+            panelTop.Controls.Add(lblStatIsteklo);
+            panelTop.Controls.Add(lblStatKriticno);
+            panelTop.Controls.Add(lblStatUskoro);
+            panelTop.Controls.Add(btnZatvori);
+            panelTop.Controls.Add(panelTopBorder);
+            panelTop.Dock = System.Windows.Forms.DockStyle.Top;
+            panelTop.Height = 84;
+            panelTop.Name = "panelTop";
+            panelTop.BackColor = UiTheme.Navy;
+
+            // ── panelTopBorder (tanka linija razdvajanja od grida) ──
+            panelTopBorder.Dock = System.Windows.Forms.DockStyle.Bottom;
+            panelTopBorder.Height = 1;
+            panelTopBorder.Name = "panelTopBorder";
+            panelTopBorder.BackColor = UiTheme.GridBorder;
+
+            // ── statistika kartice ────────────────────────────────
+            ConfigureStatTile(lblStatFirmi, "lblStatFirmi", 24, "Ukupno firmi");
+            ConfigureStatTile(lblStatIsteklo, "lblStatIsteklo", 190, "Isteklo");
+            ConfigureStatTile(lblStatKriticno, "lblStatKriticno", 356, "Kritično (≤14 dana)");
+            ConfigureStatTile(lblStatUskoro, "lblStatUskoro", 522, "Uskoro ističe");
+
+            void ConfigureStatTile(System.Windows.Forms.Label numberLabel, string name, int x, string caption)
             {
-                g.BackgroundColor = System.Drawing.Color.White;
-                g.GridColor = System.Drawing.Color.FromArgb(210, 218, 230);
-                g.BorderStyle = System.Windows.Forms.BorderStyle.None;
-                g.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
-                g.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(28, 40, 65);
-                g.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.White;
-                g.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-                g.ColumnHeadersDefaultCellStyle.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-                g.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-                g.ColumnHeadersHeight = 32;
-                g.EnableHeadersVisualStyles = false;
-                g.DefaultCellStyle.Font = new System.Drawing.Font("Segoe UI", 9F);
-                g.DefaultCellStyle.SelectionBackColor = System.Drawing.Color.FromArgb(52, 120, 200);
-                g.DefaultCellStyle.SelectionForeColor = System.Drawing.Color.White;
-                g.DefaultCellStyle.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
-                g.RowTemplate.Height = 27;
+                numberLabel.Location = new System.Drawing.Point(x, 16);
+                numberLabel.Size = new System.Drawing.Size(150, 32);
+                numberLabel.Name = name;
+                numberLabel.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
+                numberLabel.ForeColor = System.Drawing.Color.White;
+                numberLabel.Text = "0";
+                numberLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+
+                var captionLabel = new System.Windows.Forms.Label
+                {
+                    Location = new System.Drawing.Point(x, 48),
+                    Size = new System.Drawing.Size(150, 18),
+                    Font = new System.Drawing.Font("Segoe UI", 8F),
+                    ForeColor = UiTheme.HeaderSubText,
+                    Text = caption,
+                    TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+                };
+                panelTop.Controls.Add(captionLabel);
             }
 
-            // ── panelTop ──────────────────────────────────────────
-            panelTop.Controls.Add(lblSumarij);
-            panelTop.Controls.Add(btnZatvori);
-            panelTop.Dock = System.Windows.Forms.DockStyle.Top;
-            panelTop.Height = 46;
-            panelTop.Name = "panelTop";
-            panelTop.Padding = new System.Windows.Forms.Padding(12, 0, 8, 0);
-            panelTop.BackColor = System.Drawing.Color.FromArgb(28, 40, 65);
-
-            // ── lblSumarij ────────────────────────────────────────
-            lblSumarij.Dock = System.Windows.Forms.DockStyle.Fill;
-            lblSumarij.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            lblSumarij.ForeColor = System.Drawing.Color.White;
-            lblSumarij.Name = "lblSumarij";
-            lblSumarij.Text = "Učitavam...";
-            lblSumarij.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-
             // ── btnZatvori ────────────────────────────────────────
-            btnZatvori.Dock = System.Windows.Forms.DockStyle.Right;
+            btnZatvori.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            btnZatvori.Location = new System.Drawing.Point(934, 24);
+            btnZatvori.Size = new System.Drawing.Size(100, 36);
             btnZatvori.Name = "btnZatvori";
-            btnZatvori.Text = "✕  Zatvori";
-            btnZatvori.Width = 110;
-            btnZatvori.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            btnZatvori.BackColor = System.Drawing.Color.FromArgb(192, 57, 43);
-            btnZatvori.ForeColor = System.Drawing.Color.White;
-            btnZatvori.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btnZatvori.FlatAppearance.BorderSize = 0;
-            btnZatvori.Cursor = System.Windows.Forms.Cursors.Hand;
-            btnZatvori.UseVisualStyleBackColor = false;
+            btnZatvori.Text = "Zatvori";
+            btnZatvori.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnZatvori, UiTheme.Red, 9.5f);
             btnZatvori.Click += btnZatvori_Click;
 
             // ── lblFirme ──────────────────────────────────────────
-            lblFirme.BackColor = System.Drawing.Color.FromArgb(240, 244, 250);
-            lblFirme.ForeColor = System.Drawing.Color.FromArgb(28, 40, 65);
+            lblFirme.BackColor = UiTheme.PanelLight;
+            lblFirme.ForeColor = UiTheme.Navy;
             lblFirme.Dock = System.Windows.Forms.DockStyle.Top;
             lblFirme.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            lblFirme.Height = 28;
+            lblFirme.Height = 30;
+            lblFirme.Padding = new System.Windows.Forms.Padding(14, 0, 0, 0);
             lblFirme.Name = "lblFirme";
-            lblFirme.Text = "   ⚠  Firme s upozorenjima — klikni red za detalje:";
+            lblFirme.Text = "Firme s upozorenjima — klikni red za detalje";
             lblFirme.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
             // ── gridFirme ─────────────────────────────────────────
@@ -109,23 +123,30 @@
             gridFirme.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             gridFirme.SelectionChanged += gridFirme_SelectionChanged;
             gridFirme.CellFormatting += gridFirme_CellFormatting;
-            StyleGrid(gridFirme);
+            gridFirme.CellMouseEnter += gridFirme_CellMouseEnter;
+            gridFirme.CellMouseLeave += gridFirme_CellMouseLeave;
+            UiTheme.StyleGrid(gridFirme, enableRowHover: false);
+
+            // ── lblEmptyFirme ─────────────────────────────────────
+            UiTheme.StyleEmptyState(lblEmptyFirme, "Nema upozorenja — svi dokumenti su ažurni.");
 
             // ── panelGornji ───────────────────────────────────────
             panelGornji.Controls.Add(gridFirme);
+            panelGornji.Controls.Add(lblEmptyFirme);
             panelGornji.Controls.Add(lblFirme);
             panelGornji.Dock = System.Windows.Forms.DockStyle.Fill;
             panelGornji.Name = "panelGornji";
             panelGornji.BackColor = System.Drawing.Color.White;
 
             // ── lblDetalji ────────────────────────────────────────
-            lblDetalji.BackColor = System.Drawing.Color.FromArgb(240, 244, 250);
-            lblDetalji.ForeColor = System.Drawing.Color.FromArgb(28, 40, 65);
+            lblDetalji.BackColor = UiTheme.PanelLight;
+            lblDetalji.ForeColor = UiTheme.Navy;
             lblDetalji.Dock = System.Windows.Forms.DockStyle.Top;
             lblDetalji.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            lblDetalji.Height = 28;
+            lblDetalji.Height = 30;
+            lblDetalji.Padding = new System.Windows.Forms.Padding(14, 0, 0, 0);
             lblDetalji.Name = "lblDetalji";
-            lblDetalji.Text = "   📋  Detalji za odabranu firmu:";
+            lblDetalji.Text = "Detalji za odabranu firmu";
             lblDetalji.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
             // ── gridDetalji ───────────────────────────────────────
@@ -139,10 +160,16 @@
             gridDetalji.RowHeadersVisible = false;
             gridDetalji.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             gridDetalji.CellFormatting += gridDetalji_CellFormatting;
-            StyleGrid(gridDetalji);
+            gridDetalji.CellMouseEnter += gridDetalji_CellMouseEnter;
+            gridDetalji.CellMouseLeave += gridDetalji_CellMouseLeave;
+            UiTheme.StyleGrid(gridDetalji, enableRowHover: false);
+
+            // ── lblEmptyDetalji ───────────────────────────────────
+            UiTheme.StyleEmptyState(lblEmptyDetalji, "Izaberi firmu iz liste iznad za detalje.");
 
             // ── panelDonji ────────────────────────────────────────
             panelDonji.Controls.Add(gridDetalji);
+            panelDonji.Controls.Add(lblEmptyDetalji);
             panelDonji.Controls.Add(lblDetalji);
             panelDonji.Dock = System.Windows.Forms.DockStyle.Fill;
             panelDonji.Name = "panelDonji";
@@ -157,13 +184,14 @@
             split.Panel2.Controls.Add(panelDonji);
             split.Panel2MinSize = 80;
             split.SplitterDistance = 280;
+            split.SplitterWidth = 6;
             split.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            split.BackColor = System.Drawing.Color.FromArgb(200, 210, 225);
+            split.BackColor = UiTheme.GridBorder;
 
             // ── Form ──────────────────────────────────────────────
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
+            BackColor = UiTheme.FormBackgroundDialog;
             ClientSize = new System.Drawing.Size(1050, 680);
             Font = new System.Drawing.Font("Segoe UI", 9F);
             Controls.Add(split);
@@ -187,14 +215,20 @@
         }
 
         private System.Windows.Forms.Panel panelTop;
-        private System.Windows.Forms.Label lblSumarij;
-        private System.Windows.Forms.Button btnZatvori;
+        private System.Windows.Forms.Panel panelTopBorder;
+        private System.Windows.Forms.Label lblStatFirmi;
+        private System.Windows.Forms.Label lblStatIsteklo;
+        private System.Windows.Forms.Label lblStatKriticno;
+        private System.Windows.Forms.Label lblStatUskoro;
+        private IconButton btnZatvori;
         private System.Windows.Forms.SplitContainer split;
         private System.Windows.Forms.Panel panelGornji;
         private System.Windows.Forms.DataGridView gridFirme;
         private System.Windows.Forms.Label lblFirme;
+        private System.Windows.Forms.Label lblEmptyFirme;
         private System.Windows.Forms.Panel panelDonji;
         private System.Windows.Forms.DataGridView gridDetalji;
         private System.Windows.Forms.Label lblDetalji;
+        private System.Windows.Forms.Label lblEmptyDetalji;
     }
 }

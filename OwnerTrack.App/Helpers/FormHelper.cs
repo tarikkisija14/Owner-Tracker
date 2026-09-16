@@ -2,6 +2,14 @@
 {
     public static class FormHelper
     {
+        public static void ApplyEditModeTitle(Form form, Button saveButton, bool isEditMode, string editTitle, string addTitle)
+        {
+            form.Text = isEditMode ? editTitle : addTitle;
+            saveButton.Text = isEditMode
+                ? Constants.UiMessages.KlijentSaveChangesButton
+                : Constants.UiMessages.KlijentSaveNewButton;
+        }
+
         public static void PopulateEnumCombo<TEnum>(ComboBox cb) where TEnum : struct, Enum
         {
             cb.Items.Clear();

@@ -1,19 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.ViewModels;
 using OwnerTrack.Infrastructure.Database;
 
 namespace OwnerTrack.Infrastructure.Services
 {
-    public static class KlijentQueryService
+    public class KlijentQueryService
     {
-        public static List<KlijentViewModel> GetClients(
+        private readonly OwnerTrackDbContext _db;
+
+        public KlijentQueryService(OwnerTrackDbContext db)
+        {
+            _db = db;
+        }
+
+        public List<KlijentViewModel> GetClients(
             string searchText = "",
             string sifraDjelatnosti = "",
             string velicina = "")
         {
-            using var db = DbContextFactory.Create();
-
-            return db.Klijenti
+            var result = _db.Klijenti
                 .Where(k =>
                     (string.IsNullOrWhiteSpace(searchText) ||
                      k.Naziv.ToLower().Contains(searchText.ToLower()) ||
@@ -48,13 +54,19 @@ namespace OwnerTrack.Infrastructure.Services
                     Napomena = k.Napomena,
                 })
                 .ToList();
+
+            foreach (var k in result)
+                if (k.VrstaKlijenta != null && Enum.TryParse<VrstaKlijenta>(k.VrstaKlijenta, out var vk))
+                    k.VrstaKlijenta = vk.ToDisplay();
+
+            return result;
         }
 
-        public static List<VlasnikViewModel> GetOwners(int klijentId)
-        {
-            using var db = DbContextFactory.Create();
+        public int GetTotalCount() => _db.Klijenti.Count();
 
-            return db.Vlasnici
+        public List<VlasnikViewModel> GetOwners(int klijentId)
+        {
+            return _db.Vlasnici
                 .Where(v => v.KlijentId == klijentId)
                 .AsNoTracking()
                 .Select(v => new VlasnikViewModel
@@ -70,11 +82,9 @@ namespace OwnerTrack.Infrastructure.Services
                 .ToList();
         }
 
-        public static List<DirektorViewModel> GetDirectors(int klijentId)
+        public List<DirektorViewModel> GetDirectors(int klijentId)
         {
-            using var db = DbContextFactory.Create();
-
-            return db.Direktori
+            return _db.Direktori
                 .Where(d => d.KlijentId == klijentId)
                 .AsNoTracking()
                 .Select(d => new DirektorViewModel

@@ -1,4 +1,7 @@
-﻿namespace OwnerTrack.App
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Controls;
+
+namespace OwnerTrack.App
 {
     partial class FrmDodajDirektora
     {
@@ -22,18 +25,15 @@
             this.dtDatumValjanosti = new System.Windows.Forms.DateTimePicker();
             this.lblTipValjanosti = new System.Windows.Forms.Label();
             this.cbTipValjanosti = new System.Windows.Forms.ComboBox();
-            this.btnSpremi = new System.Windows.Forms.Button();
-            this.btnOtkazi = new System.Windows.Forms.Button();
+            this.btnSpremi = new IconButton();
+            this.btnOtkazi = new IconButton();
             this.lblJmbg = new System.Windows.Forms.Label();
             this.txtJmbg = new System.Windows.Forms.TextBox();
 
             this.SuspendLayout();
 
             // ── Shared styles ─────────────────────────────────────
-            var uiFont = new System.Drawing.Font("Segoe UI", 9.5F);
-            var labelColor = System.Drawing.Color.FromArgb(45, 55, 75);
-            var accentBlue = System.Drawing.Color.FromArgb(28, 40, 65);
-            var inputBg = System.Drawing.Color.FromArgb(250, 252, 255);
+            var uiFont = UiTheme.Base(9.5f);
 
             // ── FORMA ─────────────────────────────────────────────
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -44,106 +44,80 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
+            this.BackColor = UiTheme.FormBackgroundDialog;
             this.Font = uiFont;
             this.Load += FrmDodajDirektora_Load;
 
             // ── GROUPBOX ──────────────────────────────────────────
-            this.groupBox1.Text = "👔 Podaci direktora";
+            UiTheme.StyleGroupBox(this.groupBox1, "👔 Podaci direktora");
             this.groupBox1.Location = new System.Drawing.Point(18, 18);
             this.groupBox1.Size = new System.Drawing.Size(562, 220);
-            this.groupBox1.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.groupBox1.ForeColor = accentBlue;
-            this.groupBox1.BackColor = System.Drawing.Color.White;
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(6);
             this.groupBox1.AutoSize = false;
 
             // Ime i prezime
             this.lblImePrezime.Text = "Ime i prezime:";
             this.lblImePrezime.Location = new System.Drawing.Point(12, 34);
-            this.lblImePrezime.AutoSize = true;
-            this.lblImePrezime.Font = uiFont;
-            this.lblImePrezime.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblImePrezime);
 
             this.txtImePrezime.Location = new System.Drawing.Point(155, 32);
             this.txtImePrezime.Size = new System.Drawing.Size(390, 24);
-            this.txtImePrezime.Font = uiFont;
-            this.txtImePrezime.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtImePrezime.BackColor = inputBg;
+            UiTheme.StyleTextBox(this.txtImePrezime);
 
             // Tip valjanosti
             this.lblTipValjanosti.Text = "Tip valjanosti:";
             this.lblTipValjanosti.Location = new System.Drawing.Point(12, 74);
-            this.lblTipValjanosti.AutoSize = true;
-            this.lblTipValjanosti.Font = uiFont;
-            this.lblTipValjanosti.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblTipValjanosti);
 
             this.cbTipValjanosti.Location = new System.Drawing.Point(155, 72);
             this.cbTipValjanosti.Size = new System.Drawing.Size(170, 24);
-            this.cbTipValjanosti.Font = uiFont;
+            UiTheme.StyleComboBox(this.cbTipValjanosti);
             this.cbTipValjanosti.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cbTipValjanosti.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.cbTipValjanosti.SelectedIndexChanged += cbTipValjanosti_SelectedIndexChanged;
 
             // Datum važenja
             this.lblDatumValjanosti.Text = "Datum važenja:";
             this.lblDatumValjanosti.Location = new System.Drawing.Point(12, 114);
-            this.lblDatumValjanosti.AutoSize = true;
-            this.lblDatumValjanosti.Font = uiFont;
-            this.lblDatumValjanosti.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblDatumValjanosti);
 
             this.dtDatumValjanosti.Location = new System.Drawing.Point(155, 112);
             this.dtDatumValjanosti.Size = new System.Drawing.Size(210, 24);
             this.dtDatumValjanosti.Font = uiFont;
             this.dtDatumValjanosti.Enabled = true;
+            this.dtDatumValjanosti.ShowCheckBox = true;
 
             // JMBG
             this.lblJmbg.Text = "JMBG:";
             this.lblJmbg.Location = new System.Drawing.Point(12, 154);
-            this.lblJmbg.AutoSize = true;
-            this.lblJmbg.Font = uiFont;
-            this.lblJmbg.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblJmbg);
 
             this.txtJmbg.Location = new System.Drawing.Point(155, 152);
             this.txtJmbg.Size = new System.Drawing.Size(210, 24);
             this.txtJmbg.MaxLength = 13;
             this.txtJmbg.Name = "txtJmbg";
-            this.txtJmbg.Font = uiFont;
-            this.txtJmbg.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtJmbg.BackColor = inputBg;
+            UiTheme.StyleTextBox(this.txtJmbg);
 
             this.groupBox1.Controls.Add(this.lblImePrezime);
-            this.groupBox1.Controls.Add(this.txtImePrezime);
+            this.groupBox1.Controls.Add(UiTheme.WrapWithFocusBorder(this.txtImePrezime, new System.Drawing.Point(155, 32), new System.Drawing.Size(390, 24)));
             this.groupBox1.Controls.Add(this.lblTipValjanosti);
             this.groupBox1.Controls.Add(this.cbTipValjanosti);
             this.groupBox1.Controls.Add(this.lblDatumValjanosti);
             this.groupBox1.Controls.Add(this.dtDatumValjanosti);
             this.groupBox1.Controls.Add(this.lblJmbg);
-            this.groupBox1.Controls.Add(this.txtJmbg);
+            this.groupBox1.Controls.Add(UiTheme.WrapWithFocusBorder(this.txtJmbg, new System.Drawing.Point(155, 152), new System.Drawing.Size(210, 24)));
 
             // ── DUGMICI ───────────────────────────────────────────
             this.btnSpremi.Location = new System.Drawing.Point(218, 254);
             this.btnSpremi.Size = new System.Drawing.Size(160, 36);
-            this.btnSpremi.Text = "💾 Dodaj";
-            this.btnSpremi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSpremi.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            this.btnSpremi.ForeColor = System.Drawing.Color.White;
-            this.btnSpremi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSpremi.FlatAppearance.BorderSize = 0;
-            this.btnSpremi.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnSpremi.UseVisualStyleBackColor = false;
+            this.btnSpremi.Text = "Dodaj";
+            this.btnSpremi.IconGlyph = "";
+            UiTheme.StyleFlatButton(this.btnSpremi, UiTheme.Green, 10f);
             this.btnSpremi.Click += btnSpremi_Click;
 
             this.btnOtkazi.Location = new System.Drawing.Point(390, 254);
             this.btnOtkazi.Size = new System.Drawing.Size(160, 36);
-            this.btnOtkazi.Text = "❌ Otkaži";
-            this.btnOtkazi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnOtkazi.BackColor = System.Drawing.Color.FromArgb(192, 57, 43);
-            this.btnOtkazi.ForeColor = System.Drawing.Color.White;
-            this.btnOtkazi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnOtkazi.FlatAppearance.BorderSize = 0;
-            this.btnOtkazi.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnOtkazi.UseVisualStyleBackColor = false;
+            this.btnOtkazi.Text = "Otkaži";
+            this.btnOtkazi.IconGlyph = "";
+            UiTheme.StyleFlatButton(this.btnOtkazi, UiTheme.Red, 10f);
             this.btnOtkazi.Click += btnOtkazi_Click;
 
             // ── DODAJ SVE ─────────────────────────────────────────
@@ -161,8 +135,8 @@
         public System.Windows.Forms.DateTimePicker dtDatumValjanosti;
         private System.Windows.Forms.Label lblTipValjanosti;
         public System.Windows.Forms.ComboBox cbTipValjanosti;
-        public System.Windows.Forms.Button btnSpremi;
-        public System.Windows.Forms.Button btnOtkazi;
+        public IconButton btnSpremi;
+        public IconButton btnOtkazi;
         private System.Windows.Forms.Label lblJmbg;
         private System.Windows.Forms.TextBox txtJmbg;
     }

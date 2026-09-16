@@ -16,5 +16,15 @@
                 throw;
             }
         }
+
+        public static void SaveWithAudit(OwnerTrackDbContext db, Action logAudit)
+        {
+            Execute(db, d =>
+            {
+                d.SaveChanges();
+                logAudit();
+                d.SaveChanges();
+            });
+        }
     }
 }

@@ -334,9 +334,7 @@ namespace OwnerTrack.Infrastructure.Services
                     Direktor d = direktori[i];
                     string bg = PdfRenderHelpers.AlternatingBackground(i);
                     string sc = d.Status == StatusEntiteta.AKTIVAN ? PdfColours.Green : PdfColours.Red;
-                    string datVal = d.TipValjanosti == ValidityTypeConstants.Trajno
-                        ? ValidityTypeConstants.Trajno
-                        : PdfRenderHelpers.FmtDate(d.DatumValjanosti);
+                    string datVal = PdfRenderHelpers.FmtDate(d.DatumValjanosti);
 
                     PdfRenderHelpers.RenderTableCell(tbl, bg, (i + 1).ToString(), center: true);
                     PdfRenderHelpers.RenderTableCell(tbl, bg, PdfRenderHelpers.Fmt(d.ImePrezime));

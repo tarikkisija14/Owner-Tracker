@@ -23,7 +23,7 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-       
+
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
@@ -33,8 +33,10 @@ namespace OwnerTrack.App
             cbTipValjanosti.SelectedIndex = 0;
 
             bool isEditMode = _direktorId.HasValue;
-            Text = isEditMode ? UiMessages.DirektorEditTitle : UiMessages.DirektorAddTitle;
-            btnSpremi.Text = isEditMode ? UiMessages.KlijentSaveChangesButton : UiMessages.KlijentSaveNewButton;
+            FormHelper.ApplyEditModeTitle(this, btnSpremi, isEditMode,
+                UiMessages.DirektorEditTitle, UiMessages.DirektorAddTitle);
+
+            dtDatumValjanosti.Checked = false;
 
             if (isEditMode)
                 LoadDirektor(_direktorId!.Value);
@@ -47,18 +49,26 @@ namespace OwnerTrack.App
 
             txtImePrezime.Text = d.ImePrezime ?? string.Empty;
             txtJmbg.Text = d.Jmbg ?? string.Empty;
-            dtDatumValjanosti.Value = d.DatumValjanosti ?? DateTime.Now;
+
+            if (d.DatumValjanosti.HasValue)
+            {
+                dtDatumValjanosti.Value = d.DatumValjanosti.Value;
+                dtDatumValjanosti.Checked = true;
+            }
+            else
+            {
+                dtDatumValjanosti.Checked = false;
+            }
+
             cbTipValjanosti.Text = d.TipValjanosti ?? ValidityTypeConstants.Trajno;
 
-            dtDatumValjanosti.Enabled = d.TipValjanosti == ValidityTypeConstants.Vremenski;
         }
 
 
         private void cbTipValjanosti_SelectedIndexChanged(object sender, EventArgs e)
         {
-            dtDatumValjanosti.Enabled = cbTipValjanosti.Text == ValidityTypeConstants.Vremenski;
         }
- 
+
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
@@ -68,8 +78,7 @@ namespace OwnerTrack.App
                 return;
             }
 
-            bool isPermanent = cbTipValjanosti.Text == ValidityTypeConstants.Trajno;
-            DateTime? dateOfValidity = isPermanent ? null : dtDatumValjanosti.Value;
+            DateTime? dateOfValidity = dtDatumValjanosti.Checked ? dtDatumValjanosti.Value : null;
 
             try
             {
@@ -93,7 +102,7 @@ namespace OwnerTrack.App
             Close();
         }
 
-       
+
 
         private void ApplyFormFieldsToDirektor(Direktor d, DateTime? dateOfValidity)
         {
@@ -103,7 +112,7 @@ namespace OwnerTrack.App
             d.Jmbg = FormHelper.NullIfEmpty(txtJmbg.Text);
         }
 
-        
+
 
         private void SaveChanges(int direktorId, DateTime? dateOfValidity)
         {
@@ -113,12 +122,8 @@ namespace OwnerTrack.App
             string previousName = d.ImePrezime ?? string.Empty;
             ApplyFormFieldsToDirektor(d, dateOfValidity);
 
-            TransactionHelper.Execute(_db, db =>
-            {
-                db.SaveChanges();
-                _audit.LogUpdated("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'");
-                db.SaveChanges();
-            });
+            TransactionHelper.SaveWithAudit(_db,
+                () => _audit.LogUpdated("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'"));
 
             MessageBox.Show(UiMessages.DirektorSavedUpdate);
         }
@@ -128,13 +133,9 @@ namespace OwnerTrack.App
             var d = new Direktor { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
             ApplyFormFieldsToDirektor(d, dateOfValidity);
 
-            TransactionHelper.Execute(_db, db =>
-            {
-                db.Direktori.Add(d);
-                db.SaveChanges();
-                _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'");
-                db.SaveChanges();
-            });
+            _db.Direktori.Add(d);
+            TransactionHelper.SaveWithAudit(_db,
+                () => _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'"));
 
             MessageBox.Show(UiMessages.DirektorSavedNew);
         }

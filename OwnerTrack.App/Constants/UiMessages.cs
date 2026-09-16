@@ -121,9 +121,9 @@
             " Kritično (≤{2} dana): {3}   " +
             " Uskoro ({4}–{5} dana): {6}";
 
-        public const string WarningStatusExpired = "⛔ ISTEKLO";
-        public const string WarningStatusCritical = "⚠ Kritično";
-        public const string WarningStatusUpcoming = "🕐 Uskoro";
+        public const string WarningStatusExpired = "Isteklo";
+        public const string WarningStatusCritical = "Kritično";
+        public const string WarningStatusUpcoming = "Uskoro";
 
         
 

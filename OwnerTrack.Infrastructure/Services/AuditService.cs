@@ -37,13 +37,5 @@ namespace OwnerTrack.Infrastructure.Services
             entity.Obrisan = DateTime.Now;
             Log(tabela, id, AuditConstants.Obrisano, opis);
         }
-
-        /// <inheritdoc cref="Archive"/>
-        [Obsolete("Use Archive() which also sets Status = ARHIVIRAN.")]
-        public void SoftDelete(ISoftDeletable entity, string tabela, int id, string opis)
-        {
-            entity.Obrisan = DateTime.Now;
-            Log(tabela, id, AuditConstants.Obrisano, opis);
-        }
     }
 }

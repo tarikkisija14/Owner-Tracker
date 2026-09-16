@@ -41,6 +41,7 @@ namespace OwnerTrack.Infrastructure.Database
                 .WithMany(d => d.Klijenti)
                 .HasForeignKey(k => k.SifraDjelatnosti)
                 .HasPrincipalKey(d => d.Sifra)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
             mb.Entity<Vlasnik>()

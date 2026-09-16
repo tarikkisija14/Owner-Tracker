@@ -1,4 +1,7 @@
-﻿namespace OwnerTrack.App
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Controls;
+
+namespace OwnerTrack.App
 {
     partial class FrmDodajVlasnika
     {
@@ -26,16 +29,13 @@
             this.dtDatumUtvrdjivanja = new System.Windows.Forms.DateTimePicker();
             this.lblIzvorPodatka = new System.Windows.Forms.Label();
             this.txtIzvorPodatka = new System.Windows.Forms.TextBox();
-            this.btnSpremi = new System.Windows.Forms.Button();
-            this.btnOtkazi = new System.Windows.Forms.Button();
+            this.btnSpremi = new IconButton();
+            this.btnOtkazi = new IconButton();
 
             this.SuspendLayout();
 
             // ── Shared styles ─────────────────────────────────────
-            var uiFont = new System.Drawing.Font("Segoe UI", 9.5F);
-            var labelColor = System.Drawing.Color.FromArgb(45, 55, 75);
-            var accentBlue = System.Drawing.Color.FromArgb(28, 40, 65);
-            var inputBg = System.Drawing.Color.FromArgb(250, 252, 255);
+            var uiFont = UiTheme.Base(9.5f);
 
             // ── FORMA ─────────────────────────────────────────────
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -46,62 +46,47 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
+            this.BackColor = UiTheme.FormBackgroundDialog;
             this.Font = uiFont;
             this.Load += FrmDodajVlasnika_Load;
 
             // ── GROUPBOX ──────────────────────────────────────────
-            this.groupBox1.Text = "👤 Podaci vlasnika";
+            UiTheme.StyleGroupBox(this.groupBox1, "👤 Podaci vlasnika");
             this.groupBox1.Location = new System.Drawing.Point(18, 18);
             this.groupBox1.Size = new System.Drawing.Size(562, 270);
-            this.groupBox1.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.groupBox1.ForeColor = accentBlue;
-            this.groupBox1.BackColor = System.Drawing.Color.White;
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(6);
 
             // Ime i prezime
             this.lblImePrezime.Text = "Ime i prezime:";
             this.lblImePrezime.Location = new System.Drawing.Point(12, 34);
-            this.lblImePrezime.AutoSize = true;
-            this.lblImePrezime.Font = uiFont;
-            this.lblImePrezime.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblImePrezime);
 
             this.txtImePrezime.Location = new System.Drawing.Point(165, 32);
             this.txtImePrezime.Size = new System.Drawing.Size(375, 24);
-            this.txtImePrezime.Font = uiFont;
-            this.txtImePrezime.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtImePrezime.BackColor = inputBg;
+            UiTheme.StyleTextBox(this.txtImePrezime);
 
             // Datum važenja dokumenta
             this.lblDatumValjanosti.Text = "Datum važenja dok.:";
             this.lblDatumValjanosti.Location = new System.Drawing.Point(12, 74);
-            this.lblDatumValjanosti.AutoSize = true;
-            this.lblDatumValjanosti.Font = uiFont;
-            this.lblDatumValjanosti.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblDatumValjanosti);
 
             this.dtDatumValjanosti.Location = new System.Drawing.Point(165, 72);
             this.dtDatumValjanosti.Size = new System.Drawing.Size(210, 24);
             this.dtDatumValjanosti.Font = uiFont;
+            this.dtDatumValjanosti.ShowCheckBox = true;
 
             // Vlasništvo
             this.lblProcetat.Text = "Vlasništvo (%):";
             this.lblProcetat.Location = new System.Drawing.Point(12, 114);
-            this.lblProcetat.AutoSize = true;
-            this.lblProcetat.Font = uiFont;
-            this.lblProcetat.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblProcetat);
 
             this.txtProcetat.Location = new System.Drawing.Point(165, 112);
             this.txtProcetat.Size = new System.Drawing.Size(110, 24);
-            this.txtProcetat.Font = uiFont;
-            this.txtProcetat.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtProcetat.BackColor = inputBg;
+            UiTheme.StyleTextBox(this.txtProcetat);
 
             // Datum utvrđivanja
             this.lblDatumUtvrdjivanja.Text = "Datum utvrđivanja:";
             this.lblDatumUtvrdjivanja.Location = new System.Drawing.Point(12, 154);
-            this.lblDatumUtvrdjivanja.AutoSize = true;
-            this.lblDatumUtvrdjivanja.Font = uiFont;
-            this.lblDatumUtvrdjivanja.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblDatumUtvrdjivanja);
 
             this.dtDatumUtvrdjivanja.Location = new System.Drawing.Point(165, 152);
             this.dtDatumUtvrdjivanja.Size = new System.Drawing.Size(210, 24);
@@ -110,50 +95,36 @@
             // Izvor podatka
             this.lblIzvorPodatka.Text = "Izvor podatka:";
             this.lblIzvorPodatka.Location = new System.Drawing.Point(12, 194);
-            this.lblIzvorPodatka.AutoSize = true;
-            this.lblIzvorPodatka.Font = uiFont;
-            this.lblIzvorPodatka.ForeColor = labelColor;
+            UiTheme.StyleLabel(this.lblIzvorPodatka);
 
             this.txtIzvorPodatka.Location = new System.Drawing.Point(165, 192);
             this.txtIzvorPodatka.Size = new System.Drawing.Size(375, 24);
-            this.txtIzvorPodatka.Font = uiFont;
-            this.txtIzvorPodatka.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtIzvorPodatka.BackColor = inputBg;
+            UiTheme.StyleTextBox(this.txtIzvorPodatka);
 
             this.groupBox1.Controls.Add(this.lblImePrezime);
-            this.groupBox1.Controls.Add(this.txtImePrezime);
+            this.groupBox1.Controls.Add(UiTheme.WrapWithFocusBorder(this.txtImePrezime, new System.Drawing.Point(165, 32), new System.Drawing.Size(375, 24)));
             this.groupBox1.Controls.Add(this.lblDatumValjanosti);
             this.groupBox1.Controls.Add(this.dtDatumValjanosti);
             this.groupBox1.Controls.Add(this.lblProcetat);
-            this.groupBox1.Controls.Add(this.txtProcetat);
+            this.groupBox1.Controls.Add(UiTheme.WrapWithFocusBorder(this.txtProcetat, new System.Drawing.Point(165, 112), new System.Drawing.Size(110, 24)));
             this.groupBox1.Controls.Add(this.lblDatumUtvrdjivanja);
             this.groupBox1.Controls.Add(this.dtDatumUtvrdjivanja);
             this.groupBox1.Controls.Add(this.lblIzvorPodatka);
-            this.groupBox1.Controls.Add(this.txtIzvorPodatka);
+            this.groupBox1.Controls.Add(UiTheme.WrapWithFocusBorder(this.txtIzvorPodatka, new System.Drawing.Point(165, 192), new System.Drawing.Size(375, 24)));
 
             // ── DUGMICI ───────────────────────────────────────────
             this.btnSpremi.Location = new System.Drawing.Point(218, 305);
             this.btnSpremi.Size = new System.Drawing.Size(160, 36);
-            this.btnSpremi.Text = "💾 Dodaj";
-            this.btnSpremi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSpremi.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            this.btnSpremi.ForeColor = System.Drawing.Color.White;
-            this.btnSpremi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSpremi.FlatAppearance.BorderSize = 0;
-            this.btnSpremi.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnSpremi.UseVisualStyleBackColor = false;
+            this.btnSpremi.Text = "Dodaj";
+            this.btnSpremi.IconGlyph = "";
+            UiTheme.StyleFlatButton(this.btnSpremi, UiTheme.Green, 10f);
             this.btnSpremi.Click += btnSpremi_Click;
 
             this.btnOtkazi.Location = new System.Drawing.Point(390, 305);
             this.btnOtkazi.Size = new System.Drawing.Size(160, 36);
-            this.btnOtkazi.Text = "❌ Otkaži";
-            this.btnOtkazi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnOtkazi.BackColor = System.Drawing.Color.FromArgb(192, 57, 43);
-            this.btnOtkazi.ForeColor = System.Drawing.Color.White;
-            this.btnOtkazi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnOtkazi.FlatAppearance.BorderSize = 0;
-            this.btnOtkazi.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnOtkazi.UseVisualStyleBackColor = false;
+            this.btnOtkazi.Text = "Otkaži";
+            this.btnOtkazi.IconGlyph = "";
+            UiTheme.StyleFlatButton(this.btnOtkazi, UiTheme.Red, 10f);
             this.btnOtkazi.Click += btnOtkazi_Click;
 
             // ── DODAJ SVE ─────────────────────────────────────────
@@ -175,7 +146,7 @@
         public System.Windows.Forms.DateTimePicker dtDatumUtvrdjivanja;
         private System.Windows.Forms.Label lblIzvorPodatka;
         public System.Windows.Forms.TextBox txtIzvorPodatka;
-        public System.Windows.Forms.Button btnSpremi;
-        public System.Windows.Forms.Button btnOtkazi;
+        public IconButton btnSpremi;
+        public IconButton btnOtkazi;
     }
 }

@@ -14,7 +14,10 @@
                 grid.Columns[ime].Width = sirina;
                 grid.Columns[ime].HeaderText = zaglavlje;
                 if (format != null)
+                {
                     grid.Columns[ime].DefaultCellStyle.Format = format;
+                    grid.Columns[ime].DefaultCellStyle.NullValue = "—";
+                }
             }
         }
 
@@ -62,6 +65,129 @@
             grid.DataSource = data;
             grid.ClearSelection();
             grid.SelectionChanged += selectionChangedHandler;
+        }
+
+        /// <summary>
+        /// Klik na već selektovan red poništava selekciju (inače u DataGridView-u
+        /// nema načina da se selekcija ukloni klikom, npr. kad postoji samo 1 red).
+        /// </summary>
+        public static void EnableClickToDeselect(DataGridView grid)
+        {
+            int lastRow = -1;
+
+            grid.CellClick += (_, e) =>
+            {
+                if (e.RowIndex < 0) return;
+
+                if (e.RowIndex == lastRow)
+                {
+                    grid.ClearSelection();
+                    lastRow = -1;
+                }
+                else
+                {
+                    lastRow = e.RowIndex;
+                }
+            };
+        }
+
+        public static void FreezeColumns(DataGridView grid, params string[] names)
+        {
+            foreach (var name in names)
+                if (grid.Columns.Contains(name))
+                    grid.Columns[name].Frozen = true;
+        }
+
+        public static void AlignRight(DataGridView grid, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!grid.Columns.Contains(name)) continue;
+                grid.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                grid.Columns[name].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
+        }
+
+        public static void AlignCenter(DataGridView grid, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!grid.Columns.Contains(name)) continue;
+                grid.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                grid.Columns[name].DefaultCellStyle.Padding = new Padding(0);
+                grid.Columns[name].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                grid.Columns[name].HeaderCell.Style.Padding = new Padding(0);
+            }
+        }
+
+        public static void Emphasize(DataGridView grid, string name, Font font)
+        {
+            if (grid.Columns.Contains(name))
+                grid.Columns[name].DefaultCellStyle.Font = font;
+        }
+
+        /// <summary>
+        /// Klik na header kolone sortira grid po toj koloni (rastuće/opadajuće
+        /// naizmjenično). Radi direktno nad trenutnim DataSource (List&lt;T&gt;)
+        /// bez potrebe za BindingSource. Pošto se DataSource ponovo postavlja,
+        /// stilizacija (širine, freeze, poravnanje...) se gubi — <paramref name="afterRebind"/>
+        /// se poziva odmah nakon da je ponovo primijeni.
+        /// </summary>
+        public static void EnableColumnSort(DataGridView grid, Action? afterRebind = null)
+        {
+            string? sortedProperty = null;
+            bool ascending = true;
+
+            grid.ColumnHeaderMouseClick += (_, e) =>
+            {
+                if (grid.DataSource is not System.Collections.IEnumerable source) return;
+                if (e.ColumnIndex < 0 || e.ColumnIndex >= grid.Columns.Count) return;
+
+                var column = grid.Columns[e.ColumnIndex];
+                string propName = string.IsNullOrEmpty(column.DataPropertyName) ? column.Name : column.DataPropertyName;
+
+                ascending = sortedProperty != propName || !ascending;
+                sortedProperty = propName;
+
+                var listType = source.GetType();
+                if (!listType.IsGenericType) return;
+                var elementType = listType.GetGenericArguments()[0];
+                var prop = elementType.GetProperty(propName);
+                if (prop == null) return;
+
+                var items = source.Cast<object>().ToList();
+                items = ascending
+                    ? items.OrderBy(x => prop.GetValue(x), ValueComparer.Instance).ToList()
+                    : items.OrderByDescending(x => prop.GetValue(x), ValueComparer.Instance).ToList();
+
+                var typedList = (System.Collections.IList)Activator.CreateInstance(listType)!;
+                foreach (var item in items) typedList.Add(item);
+
+                grid.DataSource = typedList;
+                afterRebind?.Invoke();
+
+                if (grid.Columns.Contains(propName))
+                {
+                    foreach (DataGridViewColumn c in grid.Columns)
+                        c.HeaderCell.SortGlyphDirection = SortOrder.None;
+                    grid.Columns[propName].HeaderCell.SortGlyphDirection =
+                        ascending ? SortOrder.Ascending : SortOrder.Descending;
+                }
+            };
+        }
+
+        private sealed class ValueComparer : IComparer<object?>
+        {
+            public static readonly ValueComparer Instance = new();
+
+            public int Compare(object? a, object? b)
+            {
+                if (a is null && b is null) return 0;
+                if (a is null) return -1;
+                if (b is null) return 1;
+                if (a is IComparable ca) return ca.CompareTo(b);
+                return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+            }
         }
     }
 }

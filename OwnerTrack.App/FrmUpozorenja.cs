@@ -12,6 +12,8 @@ namespace OwnerTrack.App
         private readonly OwnerTrackDbContext _db;
         private readonly bool _dbOwned;
         private List<WarningDetail> _allWarnings = new();
+        private int _hoverRowFirme = -1;
+        private int _hoverRowDetalji = -1;
 
         // ── Constructors ──────────────────────────────────────────────────────
 
@@ -63,23 +65,16 @@ namespace OwnerTrack.App
                 x.DatumIsteka > today.AddDays(AppConstants.DanaKriticnoUpozorenje));
             int firmCount = _allWarnings.Select(x => x.KlijentId).Distinct().Count();
 
-            lblSumarij.Text = string.Format(
-                UiMessages.WarningSummaryFormat,
-                firmCount,
-                expired,
-                AppConstants.DanaKriticnoUpozorenje,
-                critical,
-                AppConstants.DanaKriticnoUpozorenje + 1,
-                AppConstants.DanaUpozerenja,
-                upcoming);
+            lblStatFirmi.Text = firmCount.ToString();
 
-            panelTop.BackColor = SummaryPanelColor(expired, critical);
+            lblStatIsteklo.Text = expired.ToString();
+            lblStatIsteklo.ForeColor = expired > 0 ? UiTheme.AlertRedOnDark : Color.White;
+
+            lblStatKriticno.Text = critical.ToString();
+            lblStatKriticno.ForeColor = critical > 0 ? UiTheme.AlertAmberOnDark : Color.White;
+
+            lblStatUskoro.Text = upcoming.ToString();
         }
-
-        private static Color SummaryPanelColor(int expired, int critical) =>
-            expired > 0 ? Color.FromArgb(160, 30, 30) :
-            critical > 0 ? Color.FromArgb(180, 90, 20) :
-                           Color.FromArgb(130, 110, 20);
 
         // ── Firms grid ────────────────────────────────────────────────────────
 
@@ -99,6 +94,7 @@ namespace OwnerTrack.App
                 .ToList();
 
             GridHelper.BindWithoutEvent(gridFirme, gridFirme_SelectionChanged, grouped);
+            lblEmptyFirme.Visible = grouped.Count == 0;
 
             if (gridFirme.Columns.Count == 0) return;
 
@@ -118,6 +114,9 @@ namespace OwnerTrack.App
             if (gridFirme.SelectedRows.Count == 0)
             {
                 gridDetalji.DataSource = null;
+                // Ako nema nijedne firme, gornji prazan-prostor tekst (lblEmptyFirme)
+                // već objašnjava situaciju — ne treba i dupli "izaberi firmu" ispod.
+                lblEmptyDetalji.Visible = gridFirme.Rows.Count > 0;
                 return;
             }
 
@@ -140,6 +139,7 @@ namespace OwnerTrack.App
 
             gridDetalji.DataSource = details;
             gridDetalji.ClearSelection();
+            lblEmptyDetalji.Visible = false;
 
             if (gridDetalji.Columns.Count == 0) return;
 
@@ -153,16 +153,44 @@ namespace OwnerTrack.App
         // ── Row colourisation ─────────────────────────────────────────────────
 
         private void gridFirme_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-            => ColorizeRow(gridFirme, e);
+            => ColorizeRow(gridFirme, e, _hoverRowFirme);
 
         private void gridDetalji_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-            => ColorizeRow(gridDetalji, e);
+            => ColorizeRow(gridDetalji, e, _hoverRowDetalji);
 
-        private static void ColorizeRow(DataGridView grid, DataGridViewCellFormattingEventArgs e)
+        private static void ColorizeRow(DataGridView grid, DataGridViewCellFormattingEventArgs e, int hoverRow)
         {
             if (e.RowIndex < 0 || grid.Rows[e.RowIndex].DataBoundItem is null) return;
             dynamic item = grid.Rows[e.RowIndex].DataBoundItem;
-            grid.Rows[e.RowIndex].DefaultCellStyle.BackColor = RowColorForDays(item.DanaDoIsteka);
+            Color baseColor = RowColorForDays(item.DanaDoIsteka);
+            grid.Rows[e.RowIndex].DefaultCellStyle.BackColor =
+                e.RowIndex == hoverRow ? ControlPaint.Dark(baseColor, 0.06f) : baseColor;
+        }
+
+        // ── Hover feedback (potamni trenutnu boju reda umjesto da je zamijeni) ──
+
+        private void gridFirme_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            _hoverRowFirme = e.RowIndex;
+            if (e.RowIndex >= 0) gridFirme.InvalidateRow(e.RowIndex);
+        }
+
+        private void gridFirme_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex == _hoverRowFirme) _hoverRowFirme = -1;
+            if (e.RowIndex >= 0) gridFirme.InvalidateRow(e.RowIndex);
+        }
+
+        private void gridDetalji_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            _hoverRowDetalji = e.RowIndex;
+            if (e.RowIndex >= 0) gridDetalji.InvalidateRow(e.RowIndex);
+        }
+
+        private void gridDetalji_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex == _hoverRowDetalji) _hoverRowDetalji = -1;
+            if (e.RowIndex >= 0) gridDetalji.InvalidateRow(e.RowIndex);
         }
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
@@ -178,8 +206,8 @@ namespace OwnerTrack.App
                                                                                UiMessages.WarningStatusUpcoming;
 
         private static Color RowColorForDays(int days) =>
-            days < 0 ? Color.FromArgb(220, 80, 80) :
-            days <= AppConstants.DanaKriticnoUpozorenje ? Color.FromArgb(255, 200, 120) :
-                                                          Color.FromArgb(255, 245, 150);
+            days < 0 ? UiColors.RowExpired :
+            days <= AppConstants.DanaKriticnoUpozorenje ? UiColors.RowCritical :
+                                                          UiColors.RowUpcoming;
     }
 }

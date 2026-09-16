@@ -26,7 +26,6 @@ namespace OwnerTrack.Infrastructure.Services
                     && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 || _db.Direktori.AsNoTracking().Any(d =>
                     d.DatumValjanosti < today
-                    && d.TipValjanosti == ValidityTypeConstants.Vremenski
                     && d.Status == StatusEntiteta.AKTIVAN
                     && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
 
@@ -37,7 +36,6 @@ namespace OwnerTrack.Infrastructure.Services
                     && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 + _db.Direktori.AsNoTracking().Count(d =>
                     d.DatumValjanosti <= threshold
-                    && d.TipValjanosti == ValidityTypeConstants.Vremenski
                     && d.Status == StatusEntiteta.AKTIVAN
                     && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
 
@@ -77,7 +75,6 @@ namespace OwnerTrack.Infrastructure.Services
                 .AsNoTracking()
                 .Where(d => d.DatumValjanosti != null
                          && d.DatumValjanosti <= threshold
-                         && d.TipValjanosti == ValidityTypeConstants.Vremenski
                          && d.Status == StatusEntiteta.AKTIVAN
                          && d.Klijent.Status != StatusEntiteta.ARHIVIRAN)
                 .Include(d => d.Klijent)

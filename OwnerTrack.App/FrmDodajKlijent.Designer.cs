@@ -1,4 +1,7 @@
-﻿namespace OwnerTrack.App
+﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Controls;
+
+namespace OwnerTrack.App
 {
     partial class FrmDodajKlijent
     {
@@ -57,8 +60,8 @@
             lblDatumUgovora = new Label();
             dtDatumUgovora = new DateTimePicker();
             panelButtons = new Panel();
-            btnSpremi = new Button();
-            btnOtkazi = new Button();
+            btnSpremi = new IconButton();
+            btnOtkazi = new IconButton();
             groupBoxKontakti = new GroupBox();
             lblEmail = new Label();
             txtEmail = new TextBox();
@@ -78,46 +81,20 @@
             SuspendLayout();
 
             // ── Shared styles ─────────────────────────────────────
-            var uiFont = new Font("Segoe UI", 9.5F);
-            var labelColor = Color.FromArgb(45, 55, 75);
-            var accentBlue = Color.FromArgb(28, 40, 65);
+            var uiFont = UiTheme.Base(9.5f);
 
-            void StyleGroupBox(GroupBox gb, string title)
-            {
-                gb.Text = title;
-                gb.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-                gb.ForeColor = accentBlue;
-                gb.BackColor = Color.White;
-                gb.Padding = new Padding(6);
-            }
-
-            void StyleLabel(Label l)
-            {
-                l.AutoSize = true;
-                l.Font = uiFont;
-                l.ForeColor = labelColor;
-            }
-
-            void StyleTextBox(TextBox t)
-            {
-                t.Font = uiFont;
-                t.BorderStyle = BorderStyle.FixedSingle;
-                t.BackColor = Color.FromArgb(250, 252, 255);
-            }
-
-            void StyleComboBox(ComboBox c)
-            {
-                c.Font = uiFont;
-                c.FlatStyle = FlatStyle.System;
-            }
+            void StyleGroupBox(GroupBox gb, string title) => UiTheme.StyleGroupBox(gb, title);
+            void StyleLabel(Label l) => UiTheme.StyleLabel(l);
+            void StyleTextBox(TextBox t) => UiTheme.StyleTextBox(t);
+            void StyleComboBox(ComboBox c) => UiTheme.StyleComboBox(c);
 
             // ── groupBoxOsnovni ───────────────────────────────────
             groupBoxOsnovni.Controls.Add(lblNaziv);
-            groupBoxOsnovni.Controls.Add(txtNaziv);
+            groupBoxOsnovni.Controls.Add(UiTheme.WrapWithFocusBorder(txtNaziv, new Point(110, 24), new Size(258, 24)));
             groupBoxOsnovni.Controls.Add(lblIdBroj);
-            groupBoxOsnovni.Controls.Add(txtIdBroj);
+            groupBoxOsnovni.Controls.Add(UiTheme.WrapWithFocusBorder(txtIdBroj, new Point(464, 24), new Size(184, 24)));
             groupBoxOsnovni.Controls.Add(lblAdresa);
-            groupBoxOsnovni.Controls.Add(txtAdresa);
+            groupBoxOsnovni.Controls.Add(UiTheme.WrapWithFocusBorder(txtAdresa, new Point(110, 56), new Size(538, 24)));
             groupBoxOsnovni.Controls.Add(lblSifra);
             groupBoxOsnovni.Controls.Add(cbSifra);
             groupBoxOsnovni.Controls.Add(lblDatumUspostave);
@@ -261,11 +238,11 @@
             groupBoxRizici.Controls.Add(lblGeografskiRizik);
             groupBoxRizici.Controls.Add(cbGeografskiRizik);
             groupBoxRizici.Controls.Add(lblUkupnaProcjena);
-            groupBoxRizici.Controls.Add(txtUkupnaProcjena);
+            groupBoxRizici.Controls.Add(UiTheme.WrapWithFocusBorder(txtUkupnaProcjena, new Point(120, 57), new Size(248, 24)));
             groupBoxRizici.Controls.Add(lblDatumProcjene);
             groupBoxRizici.Controls.Add(dtDatumProcjene);
             groupBoxRizici.Controls.Add(lblOvjeraCr);
-            groupBoxRizici.Controls.Add(txtOvjeraCr);
+            groupBoxRizici.Controls.Add(UiTheme.WrapWithFocusBorder(txtOvjeraCr, new Point(120, 90), new Size(248, 24)));
             groupBoxRizici.Location = new Point(9, 216);
             groupBoxRizici.Name = "groupBoxRizici";
             groupBoxRizici.Size = new Size(665, 131);
@@ -359,7 +336,7 @@
 
             // ── groupBoxUgovor ────────────────────────────────────
             groupBoxUgovor.Controls.Add(lblVrstaUgovora);
-            groupBoxUgovor.Controls.Add(txtVrstaUgovora);
+            groupBoxUgovor.Controls.Add(UiTheme.WrapWithFocusBorder(txtVrstaUgovora, new Point(110, 28), new Size(172, 24)));
             groupBoxUgovor.Controls.Add(lblStatusUgovora);
             groupBoxUgovor.Controls.Add(cbStatusUgovora);
             groupBoxUgovor.Controls.Add(lblDatumUgovora);
@@ -410,9 +387,9 @@
 
             // ── groupBoxKontakti ──────────────────────────────────
             groupBoxKontakti.Controls.Add(lblEmail);
-            groupBoxKontakti.Controls.Add(txtEmail);
+            groupBoxKontakti.Controls.Add(UiTheme.WrapWithFocusBorder(txtEmail, new Point(60, 28), new Size(258, 24)));
             groupBoxKontakti.Controls.Add(lblTelefon);
-            groupBoxKontakti.Controls.Add(txtTelefon);
+            groupBoxKontakti.Controls.Add(UiTheme.WrapWithFocusBorder(txtTelefon, new Point(400, 28), new Size(250, 24)));
             groupBoxKontakti.Location = new Point(9, 473);
             groupBoxKontakti.Name = "groupBoxKontakti";
             groupBoxKontakti.Size = new Size(665, 108);
@@ -449,7 +426,7 @@
 
             // ── groupBoxNapomena ──────────────────────────────────
             groupBoxNapomena.Controls.Add(lblNapomena);
-            groupBoxNapomena.Controls.Add(txtNapomena);
+            groupBoxNapomena.Controls.Add(UiTheme.WrapWithFocusBorder(txtNapomena, new Point(9, 44), new Size(639, 56)));
             groupBoxNapomena.Location = new Point(9, 591);
             groupBoxNapomena.Name = "groupBoxNapomena";
             groupBoxNapomena.Size = new Size(665, 112);
@@ -484,10 +461,10 @@
             scrollPanel.Padding = new Padding(0, 0, 0, 56);
             scrollPanel.Size = new Size(700, 647);
             scrollPanel.TabIndex = 0;
-            scrollPanel.BackColor = Color.FromArgb(245, 248, 252);
+            scrollPanel.BackColor = UiTheme.FormBackgroundDialog;
 
             // ── panelButtons ──────────────────────────────────────
-            panelButtons.BackColor = Color.FromArgb(28, 40, 65);
+            panelButtons.BackColor = UiTheme.Navy;
             panelButtons.BorderStyle = BorderStyle.None;
             panelButtons.Controls.Add(btnSpremi);
             panelButtons.Controls.Add(btnOtkazi);
@@ -497,38 +474,28 @@
             panelButtons.Size = new Size(700, 56);
             panelButtons.TabIndex = 1;
 
-            btnSpremi.BackColor = Color.FromArgb(39, 174, 96);
-            btnSpremi.FlatStyle = FlatStyle.Flat;
-            btnSpremi.FlatAppearance.BorderSize = 0;
-            btnSpremi.ForeColor = Color.White;
-            btnSpremi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnSpremi.Cursor = Cursors.Hand;
-            btnSpremi.Location = new Point(420, 12);
+            btnSpremi.Location = new Point(420, 11);
             btnSpremi.Name = "btnSpremi";
-            btnSpremi.Size = new Size(131, 34);
+            btnSpremi.Size = new Size(131, 36);
             btnSpremi.TabIndex = 0;
-            btnSpremi.Text = "💾 Spremi";
-            btnSpremi.UseVisualStyleBackColor = false;
+            btnSpremi.Text = "Spremi";
+            btnSpremi.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnSpremi, UiTheme.Green, 10f);
             btnSpremi.Click += btnSpremi_Click;
 
-            btnOtkazi.BackColor = Color.FromArgb(192, 57, 43);
-            btnOtkazi.FlatStyle = FlatStyle.Flat;
-            btnOtkazi.FlatAppearance.BorderSize = 0;
-            btnOtkazi.ForeColor = Color.White;
-            btnOtkazi.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnOtkazi.Cursor = Cursors.Hand;
-            btnOtkazi.Location = new Point(560, 12);
+            btnOtkazi.Location = new Point(560, 11);
             btnOtkazi.Name = "btnOtkazi";
-            btnOtkazi.Size = new Size(131, 34);
+            btnOtkazi.Size = new Size(131, 36);
             btnOtkazi.TabIndex = 1;
-            btnOtkazi.Text = "❌ Otkaži";
-            btnOtkazi.UseVisualStyleBackColor = false;
+            btnOtkazi.Text = "Otkaži";
+            btnOtkazi.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnOtkazi, UiTheme.Red, 10f);
             btnOtkazi.Click += btnOtkazi_Click;
 
             // ── FrmDodajKlijent ───────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.FromArgb(245, 248, 252);
+            BackColor = UiTheme.FormBackgroundDialog;
             ClientSize = new Size(700, 703);
             Controls.Add(scrollPanel);
             Controls.Add(panelButtons);
@@ -606,8 +573,8 @@
         private System.Windows.Forms.Label lblTelefon;
         public System.Windows.Forms.TextBox txtTelefon;
         private System.Windows.Forms.Panel panelButtons;
-        public System.Windows.Forms.Button btnSpremi;
-        public System.Windows.Forms.Button btnOtkazi;
+        public IconButton btnSpremi;
+        public IconButton btnOtkazi;
         private Panel scrollPanel;
     }
 }

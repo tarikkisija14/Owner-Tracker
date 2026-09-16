@@ -29,8 +29,10 @@ namespace OwnerTrack.App
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
             bool isEditMode = _vlasnikId.HasValue;
-            Text = isEditMode ? UiMessages.VlasnikEditTitle : UiMessages.VlasnikAddTitle;
-            btnSpremi.Text = isEditMode ? UiMessages.KlijentSaveChangesButton : UiMessages.KlijentSaveNewButton;
+            FormHelper.ApplyEditModeTitle(this, btnSpremi, isEditMode,
+                UiMessages.VlasnikEditTitle, UiMessages.VlasnikAddTitle);
+
+            dtDatumValjanosti.Checked = false;
 
             if (isEditMode)
                 LoadVlasnik(_vlasnikId!.Value);
@@ -44,7 +46,17 @@ namespace OwnerTrack.App
             txtImePrezime.Text = v.ImePrezime ?? string.Empty;
             txtProcetat.Text = v.ProcenatVlasnistva.ToString("F2");
             txtIzvorPodatka.Text = v.IzvorPodatka ?? string.Empty;
-            dtDatumValjanosti.Value = v.DatumValjanostiDokumenta ?? DateTime.Now;
+
+            if (v.DatumValjanostiDokumenta.HasValue)
+            {
+                dtDatumValjanosti.Value = v.DatumValjanostiDokumenta.Value;
+                dtDatumValjanosti.Checked = true;
+            }
+            else
+            {
+                dtDatumValjanosti.Checked = false;
+            }
+
             dtDatumUtvrdjivanja.Value = v.DatumUtvrdjivanja ?? DateTime.Now;
         }
 
@@ -128,7 +140,7 @@ namespace OwnerTrack.App
         private void ApplyFormFieldsToVlasnik(Vlasnik v, string imePrezime, decimal percentage)
         {
             v.ImePrezime = imePrezime;
-            v.DatumValjanostiDokumenta = dtDatumValjanosti.Value;
+            v.DatumValjanostiDokumenta = dtDatumValjanosti.Checked ? dtDatumValjanosti.Value : null;
             v.ProcenatVlasnistva = percentage;
             v.DatumUtvrdjivanja = dtDatumUtvrdjivanja.Value;
             v.IzvorPodatka = txtIzvorPodatka.Text;
@@ -144,12 +156,8 @@ namespace OwnerTrack.App
             string previousName = v.ImePrezime ?? string.Empty;
             ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
-            TransactionHelper.Execute(_db, db =>
-            {
-                db.SaveChanges();
-                _audit.LogUpdated("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'");
-                db.SaveChanges();
-            });
+            TransactionHelper.SaveWithAudit(_db,
+                () => _audit.LogUpdated("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'"));
 
             MessageBox.Show(UiMessages.VlasnikSavedUpdate);
         }
@@ -159,13 +167,9 @@ namespace OwnerTrack.App
             var v = new Vlasnik { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
             ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
-            TransactionHelper.Execute(_db, db =>
-            {
-                db.Vlasnici.Add(v);
-                db.SaveChanges();
-                _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'");
-                db.SaveChanges();
-            });
+            _db.Vlasnici.Add(v);
+            TransactionHelper.SaveWithAudit(_db,
+                () => _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'"));
 
             MessageBox.Show(UiMessages.VlasnikSavedNew);
         }

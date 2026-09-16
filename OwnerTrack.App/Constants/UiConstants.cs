@@ -8,8 +8,8 @@
 
         
 
-        public const string BadgeLabelDefault = "🔔 Upozorenja";
-        public const string BadgeLabelFormat = "🔔 Upozorenja ({0})";
+        public const string BadgeLabelDefault = "Upozorenja";
+        public const string BadgeLabelFormat = "Upozorenja ({0})";
 
        
 

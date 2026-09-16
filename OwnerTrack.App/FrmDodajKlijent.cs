@@ -40,7 +40,12 @@ namespace OwnerTrack.App
 
         private void PopulateComboBoxes()
         {
-            FormHelper.PopulateEnumCombo<VrstaKlijenta>(cbVrstaKlijenta);
+            cbVrstaKlijenta.DataSource = Enum.GetValues<VrstaKlijenta>()
+                .Select(v => new { Value = v.ToString(), Display = v.ToDisplay() })
+                .ToList();
+            cbVrstaKlijenta.DisplayMember = "Display";
+            cbVrstaKlijenta.ValueMember = "Value";
+
             FormHelper.PopulateEnumCombo<VelicinaFirme>(cbVelicina);
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbPepRizik);
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbUboRizik);
@@ -100,7 +105,8 @@ namespace OwnerTrack.App
             dtDatumOsnivanja.Value = k.DatumOsnivanja ?? DateTime.Now;
             dtDatumProcjene.Value = k.DatumProcjene ?? DateTime.Now;
 
-            FormHelper.SetCombo(cbVrstaKlijenta, k.VrstaKlijenta?.ToString());
+            if (k.VrstaKlijenta.HasValue)
+                cbVrstaKlijenta.SelectedValue = k.VrstaKlijenta.Value.ToString();
             FormHelper.SetCombo(cbVelicina, k.Velicina);
             FormHelper.SetCombo(cbPepRizik, k.PepRizik);
             FormHelper.SetCombo(cbUboRizik, k.UboRizik);
@@ -174,7 +180,7 @@ namespace OwnerTrack.App
             k.Napomena = txtNapomena.Text;
             k.Email = FormHelper.NullIfEmpty(txtEmail.Text);
             k.Telefon = FormHelper.NullIfEmpty(txtTelefon.Text);
-            k.VrstaKlijenta = Enum.TryParse<VrstaKlijenta>(cbVrstaKlijenta.Text, out var vk) ? vk : null;
+            k.VrstaKlijenta = cbVrstaKlijenta.SelectedValue is string vName && Enum.TryParse<VrstaKlijenta>(vName, out var vk) ? vk : null;
             k.Status = Enum.TryParse<StatusEntiteta>(cbStatus.Text, out var se) ? se : StatusEntiteta.AKTIVAN;
         }
 
@@ -251,12 +257,8 @@ namespace OwnerTrack.App
                 _db.Ugovori.Remove(ugovor);
             }
 
-            TransactionHelper.Execute(_db, db =>
-            {
-                db.SaveChanges();
-                _audit.LogUpdated("Klijenti", id, $"'{previousName}' → '{naziv}'");
-                db.SaveChanges();
-            });
+            TransactionHelper.SaveWithAudit(_db,
+                () => _audit.LogUpdated("Klijenti", id, $"'{previousName}' → '{naziv}'"));
 
             MessageBox.Show(UiMessages.KlijentSavedUpdate);
         }

@@ -1,4 +1,4 @@
-﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Constants;
 
 namespace OwnerTrack.App.ViewModels
 {
@@ -27,8 +27,8 @@ namespace OwnerTrack.App.ViewModels
                     FontStyle.Regular);
 
             Color backColor = hasExpired
-                ? Color.Firebrick
-                : Color.FromArgb(220, 120, 20);
+                ? UiColors.BadgeExpired
+                : UiColors.BadgeUpcoming;
 
             return new BadgeState(
                 string.Format(UiConstants.BadgeLabelFormat, count),
