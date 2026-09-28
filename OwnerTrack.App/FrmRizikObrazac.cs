@@ -118,9 +118,48 @@ namespace OwnerTrack.App
             UiTheme.StyleComboBox(procjenaCombo);
             card.Controls.Add(procjenaCombo);
 
+            // Svaki odgovor (Da/Ne/N/P) u ovom bloku automatski preračunava
+            // PROCJENA combo tog istog bloka (vidi RecalculateProcjena) —
+            // korisnik i dalje može ručno prepisati rezultat, ali dok god
+            // mijenja odgovore, prijedlog se dinamički ažurira.
+            var procjenaComboLocal = procjenaCombo;
+            foreach (var combo in combos)
+                combo.SelectedIndexChanged += (_, _) => RecalculateProcjena(combos, procjenaComboLocal);
+
+            // Ručna izmjena procjene ovog bloka (ili automatski preračun iznad)
+            // mora ažurirati i Ukupnu procjenu na dnu obrasca.
+            procjenaCombo.SelectedIndexChanged += (_, _) => RecalculateUkupnaProcjena();
+
             cy += 32;
             card.Height = cy + 10;
             return y + card.Height + 16;
+        }
+
+        // Broji DA naspram NE u bloku (N/P i prazno se ignorišu); DA >= NE
+        // (uz bar jedan odgovoren kriterij) daje VIŠE, inače NIŽE. Ništa se ne
+        // postavlja dok bar jedan kriterij u bloku nije odgovoren, da prazan
+        // obrazac ne ispadne automatski "NIŽE".
+        private static void RecalculateProcjena(List<ComboBox> combos, ComboBox procjenaCombo)
+        {
+            int da = combos.Count(c => c.Text == RizikObrazacKriteriji.Da);
+            int ne = combos.Count(c => c.Text == RizikObrazacKriteriji.Ne);
+
+            if (da + ne == 0) return;
+
+            procjenaCombo.Text = da >= ne ? RizikObrazacKriteriji.Vise : RizikObrazacKriteriji.Nize;
+        }
+
+        // Ukupna procjena je VIŠE čim je bilo koja od tri pod-procjene VIŠE
+        // (konzervativno — jedan faktor povišenog rizika je dovoljan), inače
+        // NIŽE. Ništa se ne postavlja dok nijedna pod-procjena nije određena.
+        private void RecalculateUkupnaProcjena()
+        {
+            var podprocjene = new[] { _comboProcjenaStranke.Text, _comboProcjenaPoslovnogOdnosa.Text, _comboProcjenaGeografskog.Text };
+            if (podprocjene.All(string.IsNullOrEmpty)) return;
+
+            _comboUkupnaProcjena.Text = podprocjene.Contains(RizikObrazacKriteriji.Vise)
+                ? RizikObrazacKriteriji.Vise
+                : RizikObrazacKriteriji.Nize;
         }
 
         private static int AddKriterijRow(Panel card, int y, string pitanje, out ComboBox combo)
