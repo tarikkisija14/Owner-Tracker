@@ -72,6 +72,10 @@ namespace OwnerTrack.App
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
+            // See FrmDodajKlijent.btnSpremi_Click for why this guard exists:
+            // prevents a double-click from inserting/saving the same director twice.
+            if (!btnSpremi.Enabled) return;
+
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
                 MessageBox.Show(UiMessages.DirektorNameRequired);
@@ -80,6 +84,7 @@ namespace OwnerTrack.App
 
             DateTime? dateOfValidity = dtDatumValjanosti.Checked ? dtDatumValjanosti.Value : null;
 
+            btnSpremi.Enabled = false;
             try
             {
                 if (_direktorId.HasValue)
@@ -93,6 +98,10 @@ namespace OwnerTrack.App
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);
+            }
+            finally
+            {
+                btnSpremi.Enabled = true;
             }
         }
 
@@ -120,13 +129,24 @@ namespace OwnerTrack.App
             if (d is null) return;
 
             string previousName = d.ImePrezime ?? string.Empty;
+            string? previousDatumValjanosti = FormatDate(d.DatumValjanosti);
+            string? previousTipValjanosti = d.TipValjanosti;
+            string? previousJmbg = d.Jmbg;
+
             ApplyFormFieldsToDirektor(d, dateOfValidity);
 
-            TransactionHelper.SaveWithAudit(_db,
-                () => _audit.LogUpdated("Direktori", direktorId, $"'{previousName}' → '{d.ImePrezime}'"));
+            string opis = AuditService.DescribeFieldChanges(d.ImePrezime ?? previousName,
+                ("Ime i prezime", previousName, d.ImePrezime),
+                ("Datum važenja", previousDatumValjanosti, FormatDate(d.DatumValjanosti)),
+                ("Tip valjanosti", previousTipValjanosti, d.TipValjanosti),
+                ("JMBG", previousJmbg, d.Jmbg));
+
+            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Direktori", direktorId, opis));
 
             MessageBox.Show(UiMessages.DirektorSavedUpdate);
         }
+
+        private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
 
         private void SaveNew(DateTime? dateOfValidity)
         {

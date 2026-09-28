@@ -14,9 +14,13 @@ namespace OwnerTrack.App
 {
     public partial class Form1 : Form
     {
+        private enum SidebarView { Klijenti, Kyc, Ubo, Pep, Rizik, Otkazani, Udruzenja, Stecaj, AuditLog }
+
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
         private readonly ArchivePresenter _archivePresenter;
         private readonly PdfExportPresenter _pdfPresenter;
+        private bool _sidebarExpanded = true;
+        private SidebarView _currentView = SidebarView.Klijenti;
 
         public Form1()
         {
@@ -38,9 +42,43 @@ namespace OwnerTrack.App
             GridHelper.EnableClickToDeselect(dataGridKlijenti);
             GridHelper.EnableClickToDeselect(dataGridVlasnici);
             GridHelper.EnableClickToDeselect(dataGridDirektori);
+            GridHelper.EnableClickToDeselect(dataGridKyc);
+            GridHelper.EnableClickToDeselect(dataGridUbo);
+            GridHelper.EnableClickToDeselect(dataGridPep);
+            GridHelper.EnableClickToDeselect(dataGridRizik);
+            GridHelper.EnableClickToDeselect(dataGridOtkazani);
             GridHelper.EnableColumnSort(dataGridKlijenti, StyleKlijentiGrid);
+            GridHelper.EnableColumnSort(dataGridKyc, StyleKycGrid);
+            GridHelper.EnableColumnSort(dataGridUbo, StyleUboGrid);
+            GridHelper.EnableColumnSort(dataGridPep, StylePepGrid);
+            GridHelper.EnableColumnSort(dataGridRizik, StyleRizikGrid);
+            GridHelper.EnableColumnSort(dataGridOtkazani, StyleOtkazaniGrid);
+
+            dataGridKlijenti.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridKlijenti);
+            dataGridKyc.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridKyc);
+            dataGridUbo.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridUbo);
+            dataGridPep.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridPep);
+            dataGridRizik.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridRizik);
+            dataGridOtkazani.CellDoubleClick += (s, e) => OpenKlijentProfil(dataGridOtkazani);
 
             Load += Form1_Load;
+        }
+
+        private void OpenKlijentProfil(DataGridView grid)
+        {
+            if (!GridHelper.TryGetSelectedId(grid, out int klijentId)) return;
+
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var profil = new KlijentProfilQueryService(db).GetProfile(klijentId);
+                if (profil == null) return;
+                new FrmKlijentProfil(profil).ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju profila firme");
+            }
         }
 
        
@@ -184,7 +222,7 @@ namespace OwnerTrack.App
             GridHelper.FreezeColumns(dataGridKlijenti, "Id", "Naziv");
             GridHelper.AlignCenter(dataGridKlijenti,
                 "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
-                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora");
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridKlijenti, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
 
@@ -228,6 +266,296 @@ namespace OwnerTrack.App
             LoadOwners(id);
             LoadDirectors(id);
         }
+
+        // ── Evidencija prikazi (KYC, UBO, PEP, procjena rizika) ─────
+
+        private void LoadKyc()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var data = new EvidencijaQueryService(db).GetKycEvidencija();
+                dataGridKyc.DataSource = data;
+                StyleKycGrid();
+                dataGridKyc.ClearSelection();
+                lblEmptyKyc.Visible = data.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju KYC evidencije");
+            }
+        }
+
+        private void StyleKycGrid()
+        {
+            GridHelper.ApplyColumns(dataGridKyc, GridColumns.Kyc);
+            GridHelper.FreezeColumns(dataGridKyc, "Redni", "Naziv");
+            GridHelper.AlignCenter(dataGridKyc, "Redni", "DatumUspostaveOdnosa", "VrstaKlijenta");
+            if (dataGridKyc.Columns.Contains("Id")) dataGridKyc.Columns["Id"].Visible = false;
+        }
+
+        private void LoadUbo()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var data = new EvidencijaQueryService(db).GetUboEvidencija();
+                dataGridUbo.DataSource = data;
+                StyleUboGrid();
+                dataGridUbo.ClearSelection();
+                lblEmptyUbo.Visible = data.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju UBO evidencije");
+            }
+        }
+
+        private void StyleUboGrid()
+        {
+            GridHelper.ApplyColumns(dataGridUbo, GridColumns.UboSveFirme);
+            GridHelper.FreezeColumns(dataGridUbo, "Redni", "KlijentNaziv");
+            GridHelper.AlignCenter(dataGridUbo, "Redni", "ProcenatVlasnistva", "DatumUtvrdjivanja");
+            if (dataGridUbo.Columns.Contains("Id")) dataGridUbo.Columns["Id"].Visible = false;
+        }
+
+        private void LoadPep()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var data = new EvidencijaQueryService(db).GetPepEvidencija();
+                dataGridPep.DataSource = data;
+                StylePepGrid();
+                dataGridPep.ClearSelection();
+                lblEmptyPep.Visible = data.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju PEP evidencije");
+            }
+        }
+
+        private void StylePepGrid()
+        {
+            GridHelper.ApplyColumns(dataGridPep, GridColumns.Pep);
+            GridHelper.FreezeColumns(dataGridPep, "Redni", "NazivKlijenta");
+            GridHelper.AlignCenter(dataGridPep, "Redni", "PepDatumProvjere");
+            if (dataGridPep.Columns.Contains("Id")) dataGridPep.Columns["Id"].Visible = false;
+        }
+
+        private void LoadRizik()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var data = new EvidencijaQueryService(db).GetRizikEvidencija();
+                dataGridRizik.DataSource = data;
+                StyleRizikGrid();
+                dataGridRizik.ClearSelection();
+                lblEmptyRizik.Visible = data.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju procjene rizika");
+            }
+        }
+
+        private void StyleRizikGrid()
+        {
+            GridHelper.ApplyColumns(dataGridRizik, GridColumns.RizikProcjena);
+            GridHelper.FreezeColumns(dataGridRizik, "Redni", "Naziv");
+            GridHelper.AlignCenter(dataGridRizik, "Redni", "DatumProcjeneRizika", "DatumUgovora", "VrstaKlijenta");
+            if (dataGridRizik.Columns.Contains("Id")) dataGridRizik.Columns["Id"].Visible = false;
+        }
+
+        private void LoadOtkazaniKlijenti()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var clients = new KlijentQueryService(db).GetArchivedClients();
+                dataGridOtkazani.DataSource = clients;
+                StyleOtkazaniGrid();
+                dataGridOtkazani.ClearSelection();
+                lblEmptyOtkazani.Visible = clients.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju otkazanih klijenata");
+            }
+        }
+
+        private void StyleOtkazaniGrid()
+        {
+            GridHelper.ApplyColumns(dataGridOtkazani, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridOtkazani, "Id", "Naziv");
+            GridHelper.AlignCenter(dataGridOtkazani,
+                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
+            GridHelper.Emphasize(dataGridOtkazani, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
+        }
+
+        private void LoadUdruzenja()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var clients = new KlijentQueryService(db).GetUdruzenjaClients();
+                dataGridUdruzenja.DataSource = clients;
+                StyleUdruzenjaGrid();
+                dataGridUdruzenja.ClearSelection();
+                lblEmptyUdruzenja.Visible = clients.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju udruženja");
+            }
+        }
+
+        private void StyleUdruzenjaGrid()
+        {
+            GridHelper.ApplyColumns(dataGridUdruzenja, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridUdruzenja, "Id", "Naziv");
+            GridHelper.AlignCenter(dataGridUdruzenja,
+                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
+            GridHelper.Emphasize(dataGridUdruzenja, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
+        }
+
+        private void LoadStecajKlijenti()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var clients = new KlijentQueryService(db).GetStecajClients();
+                dataGridStecaj.DataSource = clients;
+                StyleStecajGrid();
+                dataGridStecaj.ClearSelection();
+                lblEmptyStecaj.Visible = clients.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju klijenata u stečaju");
+            }
+        }
+
+        private void StyleStecajGrid()
+        {
+            GridHelper.ApplyColumns(dataGridStecaj, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridStecaj, "Id", "Naziv");
+            GridHelper.AlignCenter(dataGridStecaj,
+                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
+            GridHelper.Emphasize(dataGridStecaj, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
+        }
+
+        private void LoadAuditLog()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var data = new EvidencijaQueryService(db).GetAuditLogEvidencija();
+                dataGridAuditLog.DataSource = data;
+                StyleAuditLogGrid();
+                dataGridAuditLog.ClearSelection();
+                lblEmptyAuditLog.Visible = data.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju audit loga");
+            }
+        }
+
+        private void StyleAuditLogGrid()
+        {
+            GridHelper.ApplyColumns(dataGridAuditLog, GridColumns.AuditLog);
+            GridHelper.FreezeColumns(dataGridAuditLog, "Vrijeme");
+            GridHelper.AlignCenter(dataGridAuditLog, "Vrijeme", "EntitetId", "Akcija");
+        }
+
+        private void ShowView(SidebarView view)
+        {
+            _currentView = view;
+
+            panelViewKlijenti.Visible = view == SidebarView.Klijenti;
+            panelViewKyc.Visible = view == SidebarView.Kyc;
+            panelViewUbo.Visible = view == SidebarView.Ubo;
+            panelViewPep.Visible = view == SidebarView.Pep;
+            panelViewRizik.Visible = view == SidebarView.Rizik;
+            panelViewOtkazani.Visible = view == SidebarView.Otkazani;
+            panelViewUdruzenja.Visible = view == SidebarView.Udruzenja;
+            panelViewStecaj.Visible = view == SidebarView.Stecaj;
+            panelViewAuditLog.Visible = view == SidebarView.AuditLog;
+
+            UiTheme.StyleSidebarButton(btnNavKlijenti, active: view == SidebarView.Klijenti);
+            UiTheme.StyleSidebarButton(btnNavKyc, active: view == SidebarView.Kyc);
+            UiTheme.StyleSidebarButton(btnNavUbo, active: view == SidebarView.Ubo);
+            UiTheme.StyleSidebarButton(btnNavPep, active: view == SidebarView.Pep);
+            UiTheme.StyleSidebarButton(btnNavRizik, active: view == SidebarView.Rizik);
+            UiTheme.StyleSidebarButton(btnNavOtkazani, active: view == SidebarView.Otkazani);
+            UiTheme.StyleSidebarButton(btnNavUdruzenja, active: view == SidebarView.Udruzenja);
+            UiTheme.StyleSidebarButton(btnNavStecaj, active: view == SidebarView.Stecaj);
+            UiTheme.StyleSidebarButton(btnNavAuditLog, active: view == SidebarView.AuditLog);
+
+            switch (view)
+            {
+                case SidebarView.Kyc: LoadKyc(); break;
+                case SidebarView.Ubo: LoadUbo(); break;
+                case SidebarView.Pep: LoadPep(); break;
+                case SidebarView.Rizik: LoadRizik(); break;
+                case SidebarView.Otkazani: LoadOtkazaniKlijenti(); break;
+                case SidebarView.Udruzenja: LoadUdruzenja(); break;
+                case SidebarView.Stecaj: LoadStecajKlijenti(); break;
+                case SidebarView.AuditLog: LoadAuditLog(); break;
+            }
+        }
+
+        private async void btnKycSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridKyc, btnKycSacuvajPdf, "KYC evidencija", "KYC");
+
+        private async void btnKycExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridKyc, btnKycExportPdf, "KYC evidencija", "KYC_tabela");
+
+        private async void btnUboSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridUbo, btnUboSacuvajPdf, "UBO / Vlasništvo", "UBO");
+
+        private async void btnUboExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridUbo, btnUboExportPdf, "UBO / Vlasništvo", "UBO_tabela");
+
+        private async void btnPepSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridPep, btnPepSacuvajPdf, "PEP evidencija", "PEP");
+
+        private async void btnPepExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridPep, btnPepExportPdf, "PEP evidencija", "PEP_tabela");
+
+        private async void btnRizikSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridRizik, btnRizikSacuvajPdf, "Procjena rizika", "Rizik");
+
+        private async void btnRizikExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridRizik, btnRizikExportPdf, "Procjena rizika", "Rizik_tabela");
+
+        private async void btnUdruzenjaSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridUdruzenja, btnUdruzenjaSacuvajPdf, "Udruženja", "Udruzenje");
+
+        private async void btnUdruzenjaExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridUdruzenja, btnUdruzenjaExportPdf, "Udruženja", "Udruzenja_tabela");
+
+        private async void btnStecajSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridStecaj, btnStecajSacuvajPdf, "Klijenti u stečaju", "Stecaj");
+
+        private async void btnStecajExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridStecaj, btnStecajExportPdf, "Klijenti u stečaju", "Stecaj_tabela");
+
+        private void btnNavKlijenti_Click(object sender, EventArgs e) => ShowView(SidebarView.Klijenti);
+        private void btnNavKyc_Click(object sender, EventArgs e) => ShowView(SidebarView.Kyc);
+        private void btnNavUbo_Click(object sender, EventArgs e) => ShowView(SidebarView.Ubo);
+        private void btnNavOtkazani_Click(object sender, EventArgs e) => ShowView(SidebarView.Otkazani);
+        private void btnNavUdruzenja_Click(object sender, EventArgs e) => ShowView(SidebarView.Udruzenja);
+        private void btnNavStecaj_Click(object sender, EventArgs e) => ShowView(SidebarView.Stecaj);
+        private void btnNavAuditLog_Click(object sender, EventArgs e) => ShowView(SidebarView.AuditLog);
+        private void btnNavPep_Click(object sender, EventArgs e) => ShowView(SidebarView.Pep);
+        private void btnNavRizik_Click(object sender, EventArgs e) => ShowView(SidebarView.Rizik);
 
         
 
@@ -479,6 +807,23 @@ namespace OwnerTrack.App
             LoadActivityCodeFilter();
             LoadClients();
             RefreshWarningsBadge();
+        }
+
+        // ── Sidebar ───────────────────────────────────────────────
+
+        private void btnToggleSidebar_Click(object sender, EventArgs e)
+        {
+            _sidebarExpanded = !_sidebarExpanded;
+            panelSidebar.Width = _sidebarExpanded ? SidebarExpandedWidth : SidebarCollapsedWidth;
+            btnNavKlijenti.Text = _sidebarExpanded ? "Klijenti" : string.Empty;
+            btnNavKyc.Text = _sidebarExpanded ? "KYC evidencija" : string.Empty;
+            btnNavUbo.Text = _sidebarExpanded ? "UBO / Vlasništvo" : string.Empty;
+            btnNavPep.Text = _sidebarExpanded ? "PEP evidencija" : string.Empty;
+            btnNavRizik.Text = _sidebarExpanded ? "Procjena rizika" : string.Empty;
+            btnNavOtkazani.Text = _sidebarExpanded ? "Otkazani klijenti" : string.Empty;
+            btnNavUdruzenja.Text = _sidebarExpanded ? "Udruženja" : string.Empty;
+            btnNavStecaj.Text = _sidebarExpanded ? "Klijenti u stečaju" : string.Empty;
+            btnNavAuditLog.Text = _sidebarExpanded ? "Audit log" : string.Empty;
         }
     }
 }

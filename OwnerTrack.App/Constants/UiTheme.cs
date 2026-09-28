@@ -25,6 +25,21 @@ namespace OwnerTrack.App.Constants
         public static readonly Color AlertRedOnDark = Color.FromArgb(255, 140, 130);
         public static readonly Color AlertAmberOnDark = Color.FromArgb(255, 198, 120);
 
+        public static readonly Color SidebarBackground = Color.FromArgb(22, 32, 53);
+        public static readonly Color SidebarActive = Color.FromArgb(41, 58, 94);
+        // Subtle hairline tint for sidebar separators — a lighter shade of
+        // SidebarBackground, not a new accent colour.
+        public static readonly Color SidebarDivider = Color.FromArgb(42, 54, 80);
+
+        // Named accents for specific Form1 toolbar actions — previously
+        // inline Color.FromArgb literals repeated at several call sites.
+        // Values unchanged, only named for a single source of truth.
+        public static readonly Color ImportAccent = Color.FromArgb(22, 141, 84);
+        public static readonly Color ResetAccent = Color.FromArgb(150, 40, 40);
+        public static readonly Color PdfSaveAccent = Color.FromArgb(70, 100, 160);
+        public static readonly Color PdfExportAccent = Color.FromArgb(41, 98, 155);
+        public static readonly Color WarningsAccent = Color.FromArgb(200, 155, 10);
+
         public const int GridRowHeight = 28;
         public const int GridHeaderHeight = 34;
 
@@ -135,6 +150,36 @@ namespace OwnerTrack.App.Constants
             AttachHoverEffect(b, backColor);
         }
 
+        /// <summary>
+        /// Lijevo poravnat item za sidebar (ikonica + labela), umjesto
+        /// centriranog izgleda toolbar dugmadi. Aktivna stavka dobija
+        /// suptilnu accent traku sa lijeve strane (postojeća Blue boja) —
+        /// bez mijenjanja postojeće palete.
+        /// </summary>
+        public static void StyleSidebarButton(Button b, bool active = false)
+        {
+            Color bg = active ? SidebarActive : SidebarBackground;
+            b.FlatStyle = FlatStyle.Flat;
+            b.FlatAppearance.BorderSize = 0;
+            b.BackColor = bg;
+            b.ForeColor = active ? Color.White : HeaderSubText;
+            b.Font = Base(active ? 10f : 9.5f, active ? FontStyle.Bold : FontStyle.Regular);
+            b.TextAlign = ContentAlignment.MiddleLeft;
+            b.Cursor = Cursors.Hand;
+            b.UseVisualStyleBackColor = false;
+
+            if (b is OwnerTrack.App.Controls.IconButton icon)
+            {
+                icon.LeftInset = 14;
+                icon.IconSize = 15f;
+                icon.IconTextGap = 10;
+                icon.AccentBarColor = active ? Blue : Color.Empty;
+                icon.AccentBarWidth = 3;
+            }
+
+            AttachHoverEffect(b, bg);
+        }
+
         private static void AttachHoverEffect(Button b, Color baseColor)
         {
             Color hover = ControlPaint.Light(baseColor, 0.15f);
@@ -215,6 +260,13 @@ namespace OwnerTrack.App.Constants
         {
             c.Font = Base(fontSize);
             c.FlatStyle = FlatStyle.System;
+        }
+
+        public static void StyleDateTimePicker(DateTimePicker dtp, float fontSize = 9.5f)
+        {
+            dtp.Font = Base(fontSize);
+            dtp.CalendarForeColor = LabelText;
+            dtp.CalendarMonthBackground = Color.White;
         }
 
         public static void StyleGroupBox(GroupBox gb, string title, float fontSize = 9.5f)

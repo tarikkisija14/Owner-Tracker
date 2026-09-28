@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using OwnerTrack.Infrastructure.Database;
 
 namespace OwnerTrack.Infrastructure.Services
@@ -31,7 +32,14 @@ namespace OwnerTrack.Infrastructure.Services
 
             try
             {
+                // Idle pooled connections keep the current Firme.db file open; overwriting
+                // it while they still hold it would leave them (and their now-stale
+                // -wal/-shm files, which describe the file we're about to replace) pointing
+                // at pages that no longer match the restored file, risking "malformed
+                // database" errors on the next query.
+                SqliteConnection.ClearAllPools();
                 File.Copy(backupPath, _dbPath, overwrite: true);
+                DeleteStaleWalSidecarFiles();
             }
             catch (Exception ex)
             {
@@ -51,6 +59,10 @@ namespace OwnerTrack.Infrastructure.Services
 
             try
             {
+                // In WAL mode, recently committed data can still live only in the
+                // -wal file. Copying Firme.db alone would silently drop that data from
+                // the backup, so force it back into the main file first.
+                CheckpointWal();
                 File.Copy(_dbPath, backupPath, overwrite: true);
                 return backupPath;
             }
@@ -59,6 +71,22 @@ namespace OwnerTrack.Infrastructure.Services
                 throw new InvalidOperationException(
                     $"Backup baze nije uspio: {ex.Message}\n" +
                     "Reset je otkazan radi sigurnosti podataka.", ex);
+            }
+        }
+
+        private void CheckpointWal()
+        {
+            using var db = DbContextFactory.Create();
+            db.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint(TRUNCATE);");
+        }
+
+        private void DeleteStaleWalSidecarFiles()
+        {
+            foreach (var suffix in new[] { "-wal", "-shm" })
+            {
+                string path = _dbPath + suffix;
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
 

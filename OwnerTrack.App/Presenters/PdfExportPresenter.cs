@@ -65,7 +65,68 @@ namespace OwnerTrack.App.Presenters
                 savedPath);
         }
 
-      
+        /// <summary>
+        /// Exports exactly what's shown in an evidencija grid (KYC, UBO,
+        /// PEP, procjena rizika) — all currently visible rows, with that
+        /// grid's own columns. No Klijent-specific PDF structure involved.
+        /// </summary>
+        public async Task ExportGenericTableAsync(DataGridView grid, Button button, string title, string filePrefix)
+        {
+            if (grid.Rows.Count == 0)
+            {
+                MessageBox.Show(UiMessages.PdfNoDataToExport);
+                return;
+            }
+
+            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: false);
+
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                UiMessages.PdfTableSaveTitle,
+                $"{filePrefix}_{DateTime.Now:yyyyMMdd}.pdf");
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            string savedPath = dialog.FileName;
+            await DialogHelper.ExecutePdfExport(
+                button, button.Text,
+                path =>
+                {
+                    using var db = DbContextFactory.Create();
+                    return new PdfExportService(db).GenerateGenericTable(title, headers, weights, rows, path);
+                },
+                savedPath);
+        }
+
+        /// <summary>
+        /// Same as <see cref="ExportGenericTableAsync"/> but for just the
+        /// selected row — a one-row PDF with that grid's own columns.
+        /// </summary>
+        public async Task ExportGenericSingleRowAsync(DataGridView grid, Button button, string title, string filePrefix)
+        {
+            if (grid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show(UiMessages.PdfNoRowSelected);
+                return;
+            }
+
+            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: true);
+
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                UiMessages.PdfReportSaveTitle,
+                $"{filePrefix}_{DateTime.Now:yyyyMMdd}.pdf");
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            string savedPath = dialog.FileName;
+            await DialogHelper.ExecutePdfExport(
+                button, button.Text,
+                path =>
+                {
+                    using var db = DbContextFactory.Create();
+                    return new PdfExportService(db).GenerateGenericTable(title, headers, weights, rows, path);
+                },
+                savedPath);
+        }
+
+
 
         private static List<int> CollectVisibleIds(DataGridView grid) =>
             grid.Rows

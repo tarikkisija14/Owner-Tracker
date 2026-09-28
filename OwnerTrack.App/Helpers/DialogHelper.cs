@@ -48,6 +48,12 @@ namespace OwnerTrack.App.Helpers
             {
                 string savedPath = await Task.Run(() => pdfGenerator(outputPath));
 
+                // The owning form (or the whole app) can be closed while the export
+                // above runs in the background; touching a disposed button/control
+                // afterwards would throw ObjectDisposedException on this UI-thread
+                // continuation.
+                if (button.IsDisposed) return;
+
                 if (MessageBox.Show(
                         string.Format(UiMessages.PdfSavedPromptFormat, savedPath),
                         UiMessages.PdfSavedTitle,
@@ -59,11 +65,13 @@ namespace OwnerTrack.App.Helpers
             catch (Exception ex)
             {
                 AppLogger.LogException(ex);
-                MessageBox.Show(string.Format(UiMessages.PdfErrorFormat, AppLogger.GetLogPath()));
+                if (!button.IsDisposed)
+                    MessageBox.Show(string.Format(UiMessages.PdfErrorFormat, AppLogger.GetLogPath()));
             }
             finally
             {
-                SetButtonReady(button, originalButtonText);
+                if (!button.IsDisposed)
+                    SetButtonReady(button, originalButtonText);
             }
         }
 

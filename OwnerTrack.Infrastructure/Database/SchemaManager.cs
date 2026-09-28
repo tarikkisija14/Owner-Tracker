@@ -44,6 +44,8 @@ namespace OwnerTrack.Infrastructure
             if (version < 8) ApplyV8(conn);
             if (version < 9) ApplyV9(conn);
             if (version < 10) ApplyV10(conn);
+            if (version < 11) ApplyV11(conn);
+            if (version < 12) ApplyV12(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -264,6 +266,25 @@ namespace OwnerTrack.Infrastructure
                 AddColumnIfMissing(c, tx, "Ugovori", "VrstaUgovora", "TEXT");
                 AddColumnIfMissing(c, tx, "Ugovori", "Napomena", "TEXT");
                 AddColumnIfMissing(c, tx, "Ugovori", "Obrisan", "TEXT");
+            });
+
+        private void ApplyV11(SqliteConnection conn) =>
+            ApplyMigration(conn, 11, "dodavanje PEP i indikatora rizika kolona na Klijenti", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "Klijenti", "PepImePrezime", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "PepFunkcija", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "PepPovezanost", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "PepMjerePoduzete", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "PepDatumProvjere", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "OpciIndikatoriRizika", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "IndikatoriIdentifikacijeRizika", "TEXT");
+                AddColumnIfMissing(c, tx, "Klijenti", "IndikatoriTransakcijaRizika", "TEXT");
+            });
+
+        private void ApplyV12(SqliteConnection conn) =>
+            ApplyMigration(conn, 12, "dodavanje RizikObrazacJson kolone na Klijenti", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "Klijenti", "RizikObrazacJson", "TEXT");
             });
 
         public void ReseedDjelatnosti()

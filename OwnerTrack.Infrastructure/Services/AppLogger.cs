@@ -9,7 +9,11 @@ namespace OwnerTrack.Infrastructure.Services
         
         private const string LogFileName = "ownertrack_errors.log";
 
-        
+        // PDF export/import run their work on a background thread while the UI
+        // thread can log independently at the same time; without this, two
+        // concurrent File.AppendAllText calls to the same path can throw and
+        // silently drop a log entry.
+        private static readonly object LogLock = new();
 
         public static void LogException(Exception? ex)
         {
@@ -24,7 +28,11 @@ namespace OwnerTrack.Infrastructure.Services
                 AppendInnerExceptions(sb, ex?.InnerException);
 
                 sb.AppendLine(new string('-', 80));
-                File.AppendAllText(GetLogPath(), sb.ToString());
+
+                lock (LogLock)
+                {
+                    File.AppendAllText(GetLogPath(), sb.ToString());
+                }
             }
             catch
             {

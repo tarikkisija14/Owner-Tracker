@@ -52,6 +52,23 @@ namespace OwnerTrack.App
             dtDatumProcjene = new DateTimePicker();
             lblOvjeraCr = new Label();
             txtOvjeraCr = new TextBox();
+            groupBoxPep = new GroupBox();
+            lblPepImePrezime = new Label();
+            txtPepImePrezime = new TextBox();
+            lblPepFunkcija = new Label();
+            txtPepFunkcija = new TextBox();
+            lblPepPovezanost = new Label();
+            txtPepPovezanost = new TextBox();
+            lblPepDatumProvjere = new Label();
+            dtPepDatumProvjere = new DateTimePicker();
+            lblPepMjerePoduzete = new Label();
+            txtPepMjerePoduzete = new TextBox();
+            lblOpciIndikatoriRizika = new Label();
+            txtOpciIndikatoriRizika = new TextBox();
+            lblIndikatoriIdentifikacijeRizika = new Label();
+            txtIndikatoriIdentifikacijeRizika = new TextBox();
+            lblIndikatoriTransakcijaRizika = new Label();
+            txtIndikatoriTransakcijaRizika = new TextBox();
             groupBoxUgovor = new GroupBox();
             lblVrstaUgovora = new Label();
             txtVrstaUgovora = new TextBox();
@@ -73,6 +90,7 @@ namespace OwnerTrack.App
             txtNapomena = new TextBox();
             groupBoxOsnovni.SuspendLayout();
             groupBoxRizici.SuspendLayout();
+            groupBoxPep.SuspendLayout();
             groupBoxUgovor.SuspendLayout();
             panelButtons.SuspendLayout();
             groupBoxKontakti.SuspendLayout();
@@ -175,7 +193,7 @@ namespace OwnerTrack.App
             dtDatumUspostave.Name = "dtDatumUspostave";
             dtDatumUspostave.Size = new Size(158, 24);
             dtDatumUspostave.TabIndex = 9;
-            dtDatumUspostave.Font = uiFont;
+            UiTheme.StyleDateTimePicker(dtDatumUspostave, 9.5f);
 
             lblVrstaKlijenta.Location = new Point(9, 124);
             lblVrstaKlijenta.Name = "lblVrstaKlijenta";
@@ -200,7 +218,7 @@ namespace OwnerTrack.App
             dtDatumOsnivanja.Name = "dtDatumOsnivanja";
             dtDatumOsnivanja.Size = new Size(158, 24);
             dtDatumOsnivanja.TabIndex = 13;
-            dtDatumOsnivanja.Font = uiFont;
+            UiTheme.StyleDateTimePicker(dtDatumOsnivanja, 9.5f);
 
             lblVelicina.Location = new Point(9, 157);
             lblVelicina.Name = "lblVelicina";
@@ -320,7 +338,7 @@ namespace OwnerTrack.App
             dtDatumProcjene.Name = "dtDatumProcjene";
             dtDatumProcjene.Size = new Size(158, 24);
             dtDatumProcjene.TabIndex = 11;
-            dtDatumProcjene.Font = uiFont;
+            UiTheme.StyleDateTimePicker(dtDatumProcjene, 9.5f);
 
             lblOvjeraCr.Location = new Point(9, 92);
             lblOvjeraCr.Name = "lblOvjeraCr";
@@ -334,6 +352,126 @@ namespace OwnerTrack.App
             txtOvjeraCr.TabIndex = 13;
             StyleTextBox(txtOvjeraCr);
 
+            // ── groupBoxPep ───────────────────────────────────────
+            groupBoxPep.Controls.Add(lblPepImePrezime);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtPepImePrezime, new Point(150, 24), new Size(190, 24)));
+            groupBoxPep.Controls.Add(lblPepFunkcija);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtPepFunkcija, new Point(405, 24), new Size(251, 24)));
+            groupBoxPep.Controls.Add(lblPepPovezanost);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtPepPovezanost, new Point(170, 57), new Size(270, 24)));
+            groupBoxPep.Controls.Add(lblPepDatumProvjere);
+            groupBoxPep.Controls.Add(dtPepDatumProvjere);
+            groupBoxPep.Controls.Add(lblPepMjerePoduzete);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtPepMjerePoduzete, new Point(175, 90), new Size(480, 24)));
+            groupBoxPep.Controls.Add(lblOpciIndikatoriRizika);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtOpciIndikatoriRizika, new Point(115, 123), new Size(538, 24)));
+            groupBoxPep.Controls.Add(lblIndikatoriIdentifikacijeRizika);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtIndikatoriIdentifikacijeRizika, new Point(170, 156), new Size(483, 24)));
+            groupBoxPep.Controls.Add(lblIndikatoriTransakcijaRizika);
+            groupBoxPep.Controls.Add(UiTheme.WrapWithFocusBorder(txtIndikatoriTransakcijaRizika, new Point(165, 189), new Size(488, 24)));
+            groupBoxPep.Location = new Point(9, 356);
+            groupBoxPep.Name = "groupBoxPep";
+            groupBoxPep.Size = new Size(665, 228);
+            groupBoxPep.TabIndex = 2;
+            groupBoxPep.TabStop = false;
+            StyleGroupBox(groupBoxPep, "🔎 PEP i indikatori rizika");
+
+            lblPepImePrezime.Location = new Point(9, 26);
+            lblPepImePrezime.Name = "lblPepImePrezime";
+            lblPepImePrezime.TabIndex = 0;
+            lblPepImePrezime.Text = "Ime i prezime (PEP):";
+            StyleLabel(lblPepImePrezime);
+
+            txtPepImePrezime.Location = new Point(150, 24);
+            txtPepImePrezime.Name = "txtPepImePrezime";
+            txtPepImePrezime.Size = new Size(190, 24);
+            txtPepImePrezime.TabIndex = 1;
+            StyleTextBox(txtPepImePrezime);
+
+            lblPepFunkcija.Location = new Point(350, 26);
+            lblPepFunkcija.Name = "lblPepFunkcija";
+            lblPepFunkcija.TabIndex = 2;
+            lblPepFunkcija.Text = "Funkcija:";
+            StyleLabel(lblPepFunkcija);
+
+            txtPepFunkcija.Location = new Point(405, 24);
+            txtPepFunkcija.Name = "txtPepFunkcija";
+            txtPepFunkcija.Size = new Size(251, 24);
+            txtPepFunkcija.TabIndex = 3;
+            StyleTextBox(txtPepFunkcija);
+
+            lblPepPovezanost.Location = new Point(9, 59);
+            lblPepPovezanost.Name = "lblPepPovezanost";
+            lblPepPovezanost.TabIndex = 4;
+            lblPepPovezanost.Text = "Povezanost s klijentom:";
+            StyleLabel(lblPepPovezanost);
+
+            txtPepPovezanost.Location = new Point(170, 57);
+            txtPepPovezanost.Name = "txtPepPovezanost";
+            txtPepPovezanost.Size = new Size(270, 24);
+            txtPepPovezanost.TabIndex = 5;
+            StyleTextBox(txtPepPovezanost);
+
+            lblPepDatumProvjere.Location = new Point(450, 59);
+            lblPepDatumProvjere.Name = "lblPepDatumProvjere";
+            lblPepDatumProvjere.TabIndex = 6;
+            lblPepDatumProvjere.Text = "Datum provjere:";
+            StyleLabel(lblPepDatumProvjere);
+
+            dtPepDatumProvjere.Location = new Point(545, 57);
+            dtPepDatumProvjere.Name = "dtPepDatumProvjere";
+            dtPepDatumProvjere.Size = new Size(111, 24);
+            dtPepDatumProvjere.TabIndex = 7;
+            UiTheme.StyleDateTimePicker(dtPepDatumProvjere, 9.5f);
+
+            lblPepMjerePoduzete.Location = new Point(9, 92);
+            lblPepMjerePoduzete.Name = "lblPepMjerePoduzete";
+            lblPepMjerePoduzete.TabIndex = 8;
+            lblPepMjerePoduzete.Text = "Mjere koje su poduzete:";
+            StyleLabel(lblPepMjerePoduzete);
+
+            txtPepMjerePoduzete.Location = new Point(175, 90);
+            txtPepMjerePoduzete.Name = "txtPepMjerePoduzete";
+            txtPepMjerePoduzete.Size = new Size(480, 24);
+            txtPepMjerePoduzete.TabIndex = 9;
+            StyleTextBox(txtPepMjerePoduzete);
+
+            lblOpciIndikatoriRizika.Location = new Point(9, 125);
+            lblOpciIndikatoriRizika.Name = "lblOpciIndikatoriRizika";
+            lblOpciIndikatoriRizika.TabIndex = 10;
+            lblOpciIndikatoriRizika.Text = "Opći indikatori:";
+            StyleLabel(lblOpciIndikatoriRizika);
+
+            txtOpciIndikatoriRizika.Location = new Point(115, 123);
+            txtOpciIndikatoriRizika.Name = "txtOpciIndikatoriRizika";
+            txtOpciIndikatoriRizika.Size = new Size(538, 24);
+            txtOpciIndikatoriRizika.TabIndex = 11;
+            StyleTextBox(txtOpciIndikatoriRizika);
+
+            lblIndikatoriIdentifikacijeRizika.Location = new Point(9, 158);
+            lblIndikatoriIdentifikacijeRizika.Name = "lblIndikatoriIdentifikacijeRizika";
+            lblIndikatoriIdentifikacijeRizika.TabIndex = 12;
+            lblIndikatoriIdentifikacijeRizika.Text = "Indikatori identifikacije:";
+            StyleLabel(lblIndikatoriIdentifikacijeRizika);
+
+            txtIndikatoriIdentifikacijeRizika.Location = new Point(170, 156);
+            txtIndikatoriIdentifikacijeRizika.Name = "txtIndikatoriIdentifikacijeRizika";
+            txtIndikatoriIdentifikacijeRizika.Size = new Size(483, 24);
+            txtIndikatoriIdentifikacijeRizika.TabIndex = 13;
+            StyleTextBox(txtIndikatoriIdentifikacijeRizika);
+
+            lblIndikatoriTransakcijaRizika.Location = new Point(9, 191);
+            lblIndikatoriTransakcijaRizika.Name = "lblIndikatoriTransakcijaRizika";
+            lblIndikatoriTransakcijaRizika.TabIndex = 14;
+            lblIndikatoriTransakcijaRizika.Text = "Indikatori transakcija:";
+            StyleLabel(lblIndikatoriTransakcijaRizika);
+
+            txtIndikatoriTransakcijaRizika.Location = new Point(165, 189);
+            txtIndikatoriTransakcijaRizika.Name = "txtIndikatoriTransakcijaRizika";
+            txtIndikatoriTransakcijaRizika.Size = new Size(488, 24);
+            txtIndikatoriTransakcijaRizika.TabIndex = 15;
+            StyleTextBox(txtIndikatoriTransakcijaRizika);
+
             // ── groupBoxUgovor ────────────────────────────────────
             groupBoxUgovor.Controls.Add(lblVrstaUgovora);
             groupBoxUgovor.Controls.Add(UiTheme.WrapWithFocusBorder(txtVrstaUgovora, new Point(110, 28), new Size(172, 24)));
@@ -341,10 +479,10 @@ namespace OwnerTrack.App
             groupBoxUgovor.Controls.Add(cbStatusUgovora);
             groupBoxUgovor.Controls.Add(lblDatumUgovora);
             groupBoxUgovor.Controls.Add(dtDatumUgovora);
-            groupBoxUgovor.Location = new Point(9, 356);
+            groupBoxUgovor.Location = new Point(9, 594);
             groupBoxUgovor.Name = "groupBoxUgovor";
             groupBoxUgovor.Size = new Size(665, 108);
-            groupBoxUgovor.TabIndex = 2;
+            groupBoxUgovor.TabIndex = 3;
             groupBoxUgovor.TabStop = false;
             StyleGroupBox(groupBoxUgovor, "📜 Ugovor");
 
@@ -383,17 +521,17 @@ namespace OwnerTrack.App
             dtDatumUgovora.Name = "dtDatumUgovora";
             dtDatumUgovora.Size = new Size(158, 24);
             dtDatumUgovora.TabIndex = 5;
-            dtDatumUgovora.Font = uiFont;
+            UiTheme.StyleDateTimePicker(dtDatumUgovora, 9.5f);
 
             // ── groupBoxKontakti ──────────────────────────────────
             groupBoxKontakti.Controls.Add(lblEmail);
             groupBoxKontakti.Controls.Add(UiTheme.WrapWithFocusBorder(txtEmail, new Point(60, 28), new Size(258, 24)));
             groupBoxKontakti.Controls.Add(lblTelefon);
             groupBoxKontakti.Controls.Add(UiTheme.WrapWithFocusBorder(txtTelefon, new Point(400, 28), new Size(250, 24)));
-            groupBoxKontakti.Location = new Point(9, 473);
+            groupBoxKontakti.Location = new Point(9, 712);
             groupBoxKontakti.Name = "groupBoxKontakti";
             groupBoxKontakti.Size = new Size(665, 108);
-            groupBoxKontakti.TabIndex = 3;
+            groupBoxKontakti.TabIndex = 4;
             groupBoxKontakti.TabStop = false;
             StyleGroupBox(groupBoxKontakti, "📞 Kontakti");
 
@@ -427,10 +565,10 @@ namespace OwnerTrack.App
             // ── groupBoxNapomena ──────────────────────────────────
             groupBoxNapomena.Controls.Add(lblNapomena);
             groupBoxNapomena.Controls.Add(UiTheme.WrapWithFocusBorder(txtNapomena, new Point(9, 44), new Size(639, 56)));
-            groupBoxNapomena.Location = new Point(9, 591);
+            groupBoxNapomena.Location = new Point(9, 830);
             groupBoxNapomena.Name = "groupBoxNapomena";
             groupBoxNapomena.Size = new Size(665, 112);
-            groupBoxNapomena.TabIndex = 4;
+            groupBoxNapomena.TabIndex = 5;
             groupBoxNapomena.TabStop = false;
             StyleGroupBox(groupBoxNapomena, "📝 Napomena");
 
@@ -452,6 +590,7 @@ namespace OwnerTrack.App
             scrollPanel.AutoScroll = true;
             scrollPanel.Controls.Add(groupBoxOsnovni);
             scrollPanel.Controls.Add(groupBoxRizici);
+            scrollPanel.Controls.Add(groupBoxPep);
             scrollPanel.Controls.Add(groupBoxUgovor);
             scrollPanel.Controls.Add(groupBoxKontakti);
             scrollPanel.Controls.Add(groupBoxNapomena);
@@ -459,7 +598,7 @@ namespace OwnerTrack.App
             scrollPanel.Location = new Point(0, 0);
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Padding = new Padding(0, 0, 0, 56);
-            scrollPanel.Size = new Size(700, 647);
+            scrollPanel.Size = new Size(700, 724);
             scrollPanel.TabIndex = 0;
             scrollPanel.BackColor = UiTheme.FormBackgroundDialog;
 
@@ -496,10 +635,10 @@ namespace OwnerTrack.App
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = UiTheme.FormBackgroundDialog;
-            ClientSize = new Size(700, 703);
+            ClientSize = new Size(700, 780);
             Controls.Add(scrollPanel);
             Controls.Add(panelButtons);
-            Font = new Font("Segoe UI", 9.5F);
+            Font = UiTheme.Base(9.5f);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -512,6 +651,8 @@ namespace OwnerTrack.App
             groupBoxOsnovni.PerformLayout();
             groupBoxRizici.ResumeLayout(false);
             groupBoxRizici.PerformLayout();
+            groupBoxPep.ResumeLayout(false);
+            groupBoxPep.PerformLayout();
             groupBoxUgovor.ResumeLayout(false);
             groupBoxUgovor.PerformLayout();
             panelButtons.ResumeLayout(false);
@@ -557,6 +698,23 @@ namespace OwnerTrack.App
         public System.Windows.Forms.DateTimePicker dtDatumProcjene;
         private System.Windows.Forms.Label lblOvjeraCr;
         public System.Windows.Forms.TextBox txtOvjeraCr;
+        private System.Windows.Forms.GroupBox groupBoxPep;
+        private System.Windows.Forms.Label lblPepImePrezime;
+        public System.Windows.Forms.TextBox txtPepImePrezime;
+        private System.Windows.Forms.Label lblPepFunkcija;
+        public System.Windows.Forms.TextBox txtPepFunkcija;
+        private System.Windows.Forms.Label lblPepPovezanost;
+        public System.Windows.Forms.TextBox txtPepPovezanost;
+        private System.Windows.Forms.Label lblPepDatumProvjere;
+        public System.Windows.Forms.DateTimePicker dtPepDatumProvjere;
+        private System.Windows.Forms.Label lblPepMjerePoduzete;
+        public System.Windows.Forms.TextBox txtPepMjerePoduzete;
+        private System.Windows.Forms.Label lblOpciIndikatoriRizika;
+        public System.Windows.Forms.TextBox txtOpciIndikatoriRizika;
+        private System.Windows.Forms.Label lblIndikatoriIdentifikacijeRizika;
+        public System.Windows.Forms.TextBox txtIndikatoriIdentifikacijeRizika;
+        private System.Windows.Forms.Label lblIndikatoriTransakcijaRizika;
+        public System.Windows.Forms.TextBox txtIndikatoriTransakcijaRizika;
         private System.Windows.Forms.GroupBox groupBoxUgovor;
         private System.Windows.Forms.Label lblVrstaUgovora;
         public System.Windows.Forms.TextBox txtVrstaUgovora;

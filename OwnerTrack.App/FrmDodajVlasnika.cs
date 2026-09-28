@@ -64,6 +64,10 @@ namespace OwnerTrack.App
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
+            // See FrmDodajKlijent.btnSpremi_Click for why this guard exists:
+            // prevents a double-click from inserting/saving the same owner twice.
+            if (!btnSpremi.Enabled) return;
+
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
                 MessageBox.Show(UiMessages.VlasnikNameRequired);
@@ -89,6 +93,7 @@ namespace OwnerTrack.App
                 return;
             }
 
+            btnSpremi.Enabled = false;
             try
             {
                 if (_vlasnikId.HasValue)
@@ -102,6 +107,10 @@ namespace OwnerTrack.App
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);
+            }
+            finally
+            {
+                btnSpremi.Enabled = true;
             }
         }
 
@@ -154,13 +163,26 @@ namespace OwnerTrack.App
             if (v is null) return;
 
             string previousName = v.ImePrezime ?? string.Empty;
+            string? previousDatumValjanosti = FormatDate(v.DatumValjanostiDokumenta);
+            string previousPercentage = v.ProcenatVlasnistva.ToString("F2");
+            string? previousDatumUtvrdjivanja = FormatDate(v.DatumUtvrdjivanja);
+            string? previousIzvor = v.IzvorPodatka;
+
             ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
-            TransactionHelper.SaveWithAudit(_db,
-                () => _audit.LogUpdated("Vlasnici", vlasnikId, $"'{previousName}' → '{imePrezime}'"));
+            string opis = AuditService.DescribeFieldChanges(imePrezime,
+                ("Ime i prezime", previousName, imePrezime),
+                ("Datum važenja dokumenta", previousDatumValjanosti, FormatDate(v.DatumValjanostiDokumenta)),
+                ("% vlasništva", previousPercentage, percentage.ToString("F2")),
+                ("Datum utvrđivanja", previousDatumUtvrdjivanja, FormatDate(v.DatumUtvrdjivanja)),
+                ("Izvor podatka", previousIzvor, v.IzvorPodatka));
+
+            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Vlasnici", vlasnikId, opis));
 
             MessageBox.Show(UiMessages.VlasnikSavedUpdate);
         }
+
+        private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
 
         private void SaveNew(string imePrezime, decimal percentage)
         {

@@ -81,93 +81,104 @@ namespace OwnerTrack.Infrastructure.Services
                 prog.TotalRows = dataRows.Count;
 
                 using var db = CreateDbContext();
-                db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
-                using var tx = db.Database.BeginTransaction();
 
-                var existingIdBrojevi = db.Klijenti.AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var existingNames = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var existingActivityCodes = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                int pendingChanges = 0;
-
-                for (int i = 0; i < dataRows.Count; i++)
+                try
                 {
-                    if (cancellationToken.IsCancellationRequested)
+                    db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
+                    using var tx = db.Database.BeginTransaction();
+
+                    var existingIdBrojevi = db.Klijenti.AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var existingNames = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var existingActivityCodes = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    int pendingChanges = 0;
+
+                    for (int i = 0; i < dataRows.Count; i++)
                     {
-                        Debug.WriteLine("[IMPORT-CANCELLED] Korisnik otkazao import.");
-                        break;
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            Debug.WriteLine("[IMPORT-CANCELLED] Korisnik otkazao import.");
+                            break;
+                        }
+
+                        var row = dataRows[i];
+                        string naziv = string.Empty;
+                        string idBroj = string.Empty;
+
+                        try
+                        {
+                            naziv = ReadCell(workbookPart, row, Column.Naziv);
+                            idBroj = ReadCell(workbookPart, row, Column.IdBroj);
+
+                            prog.CurrentRow = $"{naziv} ({idBroj})";
+                            prog.ProcessedRows = i + 1;
+
+                            if (string.IsNullOrWhiteSpace(naziv) || string.IsNullOrWhiteSpace(idBroj))
+                            {
+                                progress?.Report(prog);
+                                continue;
+                            }
+
+                            if (existingIdBrojevi.Contains(idBroj) || existingNames.Contains(naziv))
+                            {
+                                result.SkipCount++;
+                                progress?.Report(prog);
+                                continue;
+                            }
+
+                            string sifraDjelatnosti = ReadCell(workbookPart, row, Column.SifraDjelatnosti);
+                            string? nazivDjelatnosti = ReadCellOrNull(workbookPart, row, Column.NazivDjelatnosti);
+
+                            if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
+                                EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti);
+
+                            var klijent = MapKlijent(workbookPart, row, naziv, idBroj, sifraDjelatnosti);
+                            db.Klijenti.Add(klijent);
+                            db.SaveChanges();
+
+                            existingIdBrojevi.Add(idBroj);
+                            existingNames.Add(naziv);
+
+                            ImportVlasnici(workbookPart, row, klijent, result, db);
+                            ImportDirektori(workbookPart, row, klijent, db);
+                            ImportUgovor(workbookPart, row, klijent, db);
+
+                            result.SuccessCount++;
+                            pendingChanges++;
+
+                            if (pendingChanges >= BatchSize)
+                            {
+                                db.SaveChanges();
+                                pendingChanges = 0;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            string errorMessage = BuildRowErrorMessage(i, naziv, idBroj, ex);
+                            result.Errors.Add(errorMessage);
+                            result.ErrorCount++;
+                            Debug.WriteLine($"[IMPORT-ROW-ERROR] {errorMessage}");
+                            ClearTrackedEntities(db);
+                        }
+
+                        progress?.Report(prog);
                     }
 
-                    var row = dataRows[i];
-                    string naziv = string.Empty;
-                    string idBroj = string.Empty;
-
-                    try
-                    {
-                        naziv = ReadCell(workbookPart, row, Column.Naziv);
-                        idBroj = ReadCell(workbookPart, row, Column.IdBroj);
-
-                        prog.CurrentRow = $"{naziv} ({idBroj})";
-                        prog.ProcessedRows = i + 1;
-
-                        if (string.IsNullOrWhiteSpace(naziv) || string.IsNullOrWhiteSpace(idBroj))
-                        {
-                            progress?.Report(prog);
-                            continue;
-                        }
-
-                        if (existingIdBrojevi.Contains(idBroj) || existingNames.Contains(naziv))
-                        {
-                            result.SkipCount++;
-                            progress?.Report(prog);
-                            continue;
-                        }
-
-                        string sifraDjelatnosti = ReadCell(workbookPart, row, Column.SifraDjelatnosti);
-                        string? nazivDjelatnosti = ReadCellOrNull(workbookPart, row, Column.NazivDjelatnosti);
-
-                        if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                            EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti);
-
-                        var klijent = MapKlijent(workbookPart, row, naziv, idBroj, sifraDjelatnosti);
-                        db.Klijenti.Add(klijent);
+                    if (pendingChanges > 0)
                         db.SaveChanges();
 
-                        existingIdBrojevi.Add(idBroj);
-                        existingNames.Add(naziv);
+                    tx.Commit();
 
-                        ImportVlasnici(workbookPart, row, klijent, result, db);
-                        ImportDirektori(workbookPart, row, klijent, db);
-                        ImportUgovor(workbookPart, row, klijent, db);
-
-                        result.SuccessCount++;
-                        pendingChanges++;
-
-                        if (pendingChanges >= BatchSize)
-                        {
-                            db.SaveChanges();
-                            pendingChanges = 0;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        string errorMessage = BuildRowErrorMessage(i, naziv, idBroj, ex);
-                        result.Errors.Add(errorMessage);
-                        result.ErrorCount++;
-                        Debug.WriteLine($"[IMPORT-ROW-ERROR] {errorMessage}");
-                        ClearTrackedEntities(db);
-                    }
-
-                    progress?.Report(prog);
+                    Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Skip={result.SkipCount} Errors={result.ErrorCount}");
                 }
-
-                if (pendingChanges > 0)
-                    db.SaveChanges();
-
-                db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
-                tx.Commit();
-
-                Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Skip={result.SkipCount} Errors={result.ErrorCount}");
+                finally
+                {
+                    // Microsoft.Data.Sqlite pools the underlying connection, and a PRAGMA
+                    // is per-connection state that survives being returned to the pool.
+                    // Without this in a finally, an exception thrown above would leave
+                    // this connection in the pool with foreign keys permanently off.
+                    db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+                }
             }
             catch (Exception ex)
             {

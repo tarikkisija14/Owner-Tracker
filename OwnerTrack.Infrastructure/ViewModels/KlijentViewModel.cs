@@ -25,5 +25,13 @@
         public int BrojDirektora { get; set; }
         public string? StatusKlijenta { get; set; }
         public string? Napomena { get; set; }
+        public string? PepImePrezime { get; set; }
+        public string? PepFunkcija { get; set; }
+        public string? PepPovezanost { get; set; }
+        public string? PepMjerePoduzete { get; set; }
+        public DateTime? PepDatumProvjere { get; set; }
+        public string? OpciIndikatoriRizika { get; set; }
+        public string? IndikatoriIdentifikacijeRizika { get; set; }
+        public string? IndikatoriTransakcijaRizika { get; set; }
     }
 }

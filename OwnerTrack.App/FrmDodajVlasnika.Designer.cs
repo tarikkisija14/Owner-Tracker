@@ -71,7 +71,7 @@ namespace OwnerTrack.App
 
             this.dtDatumValjanosti.Location = new System.Drawing.Point(165, 72);
             this.dtDatumValjanosti.Size = new System.Drawing.Size(210, 24);
-            this.dtDatumValjanosti.Font = uiFont;
+            UiTheme.StyleDateTimePicker(this.dtDatumValjanosti, 9.5f);
             this.dtDatumValjanosti.ShowCheckBox = true;
 
             // Vlasništvo
@@ -90,7 +90,7 @@ namespace OwnerTrack.App
 
             this.dtDatumUtvrdjivanja.Location = new System.Drawing.Point(165, 152);
             this.dtDatumUtvrdjivanja.Size = new System.Drawing.Size(210, 24);
-            this.dtDatumUtvrdjivanja.Font = uiFont;
+            UiTheme.StyleDateTimePicker(this.dtDatumUtvrdjivanja, 9.5f);
 
             // Izvor podatka
             this.lblIzvorPodatka.Text = "Izvor podatka:";

@@ -120,6 +120,36 @@
             }
         }
 
+        /// <summary>
+        /// Reads exactly what's currently shown in the grid (visible columns,
+        /// in display order, with each cell's formatted text) — used for PDF
+        /// export of the generic evidencija views, so the export always
+        /// matches what's on screen, nothing more.
+        /// </summary>
+        public static (string[] Headers, float[] Weights, List<string[]> Rows) ExtractVisibleData(
+            DataGridView grid, bool selectedOnly)
+        {
+            var cols = grid.Columns.Cast<DataGridViewColumn>()
+                .Where(c => c.Visible)
+                .OrderBy(c => c.DisplayIndex)
+                .ToList();
+
+            string[] headers = cols.Select(c => c.HeaderText).ToArray();
+            float[] weights = cols.Select(c => (float)Math.Max(c.Width, 40)).ToArray();
+
+            IEnumerable<DataGridViewRow> source = selectedOnly
+                ? grid.SelectedRows.Cast<DataGridViewRow>()
+                : grid.Rows.Cast<DataGridViewRow>().Where(r => r.DataBoundItem is not null);
+
+            var rows = source
+                .Select(r => cols
+                    .Select(c => r.Cells[c.Index].FormattedValue?.ToString() ?? string.Empty)
+                    .ToArray())
+                .ToList();
+
+            return (headers, weights, rows);
+        }
+
         public static void Emphasize(DataGridView grid, string name, Font font)
         {
             if (grid.Columns.Contains(name))

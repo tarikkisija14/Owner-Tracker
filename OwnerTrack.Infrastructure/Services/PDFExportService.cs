@@ -74,6 +74,209 @@ namespace OwnerTrack.Infrastructure.Services
             return outputPath;
         }
 
+        /// <summary>
+        /// Exports an arbitrary set of columns/rows (e.g. one of the read-only
+        /// evidencija grids) as a PDF table — no Klijent-specific structure,
+        /// just what's passed in, so the export always matches exactly what
+        /// the caller's grid is showing (a single selected row, or all of
+        /// them).
+        /// </summary>
+        // Zaglavlje firme-obveznika koja koristi ovaj obrazac — statično, tačno
+        // kao u originalnom "OBRAZAC ZA PROCJENU RIZIKA" xlsx template-u.
+        private const string ObveznikNaziv = "CONFIDIA BH d.o.o.";
+        private const string ObveznikAdresa = "Bosanska 9";
+        private const string ObveznikIdBroj = "Id broj: 4236743350004";
+        private const string ObveznikDjelatnost = "69.20 - Računovodstvene, knjigovodstvene i revizijske djelatnosti; porezno savjetovanje";
+
+        public string GenerateRizikObrazacPdf(int klijentId, string outputPath)
+        {
+            var klijent = LoadKlijent(klijentId)
+                ?? throw new InvalidOperationException($"Klijent ID={klijentId} nije pronađen.");
+            var obrazac = new RizikObrazacService(_db).Load(klijentId);
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    ApplySinglePageStyle(page);
+                    page.Header().Element(c => BuildRizikObrazacHeader(c));
+                    page.Content().Element(c => BuildRizikObrazacContent(c, klijent, obrazac));
+                    page.Footer().Element(BuildFooter);
+                });
+            }).GeneratePdf(outputPath);
+
+            return outputPath;
+        }
+
+        private static void BuildRizikObrazacHeader(IContainer c)
+        {
+            c.Column(col =>
+            {
+                col.Item().Text(txt => txt.Span(ObveznikNaziv).FontSize(11).Bold());
+                col.Item().Text(txt => txt.Span(ObveznikAdresa).FontSize(9).FontColor(PdfColours.TextMuted));
+                col.Item().Text(txt => txt.Span(ObveznikIdBroj).FontSize(9).FontColor(PdfColours.TextMuted));
+                col.Item().Text(txt => txt.Span(ObveznikDjelatnost).FontSize(9).FontColor(PdfColours.TextMuted));
+
+                col.Item().PaddingTop(10).Background(PdfColours.Navy).PaddingVertical(8)
+                   .Text(txt =>
+                   {
+                       txt.AlignCenter();
+                       txt.Span("OBRAZAC ZA PROCJENU RIZIKA").FontSize(14).FontColor(PdfColours.White).Bold();
+                   });
+            });
+        }
+
+        private static void BuildRizikObrazacContent(IContainer c, Klijent k, RizikObrazacPodaci o)
+        {
+            c.PaddingTop(10).Column(col =>
+            {
+                col.Spacing(10);
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "PODACI O STRANCI"));
+                col.Item().Table(tbl =>
+                {
+                    tbl.ColumnsDefinition(cd =>
+                    {
+                        cd.ConstantColumn(52, Unit.Millimetre);
+                        cd.RelativeColumn();
+                        cd.ConstantColumn(52, Unit.Millimetre);
+                        cd.RelativeColumn();
+                    });
+
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.White,
+                        "Naziv/ime i prezime:", PdfRenderHelpers.Fmt(k.Naziv),
+                        "MB/JMB:", PdfRenderHelpers.Fmt(k.IdBroj));
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.Grey,
+                        "Adresa sjedišta/boravišta:", PdfRenderHelpers.Fmt(k.Adresa),
+                        "Država:", PdfRenderHelpers.Fmt(o.Drzava));
+                });
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "RIZIK STRANKE"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.RizikStranke, o.RizikStrankeOdgovori, o.ProcjenaStranke));
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "RIZIK POSLOVNOG ODNOSA"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.RizikPoslovnogOdnosa, o.RizikPoslovnogOdnosaOdgovori, o.ProcjenaPoslovnogOdnosa));
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "GEOGRAFSKI RIZIK"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.GeografskiRizik, o.GeografskiRizikOdgovori, o.ProcjenaGeografskog));
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "UKUPNA PROCJENA RIZIKA"));
+                col.Item().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(6)
+                   .Text(txt =>
+                   {
+                       txt.Span("PROCJENA: ").FontColor(PdfColours.TextMuted);
+                       txt.Span(PdfRenderHelpers.Fmt(o.UkupnaProcjena)).Bold()
+                          .FontColor(o.UkupnaProcjena == RizikObrazacKriteriji.Vise ? PdfColours.Red : PdfColours.Green);
+                   });
+
+                col.Item().PaddingTop(16).Row(row =>
+                {
+                    row.RelativeItem().Text(txt =>
+                        txt.Span($"{(o.DatumProcjene.HasValue ? o.DatumProcjene.Value.ToString("dd.MM.yyyy.") : "____________")}"));
+                    row.RelativeItem().AlignRight().Column(sig =>
+                    {
+                        sig.Item().Text(txt => txt.Span($"Odobrio: {PdfRenderHelpers.Fmt(o.Odobrio)}"));
+                        sig.Item().PaddingTop(4).Text(txt => txt.Span("DIREKTOR").Bold());
+                    });
+                });
+            });
+        }
+
+        private static void BuildKriterijiTable(IContainer c, string[] pitanja, List<string?> odgovori, string? procjena)
+        {
+            c.Column(col =>
+            {
+                col.Spacing(4);
+
+                col.Item().Table(tbl =>
+                {
+                    tbl.ColumnsDefinition(cd =>
+                    {
+                        cd.RelativeColumn();
+                        cd.ConstantColumn(16, Unit.Millimetre);
+                        cd.ConstantColumn(16, Unit.Millimetre);
+                        cd.ConstantColumn(16, Unit.Millimetre);
+                    });
+
+                    PdfRenderHelpers.RenderTableHeader(tbl, "KRITERIJ");
+                    PdfRenderHelpers.RenderTableHeader(tbl, "DA");
+                    PdfRenderHelpers.RenderTableHeader(tbl, "NE");
+                    PdfRenderHelpers.RenderTableHeader(tbl, "N/P");
+
+                    for (int i = 0; i < pitanja.Length; i++)
+                    {
+                        string bg = PdfRenderHelpers.AlternatingBackground(i);
+                        string? odgovor = i < odgovori.Count ? odgovori[i] : null;
+
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, pitanja[i]);
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Da ? "DA" : "", bold: true, center: true);
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Ne ? "NE" : "", bold: true, center: true);
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Np ? "N/P" : "", bold: true, center: true);
+                    }
+                });
+
+                col.Item().Text(txt =>
+                {
+                    txt.Span("PROCJENA: ").FontColor(PdfColours.TextMuted);
+                    txt.Span(PdfRenderHelpers.Fmt(procjena)).Bold()
+                       .FontColor(procjena == RizikObrazacKriteriji.Vise ? PdfColours.Red : PdfColours.Green);
+                });
+            });
+        }
+
+        public string GenerateGenericTable(string title, string[] headers, float[] weights, List<string[]> rows, string outputPath)
+        {
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    ApplyTablePageStyle(page);
+                    page.Header().Element(c => BuildGenericTableHeader(c, title, rows.Count));
+                    page.Content().Element(c => BuildGenericTableContent(c, headers, weights, rows));
+                    page.Footer().Element(BuildFooter);
+                });
+            }).GeneratePdf(outputPath);
+
+            return outputPath;
+        }
+
+        private static void BuildGenericTableHeader(IContainer c, string title, int total)
+        {
+            c.Background(PdfColours.Navy).Padding(10).Row(row =>
+            {
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text(txt =>
+                        txt.Span(title).FontSize(16).FontColor(PdfColours.White).Bold());
+                    col.Item().PaddingTop(3).Text(txt =>
+                        txt.Span($"Ukupno redova: {total}   |   Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}")
+                           .FontSize(9).FontColor(PdfColours.HeaderSub));
+                });
+            });
+        }
+
+        private static void BuildGenericTableContent(IContainer c, string[] headers, float[] weights, List<string[]> rows)
+        {
+            c.PaddingTop(8).Table(tbl =>
+            {
+                tbl.ColumnsDefinition(cd =>
+                {
+                    foreach (float w in weights)
+                        cd.RelativeColumn(w);
+                });
+
+                foreach (string h in headers)
+                    PdfRenderHelpers.RenderTableHeader(tbl, h);
+
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    string bg = PdfRenderHelpers.AlternatingBackground(i);
+                    foreach (string val in rows[i])
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, string.IsNullOrEmpty(val) ? "—" : val);
+                }
+            });
+        }
+
         private static void ApplySinglePageStyle(PageDescriptor page)
         {
             page.Size(PageSizes.A4);

@@ -47,6 +47,8 @@
         public const string PdfTableSaveTitle = "Sačuvaj tabelu klijenata";
         public const string PdfReportSaveTitle = "Sačuvaj izvještaj firme";
         public const string PdfTableFilePrefix = "Klijenti_tabela_";
+        public const string PdfNoDataToExport = "Nema podataka za export.";
+        public const string PdfNoRowSelected = "Odaberi red iz liste.";
         public const string PdfSavedPromptFormat = "PDF je sačuvan:\n{0}\n\nŽeliš li ga otvoriti?";
         public const string PdfSavedTitle = "PDF kreiran";
         public const string PdfErrorFormat = "Greška pri generisanju PDF-a. Detalji su sačuvani u logu:\n{0}";

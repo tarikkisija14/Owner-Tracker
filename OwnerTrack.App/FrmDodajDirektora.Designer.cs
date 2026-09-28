@@ -81,7 +81,7 @@ namespace OwnerTrack.App
 
             this.dtDatumValjanosti.Location = new System.Drawing.Point(155, 112);
             this.dtDatumValjanosti.Size = new System.Drawing.Size(210, 24);
-            this.dtDatumValjanosti.Font = uiFont;
+            UiTheme.StyleDateTimePicker(this.dtDatumValjanosti, 9.5f);
             this.dtDatumValjanosti.Enabled = true;
             this.dtDatumValjanosti.ShowCheckBox = true;
 

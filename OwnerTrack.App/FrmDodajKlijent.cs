@@ -75,9 +75,12 @@ namespace OwnerTrack.App
 
         private void LoadActivityCodes()
         {
-            var codes = _db.Djelatnosti.OrderBy(d => d.Sifra).ToList();
+            var codes = _db.Djelatnosti
+                .OrderBy(d => d.Sifra)
+                .Select(d => new { d.Sifra, Display = d.Sifra + " - " + d.Naziv })
+                .ToList();
             cbSifra.DataSource = codes;
-            cbSifra.DisplayMember = "Naziv";
+            cbSifra.DisplayMember = "Display";
             cbSifra.ValueMember = "Sifra";
 
             if (codes.Count > 0 && !_klijentId.HasValue)
@@ -97,6 +100,13 @@ namespace OwnerTrack.App
             txtOvjeraCr.Text = k.OvjeraCr ?? string.Empty;
             txtUkupnaProcjena.Text = k.UkupnaProcjena ?? string.Empty;
             txtNapomena.Text = k.Napomena ?? string.Empty;
+            txtPepImePrezime.Text = k.PepImePrezime ?? string.Empty;
+            txtPepFunkcija.Text = k.PepFunkcija ?? string.Empty;
+            txtPepPovezanost.Text = k.PepPovezanost ?? string.Empty;
+            txtPepMjerePoduzete.Text = k.PepMjerePoduzete ?? string.Empty;
+            txtOpciIndikatoriRizika.Text = k.OpciIndikatoriRizika ?? string.Empty;
+            txtIndikatoriIdentifikacijeRizika.Text = k.IndikatoriIdentifikacijeRizika ?? string.Empty;
+            txtIndikatoriTransakcijaRizika.Text = k.IndikatoriTransakcijaRizika ?? string.Empty;
 
             if (!string.IsNullOrEmpty(k.SifraDjelatnosti))
                 cbSifra.SelectedValue = k.SifraDjelatnosti;
@@ -104,6 +114,7 @@ namespace OwnerTrack.App
             dtDatumUspostave.Value = k.DatumUspostave ?? DateTime.Now;
             dtDatumOsnivanja.Value = k.DatumOsnivanja ?? DateTime.Now;
             dtDatumProcjene.Value = k.DatumProcjene ?? DateTime.Now;
+            dtPepDatumProvjere.Value = k.PepDatumProvjere ?? DateTime.Now;
 
             if (k.VrstaKlijenta.HasValue)
                 cbVrstaKlijenta.SelectedValue = k.VrstaKlijenta.Value.ToString();
@@ -178,6 +189,14 @@ namespace OwnerTrack.App
             k.DatumProcjene = dtDatumProcjene.Value;
             k.OvjeraCr = txtOvjeraCr.Text;
             k.Napomena = txtNapomena.Text;
+            k.PepImePrezime = txtPepImePrezime.Text;
+            k.PepFunkcija = txtPepFunkcija.Text;
+            k.PepPovezanost = txtPepPovezanost.Text;
+            k.PepMjerePoduzete = txtPepMjerePoduzete.Text;
+            k.PepDatumProvjere = dtPepDatumProvjere.Value;
+            k.OpciIndikatoriRizika = txtOpciIndikatoriRizika.Text;
+            k.IndikatoriIdentifikacijeRizika = txtIndikatoriIdentifikacijeRizika.Text;
+            k.IndikatoriTransakcijaRizika = txtIndikatoriTransakcijaRizika.Text;
             k.Email = FormHelper.NullIfEmpty(txtEmail.Text);
             k.Telefon = FormHelper.NullIfEmpty(txtTelefon.Text);
             k.VrstaKlijenta = cbVrstaKlijenta.SelectedValue is string vName && Enum.TryParse<VrstaKlijenta>(vName, out var vk) ? vk : null;
@@ -195,6 +214,13 @@ namespace OwnerTrack.App
 
         private void btnSpremi_Click(object sender, EventArgs e)
         {
+            // Guards against a double-click (or Enter-key repeat) firing this
+            // handler twice before the first SaveChanges/SaveNew call returns
+            // and the dialog closes — without this, a fast double-click could
+            // insert the same client twice (or run SaveChanges concurrently)
+            // since nothing else disables the button while the DB call runs.
+            if (!btnSpremi.Enabled) return;
+
             if (string.IsNullOrWhiteSpace(txtNaziv.Text) || string.IsNullOrWhiteSpace(txtIdBroj.Text))
             {
                 MessageBox.Show(UiMessages.KlijentRequiredFields);
@@ -206,6 +232,7 @@ namespace OwnerTrack.App
 
             if (!ValidateFields(naziv, idBroj)) return;
 
+            btnSpremi.Enabled = false;
             try
             {
                 if (_klijentId.HasValue)
@@ -219,6 +246,10 @@ namespace OwnerTrack.App
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri snimanju");
+            }
+            finally
+            {
+                btnSpremi.Enabled = true;
             }
         }
 
@@ -236,12 +267,18 @@ namespace OwnerTrack.App
             if (k is null) return;
 
             string previousName = k.Naziv;
+            var before = SnapshotKlijentFields(k);
+            var ugovorBefore = _db.Ugovori.FirstOrDefault(u => u.KlijentId == id);
+            string? previousVrstaUgovora = ugovorBefore?.VrstaUgovora;
+            string? previousStatusUgovora = ugovorBefore?.StatusUgovora;
+            string? previousDatumUgovora = FormatDate(ugovorBefore?.DatumUgovora);
+
             k.Naziv = naziv;
             k.IdBroj = idBroj;
             k.Azuriran = DateTime.Now;
             ApplyFormFieldsToKlijent(k);
 
-            var ugovor = _db.Ugovori.FirstOrDefault(u => u.KlijentId == id);
+            var ugovor = ugovorBefore;
 
             if (!string.IsNullOrWhiteSpace(cbStatusUgovora.Text))
             {
@@ -255,13 +292,56 @@ namespace OwnerTrack.App
             else if (ugovor is not null)
             {
                 _db.Ugovori.Remove(ugovor);
+                ugovor = null;
             }
 
-            TransactionHelper.SaveWithAudit(_db,
-                () => _audit.LogUpdated("Klijenti", id, $"'{previousName}' → '{naziv}'"));
+            string opis = AuditService.DescribeFieldChanges(naziv,
+                ("Naziv", previousName, naziv),
+                ("ID broj", before.IdBroj, idBroj),
+                ("Adresa", before.Adresa, k.Adresa),
+                ("Šifra djelatnosti", before.SifraDjelatnosti, k.SifraDjelatnosti),
+                ("Datum uspostave", before.DatumUspostave, FormatDate(k.DatumUspostave)),
+                ("Datum osnivanja", before.DatumOsnivanja, FormatDate(k.DatumOsnivanja)),
+                ("Veličina", before.Velicina, k.Velicina),
+                ("Email", before.Email, k.Email),
+                ("Telefon", before.Telefon, k.Telefon),
+                ("Vrsta klijenta", before.VrstaKlijenta, k.VrstaKlijenta?.ToString()),
+                ("Status", before.Status, k.Status.ToString()),
+                ("PEP rizik", before.PepRizik, k.PepRizik),
+                ("UBO rizik", before.UboRizik, k.UboRizik),
+                ("Gotovina rizik", before.GotovinaRizik, k.GotovinaRizik),
+                ("Geografski rizik", before.GeografskiRizik, k.GeografskiRizik),
+                ("Ukupna procjena", before.UkupnaProcjena, k.UkupnaProcjena),
+                ("Datum procjene", before.DatumProcjene, FormatDate(k.DatumProcjene)),
+                ("Ovjera CR", before.OvjeraCr, k.OvjeraCr),
+                ("PEP ime i prezime", before.PepImePrezime, k.PepImePrezime),
+                ("PEP funkcija", before.PepFunkcija, k.PepFunkcija),
+                ("PEP povezanost", before.PepPovezanost, k.PepPovezanost),
+                ("PEP datum provjere", before.PepDatumProvjere, FormatDate(k.PepDatumProvjere)),
+                ("Vrsta ugovora", previousVrstaUgovora, ugovor?.VrstaUgovora),
+                ("Status ugovora", previousStatusUgovora, ugovor?.StatusUgovora),
+                ("Datum ugovora", previousDatumUgovora, FormatDate(ugovor?.DatumUgovora)));
+
+            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Klijenti", id, opis));
 
             MessageBox.Show(UiMessages.KlijentSavedUpdate);
         }
+
+        private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
+
+        private readonly record struct KlijentFieldSnapshot(
+            string? IdBroj, string? Adresa, string? SifraDjelatnosti, string? DatumUspostave, string? DatumOsnivanja,
+            string? Velicina, string? Email, string? Telefon, string? VrstaKlijenta, string? Status,
+            string? PepRizik, string? UboRizik, string? GotovinaRizik, string? GeografskiRizik,
+            string? UkupnaProcjena, string? DatumProcjene, string? OvjeraCr,
+            string? PepImePrezime, string? PepFunkcija, string? PepPovezanost, string? PepDatumProvjere);
+
+        private static KlijentFieldSnapshot SnapshotKlijentFields(Klijent k) => new(
+            k.IdBroj, k.Adresa, k.SifraDjelatnosti, FormatDate(k.DatumUspostave), FormatDate(k.DatumOsnivanja),
+            k.Velicina, k.Email, k.Telefon, k.VrstaKlijenta?.ToString(), k.Status.ToString(),
+            k.PepRizik, k.UboRizik, k.GotovinaRizik, k.GeografskiRizik,
+            k.UkupnaProcjena, FormatDate(k.DatumProcjene), k.OvjeraCr,
+            k.PepImePrezime, k.PepFunkcija, k.PepPovezanost, FormatDate(k.PepDatumProvjere));
 
         private void SaveNew(string naziv, string idBroj)
         {

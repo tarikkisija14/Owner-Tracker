@@ -104,7 +104,7 @@ namespace OwnerTrack.App
             lblFirme.BackColor = UiTheme.PanelLight;
             lblFirme.ForeColor = UiTheme.Navy;
             lblFirme.Dock = System.Windows.Forms.DockStyle.Top;
-            lblFirme.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            lblFirme.Font = OwnerTrack.App.Constants.UiTheme.Base(11f, System.Drawing.FontStyle.Bold);
             lblFirme.Height = 30;
             lblFirme.Padding = new System.Windows.Forms.Padding(14, 0, 0, 0);
             lblFirme.Name = "lblFirme";
@@ -142,7 +142,7 @@ namespace OwnerTrack.App
             lblDetalji.BackColor = UiTheme.PanelLight;
             lblDetalji.ForeColor = UiTheme.Navy;
             lblDetalji.Dock = System.Windows.Forms.DockStyle.Top;
-            lblDetalji.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            lblDetalji.Font = OwnerTrack.App.Constants.UiTheme.Base(11f, System.Drawing.FontStyle.Bold);
             lblDetalji.Height = 30;
             lblDetalji.Padding = new System.Windows.Forms.Padding(14, 0, 0, 0);
             lblDetalji.Name = "lblDetalji";

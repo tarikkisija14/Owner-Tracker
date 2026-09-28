@@ -37,5 +37,24 @@ namespace OwnerTrack.Infrastructure.Services
             entity.Obrisan = DateTime.Now;
             Log(tabela, id, AuditConstants.Obrisano, opis);
         }
+
+        /// <summary>
+        /// Gradi opis izmjene koji prikazuje samo polja koja su se stvarno
+        /// promijenila (npr. samo datum, iako se ime nije mijenjalo) — umjesto
+        /// dosadašnjeg fiksnog "'staro ime' → 'novo ime'" formata koji je
+        /// zbunjujuće ispisivao isto ime na obje strane kad se mijenjalo neko
+        /// drugo polje.
+        /// </summary>
+        public static string DescribeFieldChanges(string label, params (string Field, string? Before, string? After)[] fields)
+        {
+            var changes = fields
+                .Where(f => f.Before != f.After)
+                .Select(f => $"{f.Field}: '{f.Before}' → '{f.After}'")
+                .ToList();
+
+            return changes.Count == 0
+                ? $"'{label}' — snimljeno bez promjena na poljima"
+                : $"'{label}' — " + string.Join("; ", changes);
+        }
     }
 }

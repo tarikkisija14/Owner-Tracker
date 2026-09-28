@@ -1,4 +1,6 @@
-﻿namespace OwnerTrack.App.Helpers
+﻿using OwnerTrack.App.Constants;
+
+namespace OwnerTrack.App.Helpers
 {
     internal static class ImportProgressFormFactory
     {
@@ -17,6 +19,7 @@
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
                 MinimizeBox = false,
+                BackColor = UiTheme.FormBackgroundDialog,
             };
 
             progressBar = new ProgressBar
@@ -35,6 +38,8 @@
                 Text = "Priprema...",
                 AutoSize = false,
             };
+            UiTheme.StyleLabel(lblStatus);
+            lblStatus.AutoSize = false;
 
             btnClose = new Button
             {
@@ -43,6 +48,7 @@
                 Width = 90,
                 Enabled = false,
             };
+            UiTheme.StyleFlatButton(btnClose, UiTheme.Green);
 
             btnCancel = new Button
             {
@@ -51,6 +57,7 @@
                 Width = 90,
                 Enabled = true,
             };
+            UiTheme.StyleFlatButton(btnCancel, UiTheme.Red);
 
             frm.Controls.AddRange(new Control[] { progressBar, lblStatus, btnClose, btnCancel });
             return frm;

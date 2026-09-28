@@ -56,6 +56,29 @@ namespace OwnerTrack.Data.Entities
         [StringLength(255)]
         public string? OvjeraCr { get; set; }
 
+        [StringLength(255)]
+        public string? PepImePrezime { get; set; }
+
+        [StringLength(255)]
+        public string? PepFunkcija { get; set; }
+
+        [StringLength(255)]
+        public string? PepPovezanost { get; set; }
+
+        [StringLength(500)]
+        public string? PepMjerePoduzete { get; set; }
+
+        public DateTime? PepDatumProvjere { get; set; }
+
+        [StringLength(500)]
+        public string? OpciIndikatoriRizika { get; set; }
+
+        [StringLength(500)]
+        public string? IndikatoriIdentifikacijeRizika { get; set; }
+
+        [StringLength(500)]
+        public string? IndikatoriTransakcijaRizika { get; set; }
+
         [StringLength(50)]
         public StatusEntiteta Status { get; set; } = StatusEntiteta.AKTIVAN;
 
@@ -71,6 +94,8 @@ namespace OwnerTrack.Data.Entities
         public DateTime? Kreiran { get; set; }
         public DateTime? Azuriran { get; set; }
         public DateTime? Obrisan { get; set; }
+
+        public string? RizikObrazacJson { get; set; }
 
         public virtual Djelatnost? Djelatnost { get; set; }
         public virtual ICollection<Vlasnik> Vlasnici { get; set; } = new List<Vlasnik>();
