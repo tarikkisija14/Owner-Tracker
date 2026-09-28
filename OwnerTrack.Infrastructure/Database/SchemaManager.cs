@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace OwnerTrack.Infrastructure
@@ -46,6 +47,8 @@ namespace OwnerTrack.Infrastructure
             if (version < 10) ApplyV10(conn);
             if (version < 11) ApplyV11(conn);
             if (version < 12) ApplyV12(conn);
+            if (version < 13) ApplyV13(conn);
+            if (version < 14) ApplyV14(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -286,6 +289,182 @@ namespace OwnerTrack.Infrastructure
             {
                 AddColumnIfMissing(c, tx, "Klijenti", "RizikObrazacJson", "TEXT");
             });
+
+        // Sprječava duplikate aktivnih klijenata na DB nivou (dosad je jedina
+        // zaštita bila aplikacijska provjera u FrmDodajKlijent.ValidateFields,
+        // koja ostavlja TOCTOU prozor između provjere i INSERT-a). Partial
+        // unique index (WHERE Obrisan IS NULL) — namjerno isti obrazac kao
+        // postojeća aplikacijska provjera (k.Obrisan == null) — tako da
+        // arhiviranje i ponovno korištenje istog naziva/IdBroj-a i dalje rade
+        // (arhivirani zapisi ne blokiraju novi aktivni zapis s istim poljem).
+        //
+        // Neke instalacije (baze kreirane prije nego što je ovaj SchemaManager
+        // postao jedini put kreiranja sheme) imaju na Klijenti.Naziv/IdBroj
+        // stari, ne-partial UNIQUE (inline column constraint, vidljiv kao
+        // sqlite_autoindex_Klijenti_*), koji blokira upravo scenarij koji ova
+        // migracija treba omogućiti — ponovno korištenje naziva/IdBroj-a nakon
+        // arhiviranja. Takav constraint se u SQLite-u ne može ukloniti sa ALTER
+        // TABLE, pa se tabela po potrebi rebuilda (isti obrazac kao ApplyV2 za
+        // Direktori), a zatim se dodaje ispravan partial unique index.
+        private void ApplyV13(SqliteConnection conn)
+        {
+            // PRAGMA foreign_keys ne smije se mijenjati unutar transakcije
+            // (SQLite je tada tiho ignoriše), pa provjera i eventualno
+            // isključivanje moraju biti ovdje, prije nego ApplyMigration
+            // otvori transakciju. Rebuild u RebuildKlijentiWithoutInlineUnique
+            // radi DROP TABLE Klijenti — bez ovoga bi SQLite (Microsoft.Data.Sqlite
+            // ima foreign_keys uključen po defaultu) to protumačio kao brisanje
+            // svakog Vlasnika/Direktora/Ugovora koji na taj red pokazuje (ON
+            // DELETE CASCADE) i odbio operaciju/obrisao djecu.
+            bool needsRebuild = HasLegacyFullUniqueConstraint(conn, null, "Klijenti", "Naziv") ||
+                                 HasLegacyFullUniqueConstraint(conn, null, "Klijenti", "IdBroj");
+
+            if (needsRebuild)
+                ExecSql(conn, null, "PRAGMA foreign_keys = OFF");
+
+            try
+            {
+                ApplyMigration(conn, 13, "dodavanje unique indexa na Klijenti.Naziv/IdBroj za aktivne zapise", (c, tx) =>
+                {
+                    if (needsRebuild)
+                        RebuildKlijentiWithoutInlineUnique(c, tx);
+
+                    ExecSql(c, tx,
+                        "CREATE UNIQUE INDEX IF NOT EXISTS UX_Klijenti_Naziv_Active " +
+                        "ON Klijenti(Naziv) WHERE Obrisan IS NULL");
+                    ExecSql(c, tx,
+                        "CREATE UNIQUE INDEX IF NOT EXISTS UX_Klijenti_IdBroj_Active " +
+                        "ON Klijenti(IdBroj) WHERE Obrisan IS NULL");
+                });
+
+                if (needsRebuild)
+                    VerifyNoOrphansAfterKlijentiRebuild(conn);
+            }
+            finally
+            {
+                if (needsRebuild)
+                    ExecSql(conn, null, "PRAGMA foreign_keys = ON");
+            }
+        }
+
+        // Optimistic-concurrency token za Klijenti/Vlasnici/Direktori — vidi
+        // OwnerTrackDbContext.ConfigureConcurrencyTokens. DEFAULT 0 znači da
+        // svi postojeći redovi kreću sa istom početnom vrijednošću (0), što je
+        // sigurno: prvi sljedeći Save na bilo kojem od njih će EF-ov
+        // "WHERE Version = 0" ispravno pogoditi jer ništa nije moglo promijeniti
+        // taj red između migracije i tog Save-a.
+        private void ApplyV14(SqliteConnection conn) =>
+            ApplyMigration(conn, 14, "dodavanje Version kolone (optimistic concurrency) na Klijenti/Vlasnici/Direktori", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "Klijenti", "Version", "INTEGER NOT NULL DEFAULT 0");
+                AddColumnIfMissing(c, tx, "Vlasnici", "Version", "INTEGER NOT NULL DEFAULT 0");
+                AddColumnIfMissing(c, tx, "Direktori", "Version", "INTEGER NOT NULL DEFAULT 0");
+            });
+
+        // Nakon rebuilda Klijenti tabele (koji je rađen sa foreign_keys=OFF)
+        // provjerava da nijedan Vlasnik/Direktor/Ugovor ne pokazuje na
+        // nepostojeći KlijentId — čisto sigurnosna provjera, jer INSERT INTO
+        // Klijenti_new SELECT ... FROM Klijenti kopira retke 1:1 po Id-u pa do
+        // orphan zapisa ne bi smjelo doći, ali greška ovdje mora prekinuti
+        // migraciju umjesto da tiho ostavi nekonzistentnu bazu.
+        private static void VerifyNoOrphansAfterKlijentiRebuild(SqliteConnection conn)
+        {
+            foreach (var (table, fk) in new[] { ("Vlasnici", "KlijentId"), ("Direktori", "KlijentId"), ("Ugovori", "KlijentId") })
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"SELECT COUNT(*) FROM {table} t WHERE NOT EXISTS (SELECT 1 FROM Klijenti k WHERE k.Id = t.{fk})";
+                int orphanCount = Convert.ToInt32(cmd.ExecuteScalar());
+                if (orphanCount > 0)
+                    throw new InvalidOperationException(
+                        $"Rebuild Klijenti tabele je proizveo {orphanCount} orphan zapis(a) u {table} — migracija prekinuta.");
+            }
+        }
+
+        // Otkriva UNIQUE definisan direktno na koloni (npr. "Naziv TEXT NOT
+        // NULL UNIQUE" u CREATE TABLE), koji SQLite predstavlja kao automatski
+        // indeks "sqlite_autoindex_<tabela>_<n>" čiji je jedini sadržaj ta
+        // kolona — za razliku od imenovanih indexa koje ova klasa inače pravi.
+        private static bool HasLegacyFullUniqueConstraint(SqliteConnection conn, SqliteTransaction? tx, string table, string column)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=@t AND name LIKE 'sqlite_autoindex_%'";
+            cmd.Parameters.AddWithValue("@t", table);
+
+            var autoIndexNames = new List<string>();
+            using (var reader = cmd.ExecuteReader())
+                while (reader.Read())
+                    autoIndexNames.Add(reader.GetString(0));
+
+            foreach (var indexName in autoIndexNames)
+            {
+                using var infoCmd = conn.CreateCommand();
+                infoCmd.Transaction = tx;
+                infoCmd.CommandText = $"PRAGMA index_info(\"{indexName}\")";
+                using var infoReader = infoCmd.ExecuteReader();
+
+                var columns = new List<string>();
+                while (infoReader.Read())
+                    columns.Add(infoReader.GetString(2));
+
+                if (columns.Count == 1 && columns[0].Equals(column, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        // Rebuilda Klijenti tabelu bez inline UNIQUE na Naziv/IdBroj, čuvajući
+        // sve ostale kolone, tipove, NOT NULL, default vrijednosti, FK i sve
+        // postojeće podatke. Kolone se čitaju iz PRAGMA table_info umjesto da
+        // se ručno prepisuju, da rebuild ne zavisi od ručno održavane liste od
+        // 30+ kolona koja bi lako izašla iz sinhronizacije sa stvarnom šemom.
+        private void RebuildKlijentiWithoutInlineUnique(SqliteConnection conn, SqliteTransaction tx)
+        {
+            var columns = new List<(string Name, string Type, bool NotNull, string? Default)>();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "PRAGMA table_info(Klijenti)";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string name = reader.GetString(1);
+                    string type = reader.GetString(2);
+                    bool notNull = reader.GetInt32(3) != 0;
+                    string? dflt = reader.IsDBNull(4) ? null : reader.GetString(4);
+                    columns.Add((name, type, notNull, dflt));
+                }
+            }
+
+            var columnDefs = new List<string>();
+            foreach (var col in columns)
+            {
+                if (col.Name.Equals("Id", StringComparison.OrdinalIgnoreCase))
+                {
+                    columnDefs.Add("Id INTEGER PRIMARY KEY AUTOINCREMENT");
+                    continue;
+                }
+
+                string def = $"{col.Name} {col.Type}";
+                if (col.NotNull) def += " NOT NULL";
+                if (col.Default != null) def += $" DEFAULT {col.Default}";
+                columnDefs.Add(def);
+            }
+            columnDefs.Add("FOREIGN KEY (SifraDjelatnosti) REFERENCES Djelatnosti(Sifra) ON DELETE RESTRICT");
+
+            string columnList = string.Join(", ", columns.ConvertAll(c => c.Name));
+
+            ExecSql(conn, tx, "DROP TABLE IF EXISTS Klijenti_new");
+            ExecSql(conn, tx, $"CREATE TABLE Klijenti_new ({string.Join(", ", columnDefs)})");
+            ExecSql(conn, tx, $"INSERT INTO Klijenti_new ({columnList}) SELECT {columnList} FROM Klijenti");
+            ExecSql(conn, tx, "DROP TABLE Klijenti");
+            ExecSql(conn, tx, "ALTER TABLE Klijenti_new RENAME TO Klijenti");
+
+            // Neimenovani indexi (IX_Klijenti_Naziv/IdBroj) se ne prave ovdje
+            // jer ih zamjenjuje partial unique index koji ApplyV13 pravi odmah
+            // nakon poziva ove metode.
+        }
 
         public void ReseedDjelatnosti()
         {

@@ -104,6 +104,10 @@ namespace OwnerTrack.App
                 DialogResult = DialogResult.OK;
                 Close();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);
@@ -169,6 +173,7 @@ namespace OwnerTrack.App
             string? previousIzvor = v.IzvorPodatka;
 
             ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
+            v.Version++;
 
             string opis = AuditService.DescribeFieldChanges(imePrezime,
                 ("Ime i prezime", previousName, imePrezime),

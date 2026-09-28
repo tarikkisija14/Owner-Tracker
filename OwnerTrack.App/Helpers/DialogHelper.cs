@@ -86,6 +86,12 @@ namespace OwnerTrack.App.Helpers
             MessageBox.Show(message);
         }
 
+        public static void ShowConcurrencyConflict() =>
+            MessageBox.Show(
+                UiMessages.ConcurrencyConflictMessage,
+                UiMessages.ConcurrencyConflictTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
        
 
         public static string BuildSafeFileName(string naziv)

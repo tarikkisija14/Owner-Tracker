@@ -97,6 +97,13 @@ namespace OwnerTrack.Data.Entities
 
         public string? RizikObrazacJson { get; set; }
 
+        // Optimistic-concurrency token (manually incremented before every
+        // SaveChanges — SQLite has no server-generated rowversion). EF
+        // includes "WHERE Version = @original" on UPDATE, so a save against a
+        // row another form/process already changed throws
+        // DbUpdateConcurrencyException instead of silently overwriting it.
+        public int Version { get; set; }
+
         public virtual Djelatnost? Djelatnost { get; set; }
         public virtual ICollection<Vlasnik> Vlasnici { get; set; } = new List<Vlasnik>();
         public virtual ICollection<Direktor> Direktori { get; set; } = new List<Direktor>();

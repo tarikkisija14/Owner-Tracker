@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Enums;
@@ -13,6 +14,7 @@ namespace OwnerTrack.App
 
         private readonly int _klijentId;
         private readonly string _nazivKlijenta;
+        private int _version;
 
         private readonly List<ComboBox> _combosStranke = new();
         private readonly List<ComboBox> _combosPoslovniOdnos = new();
@@ -41,7 +43,7 @@ namespace OwnerTrack.App
             try
             {
                 using var db = DbContextFactory.Create();
-                var podaci = new RizikObrazacService(db).Load(_klijentId);
+                var podaci = new RizikObrazacService(db).Load(_klijentId, out _version);
                 Populate(podaci);
             }
             catch (Exception ex)
@@ -263,8 +265,12 @@ namespace OwnerTrack.App
             try
             {
                 using var db = DbContextFactory.Create();
-                new RizikObrazacService(db).Save(_klijentId, CollectPodaci());
+                _version = new RizikObrazacService(db).Save(_klijentId, CollectPodaci(), _version);
                 MessageBox.Show("Obrazac je sačuvan.", "Sačuvano", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
             }
             catch (Exception ex)
             {
@@ -274,21 +280,33 @@ namespace OwnerTrack.App
 
         private async void btnExportPdf_Click(object sender, EventArgs e)
         {
+            // Save-As dialog se prikazuje PRIJE snimanja u bazu — ako korisnik
+            // klikne Cancel na dijalogu, trenutne izmjene na formi ne smiju
+            // završiti upisane u bazu kao neželjeni nusprodukt neuspjelog
+            // exporta. Baza se ažurira tek kad je korisnik stvarno potvrdio
+            // export (odabrao lokaciju fajla), jer GenerateRizikObrazacPdf
+            // čita podatke iz baze, pa moraju biti snimljeni prije generisanja
+            // PDF-a — ali samo u tom slučaju, ne unaprijed.
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                "Sačuvaj obrazac za procjenu rizika",
+                DialogHelper.BuildSafeFileName($"Procjena_rizika_{_nazivKlijenta}"));
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
             try
             {
                 using var db = DbContextFactory.Create();
-                new RizikObrazacService(db).Save(_klijentId, CollectPodaci());
+                _version = new RizikObrazacService(db).Save(_klijentId, CollectPodaci(), _version);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
+                return;
             }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri čuvanju obrasca za procjenu rizika");
                 return;
             }
-
-            using var dialog = DialogHelper.CreateSaveDialogPdf(
-                "Sačuvaj obrazac za procjenu rizika",
-                DialogHelper.BuildSafeFileName($"Procjena_rizika_{_nazivKlijenta}"));
-            if (dialog.ShowDialog() != DialogResult.OK) return;
 
             string savedPath = dialog.FileName;
             await DialogHelper.ExecutePdfExport(

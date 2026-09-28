@@ -1,5 +1,7 @@
-﻿using OwnerTrack.App.Constants;
+﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Services;
 
@@ -15,7 +17,27 @@ namespace OwnerTrack.App.Presenters
                 {
                     var k = db.Klijenti.Find(id);
                     if (k is null) return;
-                    new AuditService(db).Archive(
+
+                    var audit = new AuditService(db);
+
+                    // Cascade the archive to still-active owners/directors so their
+                    // Status/Obrisan reflect the parent's archived state, instead of
+                    // leaving them AKTIVAN while the client itself is ARHIVIRAN.
+                    var activeVlasnici = db.Vlasnici
+                        .Where(v => v.KlijentId == id && v.Status != StatusEntiteta.ARHIVIRAN)
+                        .ToList();
+                    foreach (var v in activeVlasnici)
+                        audit.Archive(v, "Vlasnici", v.Id,
+                            string.Format(UiMessages.AuditArchivedVlasnik, v.ImePrezime));
+
+                    var activeDirektori = db.Direktori
+                        .Where(d => d.KlijentId == id && d.Status != StatusEntiteta.ARHIVIRAN)
+                        .ToList();
+                    foreach (var d in activeDirektori)
+                        audit.Archive(d, "Direktori", d.Id,
+                            string.Format(UiMessages.AuditArchivedDirektor, d.ImePrezime));
+
+                    audit.Archive(
                         k, "Klijenti", id,
                         string.Format(UiMessages.AuditArchivedKlijent, k.Naziv));
                     db.SaveChanges();

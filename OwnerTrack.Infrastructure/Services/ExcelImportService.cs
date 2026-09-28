@@ -6,6 +6,7 @@ using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Models;
 using OwnerTrack.Infrastructure.Parsing;
+using OwnerTrack.Infrastructure.Validators;
 using System.Diagnostics;
 
 namespace OwnerTrack.Infrastructure.Services
@@ -87,8 +88,12 @@ namespace OwnerTrack.Infrastructure.Services
                     db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
                     using var tx = db.Database.BeginTransaction();
 
-                    var existingIdBrojevi = db.Klijenti.AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    var existingNames = db.Klijenti.AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    // IgnoreQueryFilters() so archived (soft-deleted) clients are still
+                    // treated as "already exist" during dedup — otherwise re-importing a
+                    // row for a company that was previously archived would silently create
+                    // a second Klijent row with the same IdBroj/Naziv as the archived one.
+                    var existingIdBrojevi = db.Klijenti.IgnoreQueryFilters().AsNoTracking().Select(k => k.IdBroj).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var existingNames = db.Klijenti.IgnoreQueryFilters().AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var existingActivityCodes = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                     int pendingChanges = 0;
@@ -105,6 +110,21 @@ namespace OwnerTrack.Infrastructure.Services
                         string naziv = string.Empty;
                         string idBroj = string.Empty;
 
+                        // Savepoint po redu: MapKlijent+SaveChanges na liniji ispod
+                        // commituje Klijent unutar VANJSKE transakcije prije nego što
+                        // se importuju Vlasnici/Direktori/Ugovor za taj isti red. Bez
+                        // ovoga bi, ako neka od tih kasnijih koraka (npr. validacija
+                        // procenta vlasništva) baci grešku, catch ispod samo detach-ovao
+                        // EF tracking (ClearTrackedEntities) — Klijent red bi ostao trajno
+                        // upisan u bazi na kraju importa (kad se vanjska transakcija
+                        // commituje), bez ijednog Vlasnika/Direktora, jer se greška samo
+                        // bilježi u result.Errors umjesto da prekine cijeli import.
+                        // Savepoint + rollback na njega poništava SVE promjene tog reda
+                        // (uključujući već sačuvanog Klijenta) a da ostatak importa
+                        // nastavi normalno.
+                        string savepointName = $"row_{i}";
+                        tx.CreateSavepoint(savepointName);
+
                         try
                         {
                             naziv = ReadCell(workbookPart, row, Column.Naziv);
@@ -118,6 +138,15 @@ namespace OwnerTrack.Infrastructure.Services
                                 progress?.Report(prog);
                                 continue;
                             }
+
+                            // Ista pravila kao FrmDodajKlijent.ValidateFields — ne
+                            // uvozi red sa neispravnim JIB-om tiho/bez izmjene;
+                            // umjesto toga baca (uhvaćeno u catch ispod) tako da
+                            // korisnik dobije row-level grešku sa razlogom, na
+                            // isti način kao za bilo koju drugu grešku pri importu.
+                            string? jibError = JibValidator.GetValidationError(idBroj);
+                            if (jibError is not null)
+                                throw new InvalidOperationException($"Neispravan ID broj: {jibError}");
 
                             if (existingIdBrojevi.Contains(idBroj) || existingNames.Contains(naziv))
                             {
@@ -140,7 +169,7 @@ namespace OwnerTrack.Infrastructure.Services
                             existingNames.Add(naziv);
 
                             ImportVlasnici(workbookPart, row, klijent, result, db);
-                            ImportDirektori(workbookPart, row, klijent, db);
+                            ImportDirektori(workbookPart, row, klijent, result, db);
                             ImportUgovor(workbookPart, row, klijent, db);
 
                             result.SuccessCount++;
@@ -158,7 +187,9 @@ namespace OwnerTrack.Infrastructure.Services
                             result.Errors.Add(errorMessage);
                             result.ErrorCount++;
                             Debug.WriteLine($"[IMPORT-ROW-ERROR] {errorMessage}");
+
                             ClearTrackedEntities(db);
+                            tx.RollbackToSavepoint(savepointName);
                         }
 
                         progress?.Report(prog);
@@ -223,8 +254,33 @@ namespace OwnerTrack.Infrastructure.Services
 
             if (string.IsNullOrWhiteSpace(rawNames)) return;
 
+            // Isti obrazac provjere kao FrmDodajVlasnika.btnSpremi_Click
+            // (poređenje po ImePrezime unutar istog klijenta) — sprječava da
+            // isto ime navedeno dva puta u jednoj Excel ćeliji (npr. greška u
+            // izvornim podacima) proizvede dva identična Vlasnik zapisa. Za
+            // razliku od neispravnog JIB-a/procenta, ovo se ne tretira kao
+            // greška koja odbacuje cijeli red — duplikat se samo preskače i
+            // zabilježi u result.Errors da korisnik zna da je nešto izostavljeno.
+            var seenNames = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (var vlasnik in ExcelEntityParser.ParseVlasnici(rawNames, rawDates, rawPercentages))
             {
+                if (!seenNames.Add(vlasnik.ImePrezime))
+                {
+                    result.Errors.Add(
+                        $"Klijent '{klijent.Naziv}': vlasnik '{vlasnik.ImePrezime}' naveden više puta u istom redu — dodan samo jednom.");
+                    continue;
+                }
+
+                // Isto pravilo kao FrmDodajVlasnika.TryParsePercentage (0-100).
+                // Ne clampa/ignoriše van-opsega vrijednost — baca (uhvaćeno u
+                // row-level catch u ImportFromExcel) da cijeli red bude
+                // prijavljen kao greška, isto kao neispravan JIB.
+                if (vlasnik.ProcenatVlasnistva is < 0 or > 100)
+                    throw new InvalidOperationException(
+                        $"Neispravan procenat vlasništva za '{vlasnik.ImePrezime}': " +
+                        $"{vlasnik.ProcenatVlasnistva} (mora biti između 0 i 100).");
+
                 vlasnik.KlijentId = klijent.Id;
                 vlasnik.DatumUtvrdjivanja = ExcelValueNormalizer.ParseDate(rawDatUtvrdjivanja);
                 vlasnik.IzvorPodatka = rawIzvorPodatka?.Trim();
@@ -235,15 +291,25 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
-        private void ImportDirektori(WorkbookPart wbp, Row row, Klijent klijent, OwnerTrackDbContext db)
+        private void ImportDirektori(WorkbookPart wbp, Row row, Klijent klijent, ImportResult result, OwnerTrackDbContext db)
         {
             string? rawNames = ReadCellOrNull(wbp, row, Column.Direktor);
             string? rawDate = ReadCellOrNull(wbp, row, Column.DatVazDirektora);
 
             if (string.IsNullOrWhiteSpace(rawNames)) return;
 
+            // Isti razlog kao dedup u ImportVlasnici (vidi komentar tamo).
+            var seenNames = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (var direktor in ExcelEntityParser.ParseDirektori(rawNames, rawDate))
             {
+                if (!seenNames.Add(direktor.ImePrezime))
+                {
+                    result.Errors.Add(
+                        $"Klijent '{klijent.Naziv}': direktor '{direktor.ImePrezime}' naveden više puta u istom redu — dodan samo jednom.");
+                    continue;
+                }
+
                 direktor.KlijentId = klijent.Id;
                 direktor.Status = StatusEntiteta.AKTIVAN;
                 db.Direktori.Add(direktor);

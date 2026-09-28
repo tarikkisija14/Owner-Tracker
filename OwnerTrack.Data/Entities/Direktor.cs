@@ -31,6 +31,9 @@ namespace OwnerTrack.Data.Entities
         public DateTime Kreiran { get; set; } = DateTime.Now;
         public DateTime? Obrisan { get; set; }
 
+        // See Klijent.Version — same optimistic-concurrency pattern.
+        public int Version { get; set; }
+
         public virtual Klijent Klijent { get; set; } = null!;
     }
 }

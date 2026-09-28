@@ -25,6 +25,7 @@ namespace OwnerTrack.Infrastructure.Database
             ConfigureRelationships(modelBuilder);
             ConfigureIndexes(modelBuilder);
             ConfigureQueryFilters(modelBuilder);
+            ConfigureConcurrencyTokens(modelBuilder);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -70,6 +71,21 @@ namespace OwnerTrack.Infrastructure.Database
             mb.Entity<Vlasnik>().HasIndex(v => new { v.KlijentId, v.ImePrezime });
             mb.Entity<Direktor>().HasIndex(d => d.KlijentId);
             mb.Entity<Ugovor>().HasIndex(u => u.KlijentId).IsUnique();
+        }
+
+        // Optimistic concurrency: EF adds "WHERE Version = @original" to the
+        // UPDATE statement for these entities, so a save against a row that
+        // another form/process already changed throws
+        // DbUpdateConcurrencyException instead of silently overwriting it.
+        // Version is a plain app-managed int (not database-generated) since
+        // SQLite has no server-side rowversion; each Save path increments it
+        // itself before calling SaveChanges (see FrmDodajKlijent, FrmDodajVlasnika,
+        // FrmDodajDirektora, RizikObrazacService).
+        private static void ConfigureConcurrencyTokens(ModelBuilder mb)
+        {
+            mb.Entity<Klijent>().Property(k => k.Version).IsConcurrencyToken();
+            mb.Entity<Vlasnik>().Property(v => v.Version).IsConcurrencyToken();
+            mb.Entity<Direktor>().Property(d => d.Version).IsConcurrencyToken();
         }
 
         private static void ConfigureQueryFilters(ModelBuilder mb)

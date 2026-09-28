@@ -243,6 +243,10 @@ namespace OwnerTrack.App
                 DialogResult = DialogResult.OK;
                 Close();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri snimanju");
@@ -259,7 +263,7 @@ namespace OwnerTrack.App
             Close();
         }
 
-       
+
 
         private void SaveChanges(int id, string naziv, string idBroj)
         {
@@ -277,6 +281,7 @@ namespace OwnerTrack.App
             k.IdBroj = idBroj;
             k.Azuriran = DateTime.Now;
             ApplyFormFieldsToKlijent(k);
+            k.Version++;
 
             var ugovor = ugovorBefore;
 

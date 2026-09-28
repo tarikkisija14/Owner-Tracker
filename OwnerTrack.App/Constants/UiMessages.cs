@@ -110,6 +110,8 @@
         
 
         public const string DirektorNameRequired = "Upiši ime i prezime direktora!";
+        public const string DirektorDuplicateFormat = "Direktor '{0}' već postoji za ovu firmu!";
+        public const string DirektorDuplicateTitle = "Duplikat";
         public const string DirektorEditTitle = "Izmijeni direktora";
         public const string DirektorAddTitle = "Dodaj novog direktora";
         public const string DirektorSavedUpdate = "Ažurirano!";
@@ -132,5 +134,11 @@
         public const string GenericErrorPrefix = "Greška";
         public const string GenericErrorFormat = "Greška: {0}";
         public const string GenericErrorWithPrefixFormat = "{0}: {1}";
+
+        public const string ConcurrencyConflictTitle = "Zapis je izmijenjen";
+        public const string ConcurrencyConflictMessage =
+            "Ovaj zapis je u međuvremenu izmijenjen (u drugom prozoru ili od strane drugog korisnika).\n\n" +
+            "Tvoje izmjene NISU sačuvane da ne bi prepisale tuđe.\n\n" +
+            "Zatvori ovaj prozor i ponovo otvori zapis da vidiš najnovije podatke, pa unesi izmjene ponovo.";
     }
 }

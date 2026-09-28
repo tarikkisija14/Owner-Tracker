@@ -20,7 +20,29 @@ namespace OwnerTrack.App
             InitializeComponent();
         }
 
-        private void FrmKlijentProfil_Load(object sender, EventArgs e) => Populate();
+        private void FrmKlijentProfil_Load(object sender, EventArgs e)
+        {
+            Populate();
+            Shown += (_, _) => ResetScrollToTop();
+        }
+
+        // Populate() postavlja DataSource na tri DataGridView-a odozgo prema
+        // dolje (Vlasnici, Direktori, pa Historija na kraju); svaki
+        // DataGridView pri DataSource-u interno selektuje/fokusira svoju prvu
+        // ćeliju. WinForms-ov AutoScroll na scrollPanel prati taj fokus i
+        // scroll-uje se da ga prikaže TEK kad se forma stvarno prikaže
+        // (paint/handle-creation ciklus), što je POSLIJE Load-a — zato
+        // postavljanje scrolla u Load-u nije dovoljno i mora ići u Shown.
+        // Fokus se prebacuje na panelHeader (ne na grid) da gridovi prestanu
+        // "vući" scroll ka sebi kad forma dobije focus.
+        private void ResetScrollToTop()
+        {
+            // Panel (panelHeader) ne prima fokus (nije "selectable"), pa
+            // Focus() na njemu ne bi ništa uradio — ActiveControl = null miče
+            // fokus sa grida bez potrebe da nešto drugo bude fokusirano.
+            ActiveControl = null;
+            scrollPanel.AutoScrollPosition = new Point(0, 0);
+        }
 
         private void Populate()
         {

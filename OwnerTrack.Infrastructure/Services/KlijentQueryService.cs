@@ -22,12 +22,10 @@ namespace OwnerTrack.Infrastructure.Services
         {
             var query = _db.Klijenti
                 .Where(k =>
-                    (string.IsNullOrWhiteSpace(searchText) ||
-                     k.Naziv.ToLower().Contains(searchText.ToLower()) ||
-                     k.IdBroj.ToLower().Contains(searchText.ToLower()))
-                    && (string.IsNullOrWhiteSpace(sifraDjelatnosti) || k.SifraDjelatnosti == sifraDjelatnosti)
+                    (string.IsNullOrWhiteSpace(sifraDjelatnosti) || k.SifraDjelatnosti == sifraDjelatnosti)
                     && (string.IsNullOrWhiteSpace(velicina) || k.Velicina == velicina));
 
+            query = ApplyDiacriticSafeSearch(query, searchText);
             return ProjectClients(query);
         }
 
@@ -39,11 +37,9 @@ namespace OwnerTrack.Infrastructure.Services
         {
             var query = _db.Klijenti
                 .IgnoreQueryFilters()
-                .Where(k => k.Obrisan != null
-                    && (string.IsNullOrWhiteSpace(searchText) ||
-                        k.Naziv.ToLower().Contains(searchText.ToLower()) ||
-                        k.IdBroj.ToLower().Contains(searchText.ToLower())));
+                .Where(k => k.Obrisan != null);
 
+            query = ApplyDiacriticSafeSearch(query, searchText);
             return ProjectClients(query);
         }
 
@@ -52,30 +48,17 @@ namespace OwnerTrack.Infrastructure.Services
         // u sam naziv (npr. "TOM DD U STEČAJU"). Filtriramo i po
         // dijakritičkoj i po ne-dijakritičkoj varijanti riječi jer uvezeni
         // Excel podaci nisu uvijek dosljedni oko č/c.
-        //
-        // Ovo se namjerno radi u memoriji (AsEnumerable prije Where): SQLite-ova
-        // ugrađena LOWER()/LIKE case-insensitivnost pokriva samo ASCII a-z, pa
-        // "STEČAJU".ToLower() na SQLite strani ostaje "steČaju" (Č se ne
-        // pretvara u č) i nikad se ne poklopi sa "stečaj". .NET-ov
-        // OrdinalIgnoreCase Contains to radi ispravno za Č/č, pa se poklapanje
-        // imena radi ovdje, a zatim se pravi upit (sa Include/Count za
-        // Djelatnost/Vlasnike/Direktore) izvršava kroz SQL samo za te ID-ove.
         public List<KlijentViewModel> GetStecajClients(string searchText = "")
         {
-            var matchingIds = _db.Klijenti
-                .AsNoTracking()
-                .Select(k => new { k.Id, k.Naziv, k.IdBroj })
-                .AsEnumerable()
+            var matchingIds = SearchableRows(_db.Klijenti)
                 .Where(k =>
-                    (k.Naziv?.Contains("stečaj", StringComparison.OrdinalIgnoreCase) == true ||
-                     k.Naziv?.Contains("stecaj", StringComparison.OrdinalIgnoreCase) == true)
-                    && (string.IsNullOrWhiteSpace(searchText) ||
-                        k.Naziv?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
-                        k.IdBroj?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true))
+                    k.Naziv?.Contains("stečaj", StringComparison.OrdinalIgnoreCase) == true ||
+                    k.Naziv?.Contains("stecaj", StringComparison.OrdinalIgnoreCase) == true)
                 .Select(k => k.Id)
                 .ToList();
 
             var query = _db.Klijenti.Where(k => matchingIds.Contains(k.Id));
+            query = ApplyDiacriticSafeSearch(query, searchText);
             return ProjectClients(query);
         }
 
@@ -87,19 +70,56 @@ namespace OwnerTrack.Infrastructure.Services
         {
             string udruzenje = VelicinaFirme.UDRUŽENJE.ToString();
 
-            var query = _db.Klijenti
-                .Where(k => k.Velicina == udruzenje
-                    && (string.IsNullOrWhiteSpace(searchText) ||
-                        k.Naziv.ToLower().Contains(searchText.ToLower()) ||
-                        k.IdBroj.ToLower().Contains(searchText.ToLower())));
-
+            var query = _db.Klijenti.Where(k => k.Velicina == udruzenje);
+            query = ApplyDiacriticSafeSearch(query, searchText);
             return ProjectClients(query);
         }
 
+        // SQLite-ova ugrađena LOWER()/LIKE case-insensitivnost pokriva samo
+        // ASCII a-z, pa npr. "Č".ToLower() na SQLite strani ostaje "Č" (ne
+        // postaje "č") i search po "č"/"Č"/"ć"/"Ć"/"š"/"Š"/"ž"/"Ž"/"đ"/"Đ" ne bi
+        // pronašao zapise čiji je naziv upisan u drugom "case"-u tog slova.
+        // .NET-ov OrdinalIgnoreCase Contains to radi ispravno, pa se poklapanje
+        // po Naziv/IdBroj radi u memoriji nad samo (Id, Naziv, IdBroj) —
+        // jeftina projekcija, ne cijeli red — a zatim se pravi upit (sa
+        // Include/Count za Djelatnost/Vlasnike/Direktore) izvršava kroz SQL
+        // samo za te ID-ove. Ista tehnika koju je GetStecajClients već
+        // koristio, sada primijenjena dosljedno na sve search-e u ovoj klasi.
+        // Namjerno bez AsNoTracking/full-table-scan optimizacije preko toga —
+        // tabela je mala (desetine do niske stotine redova za ovu vrstu
+        // aplikacije) i identičan obrazac se već pokazao ispravnim u praksi za
+        // GetStecajClients; ako tabela naraste na hiljade redova ovo bi
+        // trebalo zamijeniti pravim collation-om u bazi.
+        private IQueryable<Klijent> ApplyDiacriticSafeSearch(IQueryable<Klijent> query, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return query;
+
+            var matchingIds = SearchableRows(query)
+                .Where(k =>
+                    k.Naziv?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+                    k.IdBroj?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
+                .Select(k => k.Id)
+                .ToList();
+
+            return query.Where(k => matchingIds.Contains(k.Id));
+        }
+
+        private static IEnumerable<(int Id, string Naziv, string IdBroj)> SearchableRows(IQueryable<Klijent> query) =>
+            query.AsNoTracking()
+                 .Select(k => new { k.Id, k.Naziv, k.IdBroj })
+                 .AsEnumerable()
+                 .Select(k => (k.Id, k.Naziv, k.IdBroj));
+
         private static List<KlijentViewModel> ProjectClients(IQueryable<Klijent> query)
         {
+            // Eksplicitan OrderBy — bez njega SQL ne garantuje nikakav
+            // redoslijed rezultata (raniji "sortirano po Id" izgled je bio
+            // slučajan, zavisan od fizičkog rasporeda redova u tabeli, a ne
+            // stvaran garantovan poredak).
             var result = query
                 .AsNoTracking()
+                .OrderBy(k => k.Id)
                 .Select(k => new KlijentViewModel
                 {
                     Id = k.Id,

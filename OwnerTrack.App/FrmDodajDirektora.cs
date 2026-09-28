@@ -1,4 +1,5 @@
-﻿using OwnerTrack.App.Constants;
+﻿using Microsoft.EntityFrameworkCore;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Entities;
 using OwnerTrack.Data.Enums;
@@ -82,6 +83,23 @@ namespace OwnerTrack.App
                 return;
             }
 
+            string imePrezime = txtImePrezime.Text.Trim();
+            int currentId = _direktorId ?? 0;
+
+            if (_db.Set<Direktor>().IgnoreQueryFilters()
+                    .Any(d => d.KlijentId == _klijentId
+                           && d.ImePrezime == imePrezime
+                           && d.Id != currentId
+                           && d.Obrisan == null))
+            {
+                MessageBox.Show(
+                    string.Format(UiMessages.DirektorDuplicateFormat, imePrezime),
+                    UiMessages.DirektorDuplicateTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtImePrezime.Focus();
+                return;
+            }
+
             DateTime? dateOfValidity = dtDatumValjanosti.Checked ? dtDatumValjanosti.Value : null;
 
             btnSpremi.Enabled = false;
@@ -94,6 +112,10 @@ namespace OwnerTrack.App
 
                 DialogResult = DialogResult.OK;
                 Close();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
             }
             catch (Exception ex)
             {
@@ -134,6 +156,7 @@ namespace OwnerTrack.App
             string? previousJmbg = d.Jmbg;
 
             ApplyFormFieldsToDirektor(d, dateOfValidity);
+            d.Version++;
 
             string opis = AuditService.DescribeFieldChanges(d.ImePrezime ?? previousName,
                 ("Ime i prezime", previousName, d.ImePrezime),
