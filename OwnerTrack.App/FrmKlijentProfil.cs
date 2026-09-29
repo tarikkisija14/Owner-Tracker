@@ -1,6 +1,7 @@
 using System.Drawing.Drawing2D;
 using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.ViewModels;
 
 namespace OwnerTrack.App
@@ -96,7 +97,14 @@ namespace OwnerTrack.App
                 ("Napomena", _profil.NapomenaUgovora, true),
             });
 
-            y = LayoutGridCard(groupBoxVlasnici, y, "Vlasnici (aktivni i arhivirani)");
+            decimal ukupnoVlasnistvo = _profil.Vlasnici
+                .Where(v => v.Status == StatusConstants.Aktivan)
+                .Sum(v => v.ProcenatVlasnistva);
+            bool vlasnistvoOk = ukupnoVlasnistvo == 100m;
+            string vlasnistvoText = $"Ukupno vlasništvo: {ukupnoVlasnistvo:0.##}%" + (vlasnistvoOk ? "" : " ⚠");
+            Color vlasnistvoColor = vlasnistvoOk ? UiTheme.Navy : UiColors.SummaryCritical;
+
+            y = LayoutGridCard(groupBoxVlasnici, y, "Vlasnici (aktivni i arhivirani)", vlasnistvoText, vlasnistvoColor);
             y = LayoutGridCard(groupBoxDirektori, y, "Direktori (aktivni i arhivirani)");
             LayoutGridCard(groupBoxHistorija, y, "Historija promjena");
 
@@ -107,7 +115,7 @@ namespace OwnerTrack.App
 
         // ── Card layout ───────────────────────────────────────────────────
 
-        private static Panel AddCardHeader(Panel card, string title)
+        private static Panel AddCardHeader(Panel card, string title, string? rightText = null, Color? rightColor = null)
         {
             var header = new Panel
             {
@@ -125,6 +133,22 @@ namespace OwnerTrack.App
                 ForeColor = UiTheme.Navy,
             };
             header.Controls.Add(lbl);
+
+            if (!string.IsNullOrEmpty(rightText))
+            {
+                var lblRight = new Label
+                {
+                    Text = rightText,
+                    Dock = DockStyle.Right,
+                    Width = 220,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Padding = new Padding(0, 0, 14, 0),
+                    Font = UiTheme.Base(9f, FontStyle.Bold),
+                    ForeColor = rightColor ?? UiTheme.Navy,
+                };
+                header.Controls.Add(lblRight);
+            }
+
             card.Controls.Add(header);
             return header;
         }
@@ -198,10 +222,10 @@ namespace OwnerTrack.App
             return 16 + valueHeight;
         }
 
-        private static int LayoutGridCard(Panel card, int y, string title)
+        private static int LayoutGridCard(Panel card, int y, string title, string? rightText = null, Color? rightColor = null)
         {
             card.Location = new Point(10, y);
-            AddCardHeader(card, title);
+            AddCardHeader(card, title, rightText, rightColor);
             return y + card.Height + 16;
         }
 

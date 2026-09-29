@@ -85,7 +85,8 @@
 
         
 
-        public const string KlijentRequiredFields = "Popuni obavezna polja: Naziv i ID Broj!";
+        public const string KlijentNazivRequired = "Naziv klijenta je obavezan.";
+        public const string KlijentIdBrojRequired = "Molimo unesite ID broj.";
         public const string KlijentSaveChangesButton = "💾 Spremi izmjene";
         public const string KlijentSaveNewButton = "💾 Dodaj";
         public const string KlijentEditTitle = "Izmijeni firmu";
@@ -130,6 +131,11 @@
         public const string WarningStatusUpcoming = "Uskoro";
 
         
+
+        public const string SavedTitle = "Sačuvano";
+
+        public const string UnsavedChangesTitle = "Nesačuvane promjene";
+        public const string UnsavedChangesPrompt = "Imate nesačuvane promjene. Želite li zatvoriti bez spremanja?";
 
         public const string GenericErrorPrefix = "Greška";
         public const string GenericErrorFormat = "Greška: {0}";

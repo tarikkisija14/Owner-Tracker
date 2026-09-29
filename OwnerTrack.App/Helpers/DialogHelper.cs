@@ -86,6 +86,12 @@ namespace OwnerTrack.App.Helpers
             MessageBox.Show(message);
         }
 
+        public static void ShowSaved(string message) =>
+            MessageBox.Show(
+                message,
+                UiMessages.SavedTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+
         public static void ShowConcurrencyConflict() =>
             MessageBox.Show(
                 UiMessages.ConcurrencyConflictMessage,

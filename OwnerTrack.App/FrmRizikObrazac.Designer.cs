@@ -19,6 +19,7 @@ namespace OwnerTrack.App
         {
             panelHeader = new Panel();
             lblHeaderNaziv = new Label();
+            lblOdgovoreno = new Label();
             scrollPanel = new Panel();
             cardStranke = new Panel();
             cardPoslovniOdnos = new Panel();
@@ -44,6 +45,15 @@ namespace OwnerTrack.App
             lblHeaderNaziv.Name = "lblHeaderNaziv";
             lblHeaderNaziv.Text = "Obrazac za procjenu rizika";
             panelHeader.Controls.Add(lblHeaderNaziv);
+
+            lblOdgovoreno.AutoSize = true;
+            lblOdgovoreno.ForeColor = Color.White;
+            lblOdgovoreno.Font = UiTheme.Base(9.5f);
+            lblOdgovoreno.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lblOdgovoreno.Name = "lblOdgovoreno";
+            lblOdgovoreno.Text = string.Empty;
+            panelHeader.Controls.Add(lblOdgovoreno);
+            panelHeader.Resize += (_, _) => PositionOdgovorenoLabel();
 
             // ── scrollPanel ───────────────────────────────────────
             scrollPanel.Dock = DockStyle.Fill;
@@ -124,6 +134,7 @@ namespace OwnerTrack.App
 
         private Panel panelHeader;
         private Label lblHeaderNaziv;
+        private Label lblOdgovoreno;
         private Panel scrollPanel;
         private Panel cardStranke;
         private Panel cardPoslovniOdnos;

@@ -23,6 +23,10 @@ namespace OwnerTrack.App
             panelViewKlijenti = new Panel();
             panelSidebar = new Panel();
             btnToggleSidebar = new IconButton();
+            panelToggleDivider = new Panel();
+            panelSidebarBrand = new Panel();
+            lblSidebarBrand = new Label();
+            panelSidebarBrandDivider = new Panel();
             btnNavKlijenti = new IconButton();
             btnNavKyc = new IconButton();
             btnNavUbo = new IconButton();
@@ -948,6 +952,9 @@ namespace OwnerTrack.App
             panelSidebar.Controls.Add(btnNavKyc);
             panelSidebar.Controls.Add(btnNavKlijenti);
             panelSidebar.Controls.Add(panelSidebarDivider);
+            panelSidebar.Controls.Add(panelSidebarBrandDivider);
+            panelSidebar.Controls.Add(panelSidebarBrand);
+            panelSidebar.Controls.Add(panelToggleDivider);
             panelSidebar.Controls.Add(btnToggleSidebar);
 
             // ── panelSidebarDivider ───────────────────────────────
@@ -964,6 +971,33 @@ namespace OwnerTrack.App
             btnToggleSidebar.IconGlyph = "\uE700";
             UiTheme.StyleSidebarButton(btnToggleSidebar);
             btnToggleSidebar.Click += btnToggleSidebar_Click;
+
+            // ── panelToggleDivider ────────────────────────────────
+            panelToggleDivider.Dock = DockStyle.Top;
+            panelToggleDivider.Height = 1;
+            panelToggleDivider.Name = "panelToggleDivider";
+            panelToggleDivider.BackColor = UiTheme.SidebarDivider;
+
+            // ── panelSidebarBrand ─────────────────────────────────
+            panelSidebarBrand.Dock = DockStyle.Top;
+            panelSidebarBrand.Height = 40;
+            panelSidebarBrand.Name = "panelSidebarBrand";
+            panelSidebarBrand.BackColor = UiTheme.SidebarBackground;
+            panelSidebarBrand.Controls.Add(lblSidebarBrand);
+
+            lblSidebarBrand.Dock = DockStyle.Fill;
+            lblSidebarBrand.Name = "lblSidebarBrand";
+            lblSidebarBrand.Text = "CONFIDIA BH";
+            lblSidebarBrand.ForeColor = UiTheme.HeaderSubText;
+            lblSidebarBrand.Font = UiTheme.Base(9.5f, FontStyle.Bold);
+            lblSidebarBrand.TextAlign = ContentAlignment.MiddleCenter;
+            lblSidebarBrand.AutoEllipsis = true;
+
+            // ── panelSidebarBrandDivider ──────────────────────────
+            panelSidebarBrandDivider.Dock = DockStyle.Top;
+            panelSidebarBrandDivider.Height = 1;
+            panelSidebarBrandDivider.Name = "panelSidebarBrandDivider";
+            panelSidebarBrandDivider.BackColor = UiTheme.SidebarDivider;
 
             // ── btnNavKlijenti ────────────────────────────────────
             btnNavKlijenti.Dock = DockStyle.Top;
@@ -988,7 +1022,7 @@ namespace OwnerTrack.App
             btnNavUbo.Height = 46;
             btnNavUbo.Name = "btnNavUbo";
             btnNavUbo.Text = "UBO / Vlasništvo";
-            btnNavUbo.IconGlyph = "\uE8A5";
+            btnNavUbo.IconGlyph = "";
             UiTheme.StyleSidebarButton(btnNavUbo);
             btnNavUbo.Click += btnNavUbo_Click;
 
@@ -1118,6 +1152,10 @@ namespace OwnerTrack.App
         private System.Windows.Forms.Panel panelViewKlijenti;
         private System.Windows.Forms.Panel panelSidebar;
         private IconButton btnToggleSidebar;
+        private System.Windows.Forms.Panel panelToggleDivider;
+        private System.Windows.Forms.Panel panelSidebarBrand;
+        private System.Windows.Forms.Label lblSidebarBrand;
+        private System.Windows.Forms.Panel panelSidebarBrandDivider;
         private IconButton btnNavKlijenti;
         private IconButton btnNavKyc;
         private IconButton btnNavUbo;

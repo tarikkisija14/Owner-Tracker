@@ -14,6 +14,7 @@ namespace OwnerTrack.App
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _direktorId;
+        private bool _dirty;
 
         public FrmDodajDirektora(int klijentId, int? direktorId, OwnerTrackDbContext db)
         {
@@ -28,6 +29,9 @@ namespace OwnerTrack.App
 
         private void FrmDodajDirektora_Load(object sender, EventArgs e)
         {
+            AcceptButton = btnSpremi;
+            CancelButton = btnOtkazi;
+
             cbTipValjanosti.Items.Clear();
             cbTipValjanosti.Items.Add(ValidityTypeConstants.Trajno);
             cbTipValjanosti.Items.Add(ValidityTypeConstants.Vremenski);
@@ -41,6 +45,23 @@ namespace OwnerTrack.App
 
             if (isEditMode)
                 LoadDirektor(_direktorId!.Value);
+
+            FormHelper.AttachDirtyTracking(this, () => _dirty = true);
+            FormClosing += FrmDodajDirektora_FormClosing;
+        }
+
+        private void FrmDodajDirektora_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (DialogResult == DialogResult.OK) return;
+            if (!_dirty) return;
+
+            if (MessageBox.Show(
+                    UiMessages.UnsavedChangesPrompt,
+                    UiMessages.UnsavedChangesTitle,
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                e.Cancel = true;
+            }
         }
 
         private void LoadDirektor(int direktorId)
@@ -80,6 +101,7 @@ namespace OwnerTrack.App
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
                 MessageBox.Show(UiMessages.DirektorNameRequired);
+                txtImePrezime.Focus();
                 return;
             }
 
@@ -110,6 +132,7 @@ namespace OwnerTrack.App
                 else
                     SaveNew(dateOfValidity);
 
+                _dirty = false;
                 DialogResult = DialogResult.OK;
                 Close();
             }
@@ -166,7 +189,7 @@ namespace OwnerTrack.App
 
             TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Direktori", direktorId, opis));
 
-            MessageBox.Show(UiMessages.DirektorSavedUpdate);
+            DialogHelper.ShowSaved(UiMessages.DirektorSavedUpdate);
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -180,7 +203,7 @@ namespace OwnerTrack.App
             TransactionHelper.SaveWithAudit(_db,
                 () => _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'"));
 
-            MessageBox.Show(UiMessages.DirektorSavedNew);
+            DialogHelper.ShowSaved(UiMessages.DirektorSavedNew);
         }
     }
 }

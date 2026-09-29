@@ -38,6 +38,9 @@ namespace OwnerTrack.App
             Text = $"Obrazac za procjenu rizika — {_nazivKlijenta}";
             lblHeaderNaziv.Text = $"Obrazac za procjenu rizika — {_nazivKlijenta}";
 
+            AcceptButton = btnSacuvaj;
+            CancelButton = btnZatvori;
+
             BuildLayout();
 
             try
@@ -50,6 +53,26 @@ namespace OwnerTrack.App
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri učitavanju obrasca za procjenu rizika");
             }
+
+            UpdateOdgovorenoCounter();
+        }
+
+        private void PositionOdgovorenoLabel()
+        {
+            lblOdgovoreno.Location = new Point(panelHeader.Width - lblOdgovoreno.Width - 20, 22);
+        }
+
+        // Broji koliko je od ukupno svih pitanja (sva tri bloka) dobilo bilo
+        // kakav odgovor (Da/Ne/N-P) — čisto informativno, ne utječe na
+        // mogućnost snimanja obrasca.
+        private void UpdateOdgovorenoCounter()
+        {
+            var sviCombosi = _combosStranke.Concat(_combosPoslovniOdnos).Concat(_combosGeografski);
+            int ukupno = _combosStranke.Count + _combosPoslovniOdnos.Count + _combosGeografski.Count;
+            int odgovoreno = sviCombosi.Count(c => !string.IsNullOrEmpty(c.Text));
+
+            lblOdgovoreno.Text = $"{odgovoreno} / {ukupno} pitanja odgovoreno";
+            PositionOdgovorenoLabel();
         }
 
         // ── Dinamičko raspoređivanje ─────────────────────────────────────
@@ -124,7 +147,11 @@ namespace OwnerTrack.App
             // mijenja odgovore, prijedlog se dinamički ažurira.
             var procjenaComboLocal = procjenaCombo;
             foreach (var combo in combos)
-                combo.SelectedIndexChanged += (_, _) => RecalculateProcjena(combos, procjenaComboLocal);
+                combo.SelectedIndexChanged += (_, _) =>
+                {
+                    RecalculateProcjena(combos, procjenaComboLocal);
+                    UpdateOdgovorenoCounter();
+                };
 
             // Ručna izmjena procjene ovog bloka (ili automatski preračun iznad)
             // mora ažurirati i Ukupnu procjenu na dnu obrasca.
@@ -139,6 +166,11 @@ namespace OwnerTrack.App
         // (uz bar jedan odgovoren kriterij) daje VIŠE, inače NIŽE. Ništa se ne
         // postavlja dok bar jedan kriterij u bloku nije odgovoren, da prazan
         // obrazac ne ispadne automatski "NIŽE".
+        // Po dogovoru s klijentom: ako je BAR JEDAN kriterij u bloku
+        // odgovoren sa DA, cijeli blok je VIŠE — nije bitno koliko je NE
+        // odgovora uz njega. NIŽE ide samo ako je bar jedan kriterij
+        // odgovoren, a nijedan od odgovorenih nije DA (N/P i prazno se i
+        // dalje ignorišu).
         private static void RecalculateProcjena(List<ComboBox> combos, ComboBox procjenaCombo)
         {
             int da = combos.Count(c => c.Text == RizikObrazacKriteriji.Da);
@@ -146,7 +178,7 @@ namespace OwnerTrack.App
 
             if (da + ne == 0) return;
 
-            procjenaCombo.Text = da >= ne ? RizikObrazacKriteriji.Vise : RizikObrazacKriteriji.Nize;
+            procjenaCombo.Text = da > 0 ? RizikObrazacKriteriji.Vise : RizikObrazacKriteriji.Nize;
         }
 
         // Ukupna procjena je VIŠE čim je bilo koja od tri pod-procjene VIŠE
@@ -305,7 +337,7 @@ namespace OwnerTrack.App
             {
                 using var db = DbContextFactory.Create();
                 _version = new RizikObrazacService(db).Save(_klijentId, CollectPodaci(), _version);
-                MessageBox.Show("Obrazac je sačuvan.", "Sačuvano", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogHelper.ShowSaved("Obrazac je sačuvan.");
             }
             catch (DbUpdateConcurrencyException)
             {

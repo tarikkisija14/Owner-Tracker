@@ -34,5 +34,37 @@
 
         public static string? NullIfEmpty(string? s)
             => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+        /// <summary>
+        /// Wires up the given "mark dirty" callback on every input-like
+        /// control under <paramref name="root"/> (TextBox, ComboBox,
+        /// DateTimePicker, CheckBox), recursing into containers (GroupBox,
+        /// Panel, etc). Used to detect unsaved changes on edit forms without
+        /// hand-wiring every single field.
+        /// </summary>
+        public static void AttachDirtyTracking(Control root, Action onChanged)
+        {
+            foreach (Control control in root.Controls)
+            {
+                switch (control)
+                {
+                    case TextBox tb:
+                        tb.TextChanged += (_, _) => onChanged();
+                        break;
+                    case ComboBox cb:
+                        cb.SelectedIndexChanged += (_, _) => onChanged();
+                        break;
+                    case DateTimePicker dt:
+                        dt.ValueChanged += (_, _) => onChanged();
+                        break;
+                    case CheckBox chk:
+                        chk.CheckedChanged += (_, _) => onChanged();
+                        break;
+                }
+
+                if (control.HasChildren)
+                    AttachDirtyTracking(control, onChanged);
+            }
+        }
     }
 }

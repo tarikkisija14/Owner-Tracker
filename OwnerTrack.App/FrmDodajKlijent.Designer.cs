@@ -580,6 +580,7 @@ namespace OwnerTrack.App
 
             txtNapomena.Location = new Point(9, 44);
             txtNapomena.Multiline = true;
+            txtNapomena.AcceptsReturn = true;
             txtNapomena.Name = "txtNapomena";
             txtNapomena.ScrollBars = ScrollBars.Vertical;
             txtNapomena.Size = new Size(639, 56);

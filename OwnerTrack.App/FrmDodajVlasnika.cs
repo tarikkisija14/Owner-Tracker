@@ -14,6 +14,7 @@ namespace OwnerTrack.App
         private readonly AuditService _audit;
         private readonly int _klijentId;
         private readonly int? _vlasnikId;
+        private bool _dirty;
 
         public FrmDodajVlasnika(int klijentId, int? vlasnikId, OwnerTrackDbContext db)
         {
@@ -24,10 +25,13 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-        
+
 
         private void FrmDodajVlasnika_Load(object sender, EventArgs e)
         {
+            AcceptButton = btnSpremi;
+            CancelButton = btnOtkazi;
+
             bool isEditMode = _vlasnikId.HasValue;
             FormHelper.ApplyEditModeTitle(this, btnSpremi, isEditMode,
                 UiMessages.VlasnikEditTitle, UiMessages.VlasnikAddTitle);
@@ -36,6 +40,23 @@ namespace OwnerTrack.App
 
             if (isEditMode)
                 LoadVlasnik(_vlasnikId!.Value);
+
+            FormHelper.AttachDirtyTracking(this, () => _dirty = true);
+            FormClosing += FrmDodajVlasnika_FormClosing;
+        }
+
+        private void FrmDodajVlasnika_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (DialogResult == DialogResult.OK) return;
+            if (!_dirty) return;
+
+            if (MessageBox.Show(
+                    UiMessages.UnsavedChangesPrompt,
+                    UiMessages.UnsavedChangesTitle,
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                e.Cancel = true;
+            }
         }
 
         private void LoadVlasnik(int vlasnikId)
@@ -71,6 +92,7 @@ namespace OwnerTrack.App
             if (string.IsNullOrWhiteSpace(txtImePrezime.Text))
             {
                 MessageBox.Show(UiMessages.VlasnikNameRequired);
+                txtImePrezime.Focus();
                 return;
             }
 
@@ -101,6 +123,7 @@ namespace OwnerTrack.App
                 else
                     SaveNew(imePrezime, percentage);
 
+                _dirty = false;
                 DialogResult = DialogResult.OK;
                 Close();
             }
@@ -184,7 +207,7 @@ namespace OwnerTrack.App
 
             TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Vlasnici", vlasnikId, opis));
 
-            MessageBox.Show(UiMessages.VlasnikSavedUpdate);
+            DialogHelper.ShowSaved(UiMessages.VlasnikSavedUpdate);
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -198,7 +221,7 @@ namespace OwnerTrack.App
             TransactionHelper.SaveWithAudit(_db,
                 () => _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'"));
 
-            MessageBox.Show(UiMessages.VlasnikSavedNew);
+            DialogHelper.ShowSaved(UiMessages.VlasnikSavedNew);
         }
     }
 }

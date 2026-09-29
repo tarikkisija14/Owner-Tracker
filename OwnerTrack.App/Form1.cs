@@ -19,6 +19,7 @@ namespace OwnerTrack.App
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
         private readonly ArchivePresenter _archivePresenter;
         private readonly PdfExportPresenter _pdfPresenter;
+        private readonly ToolTip _sidebarToolTip = new();
         private bool _sidebarExpanded = true;
         private SidebarView _currentView = SidebarView.Klijenti;
 
@@ -94,7 +95,10 @@ namespace OwnerTrack.App
                 LoadClients();
                 RefreshWarningsBadge();
 
-                Text = $"OwnerTrack v{Application.ProductVersion}";
+                // ProductVersion nosi i build metapodatke (npr. "1.0.0+49abc123") —
+                // korisniku prikazujemo samo Major.Minor.Patch dio.
+                string shortVersion = Application.ProductVersion.Split('+')[0];
+                Text = $"OwnerTrack v{shortVersion} - Confidia BH";
             }
             catch (Exception ex)
             {
@@ -124,7 +128,7 @@ namespace OwnerTrack.App
             cmbFilterVelicina.Items.Add(new { Value = UiConstants.FilterAllValue, Display = UiConstants.FilterAllDisplay });
 
             foreach (VelicinaFirme v in Enum.GetValues(typeof(VelicinaFirme)))
-                cmbFilterVelicina.Items.Add(new { Value = v.ToString(), Display = v.ToString() });
+                cmbFilterVelicina.Items.Add(new { Value = v.ToString(), Display = v.ToDisplay() });
 
             cmbFilterVelicina.DisplayMember = "Display";
             cmbFilterVelicina.ValueMember = "Value";
@@ -815,15 +819,29 @@ namespace OwnerTrack.App
         {
             _sidebarExpanded = !_sidebarExpanded;
             panelSidebar.Width = _sidebarExpanded ? SidebarExpandedWidth : SidebarCollapsedWidth;
-            btnNavKlijenti.Text = _sidebarExpanded ? "Klijenti" : string.Empty;
-            btnNavKyc.Text = _sidebarExpanded ? "KYC evidencija" : string.Empty;
-            btnNavUbo.Text = _sidebarExpanded ? "UBO / Vlasništvo" : string.Empty;
-            btnNavPep.Text = _sidebarExpanded ? "PEP evidencija" : string.Empty;
-            btnNavRizik.Text = _sidebarExpanded ? "Procjena rizika" : string.Empty;
-            btnNavOtkazani.Text = _sidebarExpanded ? "Otkazani klijenti" : string.Empty;
-            btnNavUdruzenja.Text = _sidebarExpanded ? "Udruženja" : string.Empty;
-            btnNavStecaj.Text = _sidebarExpanded ? "Klijenti u stečaju" : string.Empty;
-            btnNavAuditLog.Text = _sidebarExpanded ? "Audit log" : string.Empty;
+
+            lblSidebarBrand.Text = _sidebarExpanded ? "CONFIDIA BH" : "C";
+            _sidebarToolTip.SetToolTip(lblSidebarBrand, _sidebarExpanded ? string.Empty : "Confidia BH");
+
+            SetNavButtonLabel(btnNavKlijenti, "Klijenti");
+            SetNavButtonLabel(btnNavKyc, "KYC evidencija");
+            SetNavButtonLabel(btnNavUbo, "UBO / Vlasništvo");
+            SetNavButtonLabel(btnNavPep, "PEP evidencija");
+            SetNavButtonLabel(btnNavRizik, "Procjena rizika");
+            SetNavButtonLabel(btnNavOtkazani, "Otkazani klijenti");
+            SetNavButtonLabel(btnNavUdruzenja, "Udruženja");
+            SetNavButtonLabel(btnNavStecaj, "Klijenti u stečaju");
+            SetNavButtonLabel(btnNavAuditLog, "Audit log");
+        }
+
+        // Kada je sidebar collapsed, dugmad prikazuju samo ikonu — naziv
+        // stavke se u tom slučaju prebacuje u tooltip da ostane dostupan na
+        // hover. Kada je expanded, naziv je već vidljiv kao tekst dugmeta,
+        // pa tooltip nije potreban.
+        private void SetNavButtonLabel(Control button, string label)
+        {
+            button.Text = _sidebarExpanded ? label : string.Empty;
+            _sidebarToolTip.SetToolTip(button, _sidebarExpanded ? string.Empty : label);
         }
     }
 }

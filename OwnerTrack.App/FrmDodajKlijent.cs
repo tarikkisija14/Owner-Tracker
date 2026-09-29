@@ -14,6 +14,7 @@ namespace OwnerTrack.App
         private readonly OwnerTrackDbContext _db;
         private readonly AuditService _audit;
         private readonly int? _klijentId;
+        private bool _dirty;
 
         public FrmDodajKlijent(int? klijentId, OwnerTrackDbContext db)
         {
@@ -23,10 +24,13 @@ namespace OwnerTrack.App
             _audit = new AuditService(db);
         }
 
-       
+
 
         private void FrmDodajKlijent_Load(object sender, EventArgs e)
         {
+            AcceptButton = btnSpremi;
+            CancelButton = btnOtkazi;
+
             PopulateComboBoxes();
             LoadActivityCodes();
 
@@ -35,6 +39,26 @@ namespace OwnerTrack.App
                 LoadKlijent(_klijentId.Value);
                 Text = UiMessages.KlijentEditTitle;
                 btnSpremi.Text = UiMessages.KlijentSaveChangesButton;
+            }
+
+            // Prati promjene tek OD OVDJE — podaci upravo učitani u polja
+            // (LoadKlijent, ResetComboBoxesToDefaults) ne smiju formu odmah
+            // označiti kao "nesačuvanu".
+            FormHelper.AttachDirtyTracking(scrollPanel, () => _dirty = true);
+            FormClosing += FrmDodajKlijent_FormClosing;
+        }
+
+        private void FrmDodajKlijent_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (DialogResult == DialogResult.OK) return; // uspješno sačuvano — ne pitaj ništa
+            if (!_dirty) return;
+
+            if (MessageBox.Show(
+                    UiMessages.UnsavedChangesPrompt,
+                    UiMessages.UnsavedChangesTitle,
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                e.Cancel = true;
             }
         }
 
@@ -46,7 +70,11 @@ namespace OwnerTrack.App
             cbVrstaKlijenta.DisplayMember = "Display";
             cbVrstaKlijenta.ValueMember = "Value";
 
-            FormHelper.PopulateEnumCombo<VelicinaFirme>(cbVelicina);
+            cbVelicina.DataSource = Enum.GetValues<VelicinaFirme>()
+                .Select(v => new { Value = v.ToString(), Display = v.ToDisplay() })
+                .ToList();
+            cbVelicina.DisplayMember = "Display";
+            cbVelicina.ValueMember = "Value";
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbPepRizik);
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbUboRizik);
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbGotovinaRizik);
@@ -118,7 +146,8 @@ namespace OwnerTrack.App
 
             if (k.VrstaKlijenta.HasValue)
                 cbVrstaKlijenta.SelectedValue = k.VrstaKlijenta.Value.ToString();
-            FormHelper.SetCombo(cbVelicina, k.Velicina);
+            if (!string.IsNullOrEmpty(k.Velicina))
+                cbVelicina.SelectedValue = k.Velicina;
             FormHelper.SetCombo(cbPepRizik, k.PepRizik);
             FormHelper.SetCombo(cbUboRizik, k.UboRizik);
             FormHelper.SetCombo(cbGotovinaRizik, k.GotovinaRizik);
@@ -180,7 +209,7 @@ namespace OwnerTrack.App
             k.SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? string.Empty;
             k.DatumUspostave = dtDatumUspostave.Value;
             k.DatumOsnivanja = dtDatumOsnivanja.Value;
-            k.Velicina = cbVelicina.Text;
+            k.Velicina = cbVelicina.SelectedValue?.ToString() ?? string.Empty;
             k.PepRizik = FormHelper.NullIfEmpty(cbPepRizik.Text);
             k.UboRizik = FormHelper.NullIfEmpty(cbUboRizik.Text);
             k.GotovinaRizik = FormHelper.NullIfEmpty(cbGotovinaRizik.Text);
@@ -221,9 +250,17 @@ namespace OwnerTrack.App
             // since nothing else disables the button while the DB call runs.
             if (!btnSpremi.Enabled) return;
 
-            if (string.IsNullOrWhiteSpace(txtNaziv.Text) || string.IsNullOrWhiteSpace(txtIdBroj.Text))
+            if (string.IsNullOrWhiteSpace(txtNaziv.Text))
             {
-                MessageBox.Show(UiMessages.KlijentRequiredFields);
+                MessageBox.Show(UiMessages.KlijentNazivRequired);
+                txtNaziv.Focus();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtIdBroj.Text))
+            {
+                MessageBox.Show(UiMessages.KlijentIdBrojRequired);
+                txtIdBroj.Focus();
                 return;
             }
 
@@ -240,6 +277,7 @@ namespace OwnerTrack.App
                 else
                     SaveNew(naziv, idBroj);
 
+                _dirty = false;
                 DialogResult = DialogResult.OK;
                 Close();
             }
@@ -329,7 +367,7 @@ namespace OwnerTrack.App
 
             TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Klijenti", id, opis));
 
-            MessageBox.Show(UiMessages.KlijentSavedUpdate);
+            DialogHelper.ShowSaved(UiMessages.KlijentSavedUpdate);
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -370,7 +408,7 @@ namespace OwnerTrack.App
                 db.SaveChanges();
             });
 
-            MessageBox.Show(UiMessages.KlijentSavedNew);
+            DialogHelper.ShowSaved(UiMessages.KlijentSavedNew);
         }
     }
 }
