@@ -75,6 +75,18 @@ namespace OwnerTrack.Infrastructure.Services
             return ProjectClients(query);
         }
 
+        // "Bez ugovora" pokriva oba slučaja koja u praksi znače isto: klijent
+        // nema uopšte Ugovor red (Ugovor == null), ili ima Ugovor red čiji je
+        // StatusUgovora eksplicitno postavljen na "NEMA UGOVOR" (korisnik može
+        // kreirati takav red umjesto da ga briše — vidi FrmDodajKlijent).
+        public List<KlijentViewModel> GetClientsWithoutContract(string searchText = "")
+        {
+            var query = _db.Klijenti.Where(k =>
+                k.Ugovor == null || k.Ugovor.StatusUgovora == ContractStatus.NemaUgovor);
+            query = ApplyDiacriticSafeSearch(query, searchText);
+            return ProjectClients(query);
+        }
+
         // SQLite-ova ugrađena LOWER()/LIKE case-insensitivnost pokriva samo
         // ASCII a-z, pa npr. "Č".ToLower() na SQLite strani ostaje "Č" (ne
         // postaje "č") i search po "č"/"Č"/"ć"/"Ć"/"š"/"Š"/"ž"/"Ž"/"đ"/"Đ" ne bi

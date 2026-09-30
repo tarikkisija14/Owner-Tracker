@@ -6,6 +6,7 @@ namespace OwnerTrack.Infrastructure.Models
     {
         public int KlijentId { get; set; }
         public string NazivFirme { get; set; } = string.Empty;
+        public int EntityId { get; set; }
         public string ImePrezime { get; set; } = string.Empty;
         public string Tip { get; set; } = string.Empty;
         public DateTime DatumIsteka { get; set; }

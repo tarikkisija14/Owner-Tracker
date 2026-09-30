@@ -15,6 +15,13 @@ namespace OwnerTrack.App
         private readonly int _klijentId;
         private readonly string _nazivKlijenta;
         private int _version;
+        private bool _dirty;
+
+        // Postavlja se na true tek nakon uspješnog Save-a (Sačuvaj ili Export
+        // PDF, koji prvo sprema pa tek onda generiše fajl) — FrmKlijentProfil
+        // ovo čita nakon ShowDialog da zna treba li osvježiti prikaz, umjesto
+        // da uvijek refresha bez obzira je li se išta stvarno promijenilo u bazi.
+        public bool WasSaved { get; private set; }
 
         private readonly List<ComboBox> _combosStranke = new();
         private readonly List<ComboBox> _combosPoslovniOdnos = new();
@@ -55,6 +62,44 @@ namespace OwnerTrack.App
             }
 
             UpdateOdgovorenoCounter();
+
+            // Prati promjene tek OD OVDJE — vrijednosti upravo postavljene u
+            // Populate() (učitane iz baze) ne smiju formu odmah označiti kao
+            // "nesačuvanu". Isti obrazac kao FrmDodajKlijent/FrmDodajVlasnika/
+            // FrmDodajDirektora (vidi FormHelper.AttachDirtyTracking).
+            FormHelper.AttachDirtyTracking(this, () => _dirty = true);
+            FormClosing += FrmRizikObrazac_FormClosing;
+        }
+
+        private void FrmRizikObrazac_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (!_dirty) return;
+
+            var answer = MessageBox.Show(
+                UiMessages.UnsavedChangesSavePrompt,
+                UiMessages.UnsavedChangesTitle,
+                MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+            switch (answer)
+            {
+                case DialogResult.Yes:
+                    // Ako save ne uspije (uključujući DbUpdateConcurrencyException),
+                    // TrySave već prikazuje postojeću error/concurrency poruku i
+                    // vraća false — forma ostaje otvorena i dirty da korisnik ne
+                    // izgubi promjene.
+                    if (!TrySave())
+                        e.Cancel = true;
+                    break;
+
+                case DialogResult.No:
+                    // Odbaci nespremljene promjene — zatvori bez dodatnog savea.
+                    break;
+
+                case DialogResult.Cancel:
+                default:
+                    e.Cancel = true;
+                    break;
+            }
         }
 
         private void PositionOdgovorenoLabel()
@@ -331,21 +376,33 @@ namespace OwnerTrack.App
 
         // ── Dugmad ────────────────────────────────────────────────────────
 
-        private void btnSacuvaj_Click(object sender, EventArgs e)
+        private void btnSacuvaj_Click(object sender, EventArgs e) => TrySave();
+
+        // Zajednička save logika za btnSacuvaj i FormClosing (kad korisnik na
+        // "nesačuvane promjene" upitu odabere Da) — isti save poziv, ista
+        // obrada grešaka/concurrency-a, samo se rezultat (uspjeh/neuspjeh)
+        // vraća pozivaocu umjesto da se ignoriše, jer FormClosing mora znati
+        // smije li zatvoriti formu.
+        private bool TrySave()
         {
             try
             {
                 using var db = DbContextFactory.Create();
                 _version = new RizikObrazacService(db).Save(_klijentId, CollectPodaci(), _version);
+                _dirty = false;
+                WasSaved = true;
                 DialogHelper.ShowSaved("Obrazac je sačuvan.");
+                return true;
             }
             catch (DbUpdateConcurrencyException)
             {
                 DialogHelper.ShowConcurrencyConflict();
+                return false;
             }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri čuvanju obrasca za procjenu rizika");
+                return false;
             }
         }
 
@@ -367,6 +424,8 @@ namespace OwnerTrack.App
             {
                 using var db = DbContextFactory.Create();
                 _version = new RizikObrazacService(db).Save(_klijentId, CollectPodaci(), _version);
+                _dirty = false;
+                WasSaved = true;
             }
             catch (DbUpdateConcurrencyException)
             {

@@ -48,7 +48,7 @@ namespace OwnerTrack.Infrastructure.Services
         public static string DescribeFieldChanges(string label, params (string Field, string? Before, string? After)[] fields)
         {
             var changes = fields
-                .Where(f => f.Before != f.After)
+                .Where(f => (f.Before ?? string.Empty) != (f.After ?? string.Empty))
                 .Select(f => $"{f.Field}: '{f.Before}' → '{f.After}'")
                 .ToList();
 

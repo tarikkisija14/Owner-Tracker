@@ -6,6 +6,7 @@ using OwnerTrack.App.ViewModels;
 using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure;
 using OwnerTrack.Infrastructure.Database;
+using OwnerTrack.Infrastructure.Models;
 using OwnerTrack.Infrastructure.Services;
 using OwnerTrack.Infrastructure.ViewModels;
 using OpenXmlSheet = DocumentFormat.OpenXml.Spreadsheet.Sheet;
@@ -14,14 +15,14 @@ namespace OwnerTrack.App
 {
     public partial class Form1 : Form
     {
-        private enum SidebarView { Klijenti, Kyc, Ubo, Pep, Rizik, Otkazani, Udruzenja, Stecaj, AuditLog }
+        private enum SidebarView { Dashboard, Klijenti, Kyc, Ubo, Pep, Rizik, BezUgovora, Otkazani, Udruzenja, Stecaj, AuditLog }
 
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
         private readonly ArchivePresenter _archivePresenter;
         private readonly PdfExportPresenter _pdfPresenter;
         private readonly ToolTip _sidebarToolTip = new();
         private bool _sidebarExpanded = true;
-        private SidebarView _currentView = SidebarView.Klijenti;
+        private SidebarView _currentView = SidebarView.Dashboard;
 
         public Form1()
         {
@@ -94,6 +95,7 @@ namespace OwnerTrack.App
                 LoadSizeFilter();
                 LoadClients();
                 RefreshWarningsBadge();
+                ShowView(SidebarView.Dashboard);
 
                 // ProductVersion nosi i build metapodatke (npr. "1.0.0+49abc123") —
                 // korisniku prikazujemo samo Major.Minor.Patch dio.
@@ -373,6 +375,131 @@ namespace OwnerTrack.App
             if (dataGridRizik.Columns.Contains("Id")) dataGridRizik.Columns["Id"].Visible = false;
         }
 
+        private void LoadBezUgovoraKlijenata()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var clients = new KlijentQueryService(db).GetClientsWithoutContract();
+                dataGridBezUgovora.DataSource = clients;
+                StyleBezUgovoraGrid();
+                dataGridBezUgovora.ClearSelection();
+                lblEmptyBezUgovora.Visible = clients.Count == 0;
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju klijenata bez ugovora");
+            }
+        }
+
+        private void StyleBezUgovoraGrid()
+        {
+            GridHelper.ApplyColumns(dataGridBezUgovora, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridBezUgovora, "Id", "Naziv");
+            GridHelper.AlignCenter(dataGridBezUgovora,
+                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
+            GridHelper.Emphasize(dataGridBezUgovora, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
+        }
+
+        private async void btnBezUgovoraSacuvajPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridBezUgovora, btnBezUgovoraSacuvajPdf, "Klijenti bez ugovora", "BezUgovora", GridColumns.KlijentiPdf);
+
+        private async void btnBezUgovoraExportPdf_Click(object sender, EventArgs e) =>
+            await _pdfPresenter.ExportGenericTableAsync(dataGridBezUgovora, btnBezUgovoraExportPdf, "Klijenti bez ugovora", "BezUgovora_tabela", GridColumns.KlijentiPdf);
+
+        // ── Početni ekran ──────────────────────────────────────────
+
+        private void LoadDashboard()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var dashboard = new DashboardQueryService(db);
+                var warningStats = new WarningQueryService(db).GetStats();
+
+                tileAktivniKlijenti.Value = dashboard.GetActiveClientCount().ToString();
+                tileKyc.Value = dashboard.GetActiveClientCount().ToString();
+                tileVlasnici.Value = dashboard.GetOwnerCount().ToString();
+                tilePep.Value = dashboard.GetPepClientCount().ToString();
+                tileRizik.Value = dashboard.GetActiveClientCount().ToString();
+                tileBezUgovora.Value = dashboard.GetClientsWithoutContractCount().ToString();
+                tileUpozorenja.Value = warningStats.Count.ToString();
+                tileArhivirani.Value = dashboard.GetArchivedClientCount().ToString();
+                tileUdruzenja.Value = dashboard.GetUdruzenjaCount().ToString();
+                tileStecaj.Value = dashboard.GetStecajCount().ToString();
+                tileAuditLog.Value = dashboard.GetAuditLogCount().ToString();
+                tileDjelatnosti.Value = dashboard.GetActivityCodeCount().ToString();
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju početnog ekrana");
+            }
+        }
+
+        private void tileAktivniKlijenti_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Klijenti);
+        private void tileKyc_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Kyc);
+        private void tileVlasnici_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Ubo);
+        private void tilePep_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Pep);
+        private void tileRizik_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Rizik);
+        private void tileBezUgovora_TileClick(object sender, EventArgs e) => ShowView(SidebarView.BezUgovora);
+        private void tileArhivirani_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Otkazani);
+        private void tileUdruzenja_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Udruzenja);
+        private void tileStecaj_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Stecaj);
+        private void tileAuditLog_TileClick(object sender, EventArgs e) => ShowView(SidebarView.AuditLog);
+        private void tileDjelatnosti_TileClick(object sender, EventArgs e) => ShowView(SidebarView.Klijenti);
+        private void tileOsvjezi_TileClick(object sender, EventArgs e) => LoadDashboard();
+
+        private void tileUpozorenja_TileClick(object sender, EventArgs e)
+        {
+            using var db = DbContextFactory.Create();
+            new FrmUpozorenja(db).ShowDialog(this);
+            LoadDashboard();
+            RefreshWarningsBadge();
+        }
+
+        private void tileDodajKlijenta_TileClick(object sender, EventArgs e)
+        {
+            using var db = DbContextFactory.Create();
+            if (new FrmDodajKlijent(klijentId: null, db).ShowDialog() == DialogResult.OK)
+            {
+                RefreshAfterChange();
+                LoadDashboard();
+            }
+        }
+
+        private void tileOtkaziKlijenta_TileClick(object sender, EventArgs e)
+        {
+            ShowView(SidebarView.Klijenti);
+            MessageBox.Show(UiMessages.SelectFirmOnKlijentiScreen);
+        }
+
+        private async void tileExportPdf_TileClick(object sender, EventArgs e)
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var dashboard = new DashboardQueryService(db);
+                var warningStats = new WarningQueryService(db).GetStats();
+
+                var data = new ComplianceSummaryData
+                {
+                    AktivniKlijenti = dashboard.GetActiveClientCount(),
+                    KlijentiPoRiziku = dashboard.GetClientCountByRisk(),
+                    PepKlijenti = dashboard.GetPepClientCount(),
+                    KlijentiBezUgovora = dashboard.GetClientsWithoutContractCount(),
+                    UpozorenjaUkupno = warningStats.Count,
+                    UpozorenjaImaIsteklih = warningStats.HasExpired,
+                };
+
+                await _pdfPresenter.ExportComplianceSummaryAsync(btnDashboardExportPdfProxy, data);
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri generisanju compliance izvještaja");
+            }
+        }
+
         private void LoadOtkazaniKlijenti()
         {
             try
@@ -473,7 +600,14 @@ namespace OwnerTrack.App
 
         private void StyleAuditLogGrid()
         {
-            GridHelper.ApplyColumns(dataGridAuditLog, GridColumns.AuditLog);
+            // AutoSizeColumnsMode.Fill (postavljen u Designeru) razvlači kolone
+            // preko cijele širine grida umjesto GridColumns.AuditLog fiksnih
+            // Width vrijednosti, pa se ovdje isti omjer širina (140/120/80/110/400)
+            // prenosi kroz FillWeight — isti obrazac kao ostali gridovi u
+            // aplikaciji koji koriste Fill (npr. FrmKlijentProfil).
+            foreach (var (ime, sirina, zaglavlje, format) in GridColumns.AuditLog)
+                GridHelper.ConfigureColumn(dataGridAuditLog, ime, zaglavlje, sirina, format);
+
             GridHelper.FreezeColumns(dataGridAuditLog, "Vrijeme");
             GridHelper.AlignCenter(dataGridAuditLog, "Vrijeme", "EntitetId", "Akcija");
         }
@@ -482,21 +616,25 @@ namespace OwnerTrack.App
         {
             _currentView = view;
 
+            panelViewDashboard.Visible = view == SidebarView.Dashboard;
             panelViewKlijenti.Visible = view == SidebarView.Klijenti;
             panelViewKyc.Visible = view == SidebarView.Kyc;
             panelViewUbo.Visible = view == SidebarView.Ubo;
             panelViewPep.Visible = view == SidebarView.Pep;
             panelViewRizik.Visible = view == SidebarView.Rizik;
+            panelViewBezUgovora.Visible = view == SidebarView.BezUgovora;
             panelViewOtkazani.Visible = view == SidebarView.Otkazani;
             panelViewUdruzenja.Visible = view == SidebarView.Udruzenja;
             panelViewStecaj.Visible = view == SidebarView.Stecaj;
             panelViewAuditLog.Visible = view == SidebarView.AuditLog;
 
+            UiTheme.StyleSidebarButton(btnNavDashboard, active: view == SidebarView.Dashboard);
             UiTheme.StyleSidebarButton(btnNavKlijenti, active: view == SidebarView.Klijenti);
             UiTheme.StyleSidebarButton(btnNavKyc, active: view == SidebarView.Kyc);
             UiTheme.StyleSidebarButton(btnNavUbo, active: view == SidebarView.Ubo);
             UiTheme.StyleSidebarButton(btnNavPep, active: view == SidebarView.Pep);
             UiTheme.StyleSidebarButton(btnNavRizik, active: view == SidebarView.Rizik);
+            UiTheme.StyleSidebarButton(btnNavBezUgovora, active: view == SidebarView.BezUgovora);
             UiTheme.StyleSidebarButton(btnNavOtkazani, active: view == SidebarView.Otkazani);
             UiTheme.StyleSidebarButton(btnNavUdruzenja, active: view == SidebarView.Udruzenja);
             UiTheme.StyleSidebarButton(btnNavStecaj, active: view == SidebarView.Stecaj);
@@ -504,10 +642,12 @@ namespace OwnerTrack.App
 
             switch (view)
             {
+                case SidebarView.Dashboard: LoadDashboard(); break;
                 case SidebarView.Kyc: LoadKyc(); break;
                 case SidebarView.Ubo: LoadUbo(); break;
                 case SidebarView.Pep: LoadPep(); break;
                 case SidebarView.Rizik: LoadRizik(); break;
+                case SidebarView.BezUgovora: LoadBezUgovoraKlijenata(); break;
                 case SidebarView.Otkazani: LoadOtkazaniKlijenti(); break;
                 case SidebarView.Udruzenja: LoadUdruzenja(); break;
                 case SidebarView.Stecaj: LoadStecajKlijenti(); break;
@@ -540,20 +680,22 @@ namespace OwnerTrack.App
             await _pdfPresenter.ExportGenericTableAsync(dataGridRizik, btnRizikExportPdf, "Procjena rizika", "Rizik_tabela");
 
         private async void btnUdruzenjaSacuvajPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridUdruzenja, btnUdruzenjaSacuvajPdf, "Udruženja", "Udruzenje");
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridUdruzenja, btnUdruzenjaSacuvajPdf, "Udruženja", "Udruzenje", GridColumns.KlijentiPdf);
 
         private async void btnUdruzenjaExportPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericTableAsync(dataGridUdruzenja, btnUdruzenjaExportPdf, "Udruženja", "Udruzenja_tabela");
+            await _pdfPresenter.ExportGenericTableAsync(dataGridUdruzenja, btnUdruzenjaExportPdf, "Udruženja", "Udruzenja_tabela", GridColumns.KlijentiPdf);
 
         private async void btnStecajSacuvajPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridStecaj, btnStecajSacuvajPdf, "Klijenti u stečaju", "Stecaj");
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridStecaj, btnStecajSacuvajPdf, "Klijenti u stečaju", "Stecaj", GridColumns.KlijentiPdf);
 
         private async void btnStecajExportPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericTableAsync(dataGridStecaj, btnStecajExportPdf, "Klijenti u stečaju", "Stecaj_tabela");
+            await _pdfPresenter.ExportGenericTableAsync(dataGridStecaj, btnStecajExportPdf, "Klijenti u stečaju", "Stecaj_tabela", GridColumns.KlijentiPdf);
 
+        private void btnNavDashboard_Click(object sender, EventArgs e) => ShowView(SidebarView.Dashboard);
         private void btnNavKlijenti_Click(object sender, EventArgs e) => ShowView(SidebarView.Klijenti);
         private void btnNavKyc_Click(object sender, EventArgs e) => ShowView(SidebarView.Kyc);
         private void btnNavUbo_Click(object sender, EventArgs e) => ShowView(SidebarView.Ubo);
+        private void btnNavBezUgovora_Click(object sender, EventArgs e) => ShowView(SidebarView.BezUgovora);
         private void btnNavOtkazani_Click(object sender, EventArgs e) => ShowView(SidebarView.Otkazani);
         private void btnNavUdruzenja_Click(object sender, EventArgs e) => ShowView(SidebarView.Udruzenja);
         private void btnNavStecaj_Click(object sender, EventArgs e) => ShowView(SidebarView.Stecaj);
@@ -811,6 +953,7 @@ namespace OwnerTrack.App
             LoadActivityCodeFilter();
             LoadClients();
             RefreshWarningsBadge();
+            if (_currentView == SidebarView.Dashboard) LoadDashboard();
         }
 
         // ── Sidebar ───────────────────────────────────────────────
@@ -823,15 +966,17 @@ namespace OwnerTrack.App
             lblSidebarBrand.Text = _sidebarExpanded ? "CONFIDIA BH" : "C";
             _sidebarToolTip.SetToolTip(lblSidebarBrand, _sidebarExpanded ? string.Empty : "Confidia BH");
 
+            SetNavButtonLabel(btnNavDashboard, "Početni ekran");
             SetNavButtonLabel(btnNavKlijenti, "Klijenti");
             SetNavButtonLabel(btnNavKyc, "KYC evidencija");
             SetNavButtonLabel(btnNavUbo, "UBO / Vlasništvo");
             SetNavButtonLabel(btnNavPep, "PEP evidencija");
             SetNavButtonLabel(btnNavRizik, "Procjena rizika");
+            SetNavButtonLabel(btnNavBezUgovora, "Klijenti bez ugovora");
             SetNavButtonLabel(btnNavOtkazani, "Otkazani klijenti");
             SetNavButtonLabel(btnNavUdruzenja, "Udruženja");
             SetNavButtonLabel(btnNavStecaj, "Klijenti u stečaju");
-            SetNavButtonLabel(btnNavAuditLog, "Audit log");
+            SetNavButtonLabel(btnNavAuditLog, "Historija promjena");
         }
 
         // Kada je sidebar collapsed, dugmad prikazuju samo ikonu — naziv

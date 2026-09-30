@@ -49,6 +49,8 @@ namespace OwnerTrack.Infrastructure
             if (version < 12) ApplyV12(conn);
             if (version < 13) ApplyV13(conn);
             if (version < 14) ApplyV14(conn);
+            if (version < 15) ApplyV15(conn);
+            if (version < 16) ApplyV16(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -359,6 +361,67 @@ namespace OwnerTrack.Infrastructure
                 AddColumnIfMissing(c, tx, "Klijenti", "Version", "INTEGER NOT NULL DEFAULT 0");
                 AddColumnIfMissing(c, tx, "Vlasnici", "Version", "INTEGER NOT NULL DEFAULT 0");
                 AddColumnIfMissing(c, tx, "Direktori", "Version", "INTEGER NOT NULL DEFAULT 0");
+            });
+
+        private void ApplyV15(SqliteConnection conn) =>
+            ApplyMigration(conn, 15, "kreiranje tabele WarningAcknowledgements (pregledana upozorenja)", (c, tx) =>
+            {
+                ExecSql(c, tx, @"
+                    CREATE TABLE IF NOT EXISTS WarningAcknowledgements (
+                        Id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        EntityType  TEXT NOT NULL,
+                        EntityId    INTEGER NOT NULL,
+                        DatumIsteka TEXT NOT NULL,
+                        Napomena    TEXT,
+                        Korisnik    TEXT,
+                        Vrijeme     TEXT NOT NULL DEFAULT (datetime('now'))
+                    )");
+
+                ExecSql(c, tx, @"
+                    CREATE UNIQUE INDEX IF NOT EXISTS UX_WarningAcknowledgements_Entity
+                    ON WarningAcknowledgements(EntityType, EntityId, DatumIsteka)");
+            });
+
+        // EF Core enume (StatusEntiteta, VrstaKlijenta) čita i piše kao BROJEVE (0, 1, 2...),
+        // a starije verzije aplikacije su u iste kolone upisivale tekst ('AKTIVAN', 'PRAVNO LICE').
+        // Za takve redove EF upiti tipa Status == AKTIVAN (Status = 0) ne pogađaju ništa, pa iz
+        // upozorenja i drugih upita tiho nestaju svi stari vlasnici/direktori. Ova migracija
+        // pretvara poznata tekstualna imena u brojeve koje EF očekuje (kolone su TEXT affinity,
+        // pa se broj sprema kao '0', isto kao što ga upisuje EF). Idempotentna je: dira samo
+        // redove koji još sadrže tekstualno ime; nepoznate vrijednosti ostaju netaknute.
+        private void ApplyV16(SqliteConnection conn) =>
+            ApplyMigration(conn, 16, "pretvaranje tekstualnih enum vrijednosti (Status, VrstaKlijenta) u brojčane", (c, tx) =>
+            {
+                foreach (var table in new[] { "Klijenti", "Vlasnici", "Direktori" })
+                {
+                    if (!TableExists(c, tx, table)) continue;
+
+                    ExecSql(c, tx, $@"
+                        UPDATE {table}
+                        SET Status = CASE UPPER(TRIM(Status))
+                                         WHEN 'AKTIVAN'   THEN 0
+                                         WHEN 'NEAKTIVAN' THEN 1
+                                         WHEN 'ARHIVIRAN' THEN 2
+                                     END
+                        WHERE UPPER(TRIM(Status)) IN ('AKTIVAN', 'NEAKTIVAN', 'ARHIVIRAN')");
+                }
+
+                if (TableExists(c, tx, "Klijenti"))
+                {
+                    ExecSql(c, tx, @"
+                        UPDATE Klijenti
+                        SET VrstaKlijenta = CASE UPPER(REPLACE(REPLACE(TRIM(VrstaKlijenta), ' ', ''), '_', ''))
+                                                WHEN 'PRAVNOLICE'    THEN 0
+                                                WHEN 'FIZICKOLICE'   THEN 1
+                                                WHEN 'FIZIČKOLICE'   THEN 1
+                                                WHEN 'UDRUZENJE'     THEN 2
+                                                WHEN 'UDRUŽENJE'     THEN 2
+                                                WHEN 'OBRTNIK'       THEN 3
+                                                WHEN 'JAVNAUSTANOVA' THEN 4
+                                            END
+                        WHERE UPPER(REPLACE(REPLACE(TRIM(VrstaKlijenta), ' ', ''), '_', '')) IN
+                              ('PRAVNOLICE', 'FIZICKOLICE', 'FIZIČKOLICE', 'UDRUZENJE', 'UDRUŽENJE', 'OBRTNIK', 'JAVNAUSTANOVA')");
+                }
             });
 
         // Nakon rebuilda Klijenti tabele (koji je rađen sa foreign_keys=OFF)

@@ -1,4 +1,4 @@
-﻿using OwnerTrack.App.Constants;
+using OwnerTrack.App.Constants;
 using OwnerTrack.App.Controls;
 
 namespace OwnerTrack.App
@@ -27,16 +27,47 @@ namespace OwnerTrack.App
             panelSidebarBrand = new Panel();
             lblSidebarBrand = new Label();
             panelSidebarBrandDivider = new Panel();
+            btnNavDashboard = new IconButton();
             btnNavKlijenti = new IconButton();
             btnNavKyc = new IconButton();
             btnNavUbo = new IconButton();
             btnNavPep = new IconButton();
             btnNavRizik = new IconButton();
+            btnNavBezUgovora = new IconButton();
             btnNavOtkazani = new IconButton();
             btnNavUdruzenja = new IconButton();
             btnNavStecaj = new IconButton();
             btnNavAuditLog = new IconButton();
             panelSidebarDivider = new Panel();
+            panelViewDashboard = new Panel();
+            panelDashboardHeader = new Panel();
+            lblDashboardTitle = new Label();
+            lblConfidiaBrand = new Label();
+            panelDashboardTiles = new TableLayoutPanel();
+            tileAktivniKlijenti = new StatTile();
+            tileKyc = new StatTile();
+            tileVlasnici = new StatTile();
+            tilePep = new StatTile();
+            tileRizik = new StatTile();
+            tileBezUgovora = new StatTile();
+            tileUpozorenja = new StatTile();
+            tileArhivirani = new StatTile();
+            tileUdruzenja = new StatTile();
+            tileStecaj = new StatTile();
+            tileAuditLog = new StatTile();
+            tileDodajKlijenta = new StatTile();
+            tileOtkaziKlijenta = new StatTile();
+            tileExportPdf = new StatTile();
+            tileDjelatnosti = new StatTile();
+            tileOsvjezi = new StatTile();
+            btnDashboardExportPdfProxy = new Button();
+            panelViewBezUgovora = new Panel();
+            panelBezUgovoraHeader = new Panel();
+            lblBezUgovoraTitle = new Label();
+            btnBezUgovoraSacuvajPdf = new IconButton();
+            btnBezUgovoraExportPdf = new IconButton();
+            dataGridBezUgovora = new DataGridView();
+            lblEmptyBezUgovora = new Label();
             panelViewKyc = new Panel();
             panelKycHeader = new Panel();
             lblKycTitle = new Label();
@@ -130,6 +161,7 @@ namespace OwnerTrack.App
             ((System.ComponentModel.ISupportInitialize)dataGridKlijenti).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridVlasnici).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridDirektori).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridBezUgovora).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridKyc).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridUbo).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridPep).BeginInit();
@@ -138,6 +170,8 @@ namespace OwnerTrack.App
             ((System.ComponentModel.ISupportInitialize)dataGridUdruzenja).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridStecaj).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridAuditLog).BeginInit();
+            panelViewDashboard.SuspendLayout();
+            panelViewBezUgovora.SuspendLayout();
             panelViewKyc.SuspendLayout();
             panelViewUbo.SuspendLayout();
             panelViewPep.SuspendLayout();
@@ -146,6 +180,8 @@ namespace OwnerTrack.App
             panelViewUdruzenja.SuspendLayout();
             panelViewStecaj.SuspendLayout();
             panelViewAuditLog.SuspendLayout();
+            panelDashboardHeader.SuspendLayout();
+            panelBezUgovoraHeader.SuspendLayout();
             panelKycHeader.SuspendLayout();
             panelUboHeader.SuspendLayout();
             panelPepHeader.SuspendLayout();
@@ -248,15 +284,15 @@ namespace OwnerTrack.App
             // btnExportTabelaPdf
             btnExportTabelaPdf.Location = new Point(1037, 8);
             btnExportTabelaPdf.Name = "btnExportTabelaPdf";
-            btnExportTabelaPdf.Size = new Size(180, 36);
+            btnExportTabelaPdf.Size = new Size(215, 36);
             btnExportTabelaPdf.TabIndex = 7;
-            btnExportTabelaPdf.Text = "Export tabele u PDF";
+            btnExportTabelaPdf.Text = "Sačuvaj tabelu kao PDF";
             btnExportTabelaPdf.IconGlyph = "\uE71D";
             UiTheme.StyleAccentButton(btnExportTabelaPdf, UiTheme.PdfExportAccent, 10f);
             btnExportTabelaPdf.Click += btnExportTabelaPdf_Click;
 
             // btnUpozorenja
-            btnUpozorenja.Location = new Point(1249, 8);
+            btnUpozorenja.Location = new Point(1277, 8);
             btnUpozorenja.Name = "btnUpozorenja";
             btnUpozorenja.Size = new Size(168, 36);
             btnUpozorenja.TabIndex = 5;
@@ -521,6 +557,210 @@ namespace OwnerTrack.App
             splitMain.SplitterDistance = 536;
             splitMain.TabIndex = 0;
 
+            // ── panelViewDashboard ─────────────────────────────────
+            lblDashboardTitle.Dock = DockStyle.Left;
+            lblDashboardTitle.AutoSize = true;
+            lblDashboardTitle.BackColor = UiTheme.PanelLight;
+            lblDashboardTitle.ForeColor = UiTheme.Navy;
+            lblDashboardTitle.Font = UiTheme.Base(11f, FontStyle.Bold);
+            lblDashboardTitle.TextAlign = ContentAlignment.MiddleLeft;
+            lblDashboardTitle.Padding = new Padding(12, 0, 0, 0);
+            lblDashboardTitle.Text = "Početni ekran";
+            lblDashboardTitle.Name = "lblDashboardTitle";
+
+            lblConfidiaBrand.Dock = DockStyle.Fill;
+            lblConfidiaBrand.BackColor = UiTheme.PanelLight;
+            lblConfidiaBrand.ForeColor = UiTheme.Navy;
+            lblConfidiaBrand.Font = UiTheme.Base(14f, FontStyle.Bold);
+            lblConfidiaBrand.TextAlign = ContentAlignment.MiddleCenter;
+            lblConfidiaBrand.Text = "CONFIDIA BH";
+            lblConfidiaBrand.Name = "lblConfidiaBrand";
+
+            panelDashboardHeader.Dock = DockStyle.Top;
+            panelDashboardHeader.Height = 48;
+            panelDashboardHeader.BackColor = UiTheme.PanelLight;
+            panelDashboardHeader.Name = "panelDashboardHeader";
+            panelDashboardHeader.Controls.Add(lblConfidiaBrand);
+
+            // ── akcijske kartice (bez brojčane statistike, samo ikona) ──
+            tileDodajKlijenta.Title = "Dodaj klijenta";
+            tileDodajKlijenta.AccentColor = UiTheme.Green;
+            tileDodajKlijenta.IconGlyph = "";
+            tileDodajKlijenta.Name = "tileDodajKlijenta";
+            tileDodajKlijenta.TileClick += tileDodajKlijenta_TileClick;
+
+            tileOtkaziKlijenta.Title = "Otkaži klijenta";
+            tileOtkaziKlijenta.AccentColor = UiTheme.Red;
+            tileOtkaziKlijenta.IconGlyph = "";
+            tileOtkaziKlijenta.Name = "tileOtkaziKlijenta";
+            tileOtkaziKlijenta.TileClick += tileOtkaziKlijenta_TileClick;
+
+            tileExportPdf.Title = "Izvoz PDF izvještaja";
+            tileExportPdf.AccentColor = UiTheme.PdfExportAccent;
+            tileExportPdf.IconGlyph = "";
+            tileExportPdf.Name = "tileExportPdf";
+            tileExportPdf.TileClick += tileExportPdf_TileClick;
+
+            btnDashboardExportPdfProxy.Visible = false;
+            btnDashboardExportPdfProxy.Text = "Sačuvaj izvještaj kao PDF";
+            btnDashboardExportPdfProxy.Name = "btnDashboardExportPdfProxy";
+
+            tileDjelatnosti.Title = "Djelatnosti";
+            tileDjelatnosti.AccentColor = Color.White;
+            tileDjelatnosti.Name = "tileDjelatnosti";
+            tileDjelatnosti.TileClick += tileDjelatnosti_TileClick;
+
+            tileOsvjezi.Title = "Osvježi podatke";
+            tileOsvjezi.AccentColor = UiTheme.Blue;
+            tileOsvjezi.IconGlyph = "";
+            tileOsvjezi.Name = "tileOsvjezi";
+            tileOsvjezi.TileClick += tileOsvjezi_TileClick;
+
+            // ── kartice — jedna po svakoj sidebar stavci, plus Upozorenja ──
+            tileAktivniKlijenti.Title = "Klijenti";
+            tileAktivniKlijenti.AccentColor = Color.White;
+            tileAktivniKlijenti.Name = "tileAktivniKlijenti";
+            tileAktivniKlijenti.TileClick += tileAktivniKlijenti_TileClick;
+
+            tileKyc.Title = "KYC evidencija";
+            tileKyc.AccentColor = Color.White;
+            tileKyc.Name = "tileKyc";
+            tileKyc.TileClick += tileKyc_TileClick;
+
+            tileVlasnici.Title = "UBO / Vlasništvo (vlasnika)";
+            tileVlasnici.AccentColor = Color.White;
+            tileVlasnici.Name = "tileVlasnici";
+            tileVlasnici.TileClick += tileVlasnici_TileClick;
+
+            tilePep.Title = "PEP evidencija";
+            tilePep.AccentColor = UiTheme.AlertAmberOnDark;
+            tilePep.Name = "tilePep";
+            tilePep.TileClick += tilePep_TileClick;
+
+            tileRizik.Title = "Procjena rizika";
+            tileRizik.AccentColor = Color.White;
+            tileRizik.Name = "tileRizik";
+            tileRizik.TileClick += tileRizik_TileClick;
+
+            tileBezUgovora.Title = "Klijenti bez ugovora";
+            tileBezUgovora.AccentColor = UiTheme.AlertAmberOnDark;
+            tileBezUgovora.Name = "tileBezUgovora";
+            tileBezUgovora.TileClick += tileBezUgovora_TileClick;
+
+            tileUpozorenja.Title = "Upozorenja";
+            tileUpozorenja.AccentColor = UiTheme.AlertRedOnDark;
+            tileUpozorenja.Name = "tileUpozorenja";
+            tileUpozorenja.TileClick += tileUpozorenja_TileClick;
+
+            tileArhivirani.Title = "Otkazani klijenti";
+            tileArhivirani.AccentColor = Color.White;
+            tileArhivirani.Name = "tileArhivirani";
+            tileArhivirani.TileClick += tileArhivirani_TileClick;
+
+            tileUdruzenja.Title = "Udruženja";
+            tileUdruzenja.AccentColor = Color.White;
+            tileUdruzenja.Name = "tileUdruzenja";
+            tileUdruzenja.TileClick += tileUdruzenja_TileClick;
+
+            tileStecaj.Title = "Klijenti u stečaju";
+            tileStecaj.AccentColor = Color.White;
+            tileStecaj.Name = "tileStecaj";
+            tileStecaj.TileClick += tileStecaj_TileClick;
+
+            tileAuditLog.Title = "Historija promjena";
+            tileAuditLog.AccentColor = Color.White;
+            tileAuditLog.Name = "tileAuditLog";
+            tileAuditLog.TileClick += tileAuditLog_TileClick;
+
+            panelDashboardTiles.Dock = DockStyle.Fill;
+            panelDashboardTiles.BackColor = UiTheme.FormBackgroundMain;
+            panelDashboardTiles.Padding = new Padding(16);
+            panelDashboardTiles.Name = "panelDashboardTiles";
+            panelDashboardTiles.ColumnCount = 4;
+            panelDashboardTiles.RowCount = 4;
+            for (int i = 0; i < 4; i++)
+                panelDashboardTiles.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            for (int i = 0; i < 4; i++)
+                panelDashboardTiles.RowStyles.Add(new RowStyle(SizeType.Percent, 25f));
+            panelDashboardTiles.Controls.Add(tileAktivniKlijenti, 0, 0);
+            panelDashboardTiles.Controls.Add(tileKyc, 1, 0);
+            panelDashboardTiles.Controls.Add(tileVlasnici, 2, 0);
+            panelDashboardTiles.Controls.Add(tilePep, 3, 0);
+            panelDashboardTiles.Controls.Add(tileRizik, 0, 1);
+            panelDashboardTiles.Controls.Add(tileBezUgovora, 1, 1);
+            panelDashboardTiles.Controls.Add(tileUpozorenja, 2, 1);
+            panelDashboardTiles.Controls.Add(tileArhivirani, 3, 1);
+            panelDashboardTiles.Controls.Add(tileUdruzenja, 0, 2);
+            panelDashboardTiles.Controls.Add(tileStecaj, 1, 2);
+            panelDashboardTiles.Controls.Add(tileAuditLog, 2, 2);
+            panelDashboardTiles.Controls.Add(tileDjelatnosti, 3, 2);
+            panelDashboardTiles.Controls.Add(tileDodajKlijenta, 0, 3);
+            panelDashboardTiles.Controls.Add(tileOtkaziKlijenta, 1, 3);
+            panelDashboardTiles.Controls.Add(tileExportPdf, 2, 3);
+            panelDashboardTiles.Controls.Add(tileOsvjezi, 3, 3);
+
+            panelViewDashboard.Dock = DockStyle.Fill;
+            panelViewDashboard.Name = "panelViewDashboard";
+            panelViewDashboard.BackColor = UiTheme.FormBackgroundMain;
+            panelViewDashboard.Visible = false;
+            panelViewDashboard.Controls.Add(panelDashboardTiles);
+            panelViewDashboard.Controls.Add(panelDashboardHeader);
+            panelViewDashboard.Controls.Add(btnDashboardExportPdfProxy);
+
+            // ── dataGridBezUgovora / panelViewBezUgovora ──────────
+            dataGridBezUgovora.AllowUserToAddRows = false;
+            dataGridBezUgovora.AllowUserToDeleteRows = false;
+            dataGridBezUgovora.Dock = DockStyle.Fill;
+            dataGridBezUgovora.MultiSelect = false;
+            dataGridBezUgovora.Name = "dataGridBezUgovora";
+            dataGridBezUgovora.ReadOnly = true;
+            dataGridBezUgovora.RowHeadersVisible = false;
+            dataGridBezUgovora.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridBezUgovora.TabIndex = 0;
+            UiTheme.StyleGrid(dataGridBezUgovora);
+            UiTheme.StyleEmptyState(lblEmptyBezUgovora, "Nema klijenata bez ugovora.");
+
+            lblBezUgovoraTitle.Dock = DockStyle.Left;
+            lblBezUgovoraTitle.AutoSize = true;
+            lblBezUgovoraTitle.BackColor = UiTheme.PanelLight;
+            lblBezUgovoraTitle.ForeColor = UiTheme.Navy;
+            lblBezUgovoraTitle.Font = UiTheme.Base(11f, FontStyle.Bold);
+            lblBezUgovoraTitle.TextAlign = ContentAlignment.MiddleLeft;
+            lblBezUgovoraTitle.Padding = new Padding(12, 0, 0, 0);
+            lblBezUgovoraTitle.Text = "Klijenti bez ugovora";
+            lblBezUgovoraTitle.Name = "lblBezUgovoraTitle";
+
+            btnBezUgovoraSacuvajPdf.Location = new Point(220, 6);
+            btnBezUgovoraSacuvajPdf.Name = "btnBezUgovoraSacuvajPdf";
+            btnBezUgovoraSacuvajPdf.Size = new Size(168, 36);
+            btnBezUgovoraSacuvajPdf.Text = "Sačuvaj kao PDF";
+            btnBezUgovoraSacuvajPdf.IconGlyph = "";
+            UiTheme.StyleAccentButton(btnBezUgovoraSacuvajPdf, UiTheme.PdfSaveAccent, 10f);
+            btnBezUgovoraSacuvajPdf.Click += btnBezUgovoraSacuvajPdf_Click;
+
+            btnBezUgovoraExportPdf.Location = new Point(398, 6);
+            btnBezUgovoraExportPdf.Name = "btnBezUgovoraExportPdf";
+            btnBezUgovoraExportPdf.Size = new Size(180, 36);
+            btnBezUgovoraExportPdf.Text = "Sačuvaj tabelu kao PDF";
+            btnBezUgovoraExportPdf.IconGlyph = "";
+            UiTheme.StyleAccentButton(btnBezUgovoraExportPdf, UiTheme.PdfExportAccent, 10f);
+            btnBezUgovoraExportPdf.Click += btnBezUgovoraExportPdf_Click;
+
+            panelBezUgovoraHeader.Dock = DockStyle.Top;
+            panelBezUgovoraHeader.Height = 48;
+            panelBezUgovoraHeader.BackColor = UiTheme.PanelLight;
+            panelBezUgovoraHeader.Name = "panelBezUgovoraHeader";
+            panelBezUgovoraHeader.Controls.Add(lblBezUgovoraTitle);
+            panelBezUgovoraHeader.Controls.Add(btnBezUgovoraSacuvajPdf);
+            panelBezUgovoraHeader.Controls.Add(btnBezUgovoraExportPdf);
+
+            panelViewBezUgovora.Dock = DockStyle.Fill;
+            panelViewBezUgovora.Name = "panelViewBezUgovora";
+            panelViewBezUgovora.Visible = false;
+            panelViewBezUgovora.Controls.Add(dataGridBezUgovora);
+            panelViewBezUgovora.Controls.Add(lblEmptyBezUgovora);
+            panelViewBezUgovora.Controls.Add(panelBezUgovoraHeader);
+
             // ── dataGridKyc / panelViewKyc ────────────────────────
             dataGridKyc.AllowUserToAddRows = false;
             dataGridKyc.AllowUserToDeleteRows = false;
@@ -555,7 +795,7 @@ namespace OwnerTrack.App
             btnKycExportPdf.Location = new Point(398, 6);
             btnKycExportPdf.Name = "btnKycExportPdf";
             btnKycExportPdf.Size = new Size(180, 36);
-            btnKycExportPdf.Text = "Export tabele u PDF";
+            btnKycExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnKycExportPdf.IconGlyph = "\uE71D";
             UiTheme.StyleAccentButton(btnKycExportPdf, UiTheme.PdfExportAccent, 10f);
             btnKycExportPdf.Click += btnKycExportPdf_Click;
@@ -609,7 +849,7 @@ namespace OwnerTrack.App
             btnUboExportPdf.Location = new Point(398, 6);
             btnUboExportPdf.Name = "btnUboExportPdf";
             btnUboExportPdf.Size = new Size(180, 36);
-            btnUboExportPdf.Text = "Export tabele u PDF";
+            btnUboExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnUboExportPdf.IconGlyph = "\uE71D";
             UiTheme.StyleAccentButton(btnUboExportPdf, UiTheme.PdfExportAccent, 10f);
             btnUboExportPdf.Click += btnUboExportPdf_Click;
@@ -663,7 +903,7 @@ namespace OwnerTrack.App
             btnPepExportPdf.Location = new Point(398, 6);
             btnPepExportPdf.Name = "btnPepExportPdf";
             btnPepExportPdf.Size = new Size(180, 36);
-            btnPepExportPdf.Text = "Export tabele u PDF";
+            btnPepExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnPepExportPdf.IconGlyph = "\uE71D";
             UiTheme.StyleAccentButton(btnPepExportPdf, UiTheme.PdfExportAccent, 10f);
             btnPepExportPdf.Click += btnPepExportPdf_Click;
@@ -717,7 +957,7 @@ namespace OwnerTrack.App
             btnRizikExportPdf.Location = new Point(398, 6);
             btnRizikExportPdf.Name = "btnRizikExportPdf";
             btnRizikExportPdf.Size = new Size(180, 36);
-            btnRizikExportPdf.Text = "Export tabele u PDF";
+            btnRizikExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnRizikExportPdf.IconGlyph = "\uE71D";
             UiTheme.StyleAccentButton(btnRizikExportPdf, UiTheme.PdfExportAccent, 10f);
             btnRizikExportPdf.Click += btnRizikExportPdf_Click;
@@ -807,7 +1047,7 @@ namespace OwnerTrack.App
             btnUdruzenjaExportPdf.Location = new Point(398, 6);
             btnUdruzenjaExportPdf.Name = "btnUdruzenjaExportPdf";
             btnUdruzenjaExportPdf.Size = new Size(180, 36);
-            btnUdruzenjaExportPdf.Text = "Export tabele u PDF";
+            btnUdruzenjaExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnUdruzenjaExportPdf.IconGlyph = "";
             UiTheme.StyleAccentButton(btnUdruzenjaExportPdf, UiTheme.PdfExportAccent, 10f);
             btnUdruzenjaExportPdf.Click += btnUdruzenjaExportPdf_Click;
@@ -861,7 +1101,7 @@ namespace OwnerTrack.App
             btnStecajExportPdf.Location = new Point(398, 6);
             btnStecajExportPdf.Name = "btnStecajExportPdf";
             btnStecajExportPdf.Size = new Size(180, 36);
-            btnStecajExportPdf.Text = "Export tabele u PDF";
+            btnStecajExportPdf.Text = "Sačuvaj tabelu kao PDF";
             btnStecajExportPdf.IconGlyph = "";
             UiTheme.StyleAccentButton(btnStecajExportPdf, UiTheme.PdfExportAccent, 10f);
             btnStecajExportPdf.Click += btnStecajExportPdf_Click;
@@ -884,6 +1124,7 @@ namespace OwnerTrack.App
             // ── dataGridAuditLog / panelViewAuditLog ──────────────
             dataGridAuditLog.AllowUserToAddRows = false;
             dataGridAuditLog.AllowUserToDeleteRows = false;
+            dataGridAuditLog.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dataGridAuditLog.Dock = DockStyle.Fill;
             dataGridAuditLog.MultiSelect = false;
             dataGridAuditLog.Name = "dataGridAuditLog";
@@ -901,7 +1142,7 @@ namespace OwnerTrack.App
             lblAuditLogTitle.Font = UiTheme.Base(11f, FontStyle.Bold);
             lblAuditLogTitle.TextAlign = ContentAlignment.MiddleLeft;
             lblAuditLogTitle.Padding = new Padding(12, 0, 0, 0);
-            lblAuditLogTitle.Text = "Audit log";
+            lblAuditLogTitle.Text = "Historija promjena";
             lblAuditLogTitle.Name = "lblAuditLogTitle";
 
             panelAuditLogHeader.Dock = DockStyle.Top;
@@ -935,7 +1176,9 @@ namespace OwnerTrack.App
             panelMainContent.Controls.Add(panelViewPep);
             panelMainContent.Controls.Add(panelViewUbo);
             panelMainContent.Controls.Add(panelViewKyc);
+            panelMainContent.Controls.Add(panelViewBezUgovora);
             panelMainContent.Controls.Add(panelViewKlijenti);
+            panelMainContent.Controls.Add(panelViewDashboard);
 
             // ── panelSidebar ──────────────────────────────────────
             panelSidebar.Dock = DockStyle.Left;
@@ -946,11 +1189,13 @@ namespace OwnerTrack.App
             panelSidebar.Controls.Add(btnNavStecaj);
             panelSidebar.Controls.Add(btnNavOtkazani);
             panelSidebar.Controls.Add(btnNavUdruzenja);
+            panelSidebar.Controls.Add(btnNavBezUgovora);
             panelSidebar.Controls.Add(btnNavRizik);
             panelSidebar.Controls.Add(btnNavPep);
             panelSidebar.Controls.Add(btnNavUbo);
             panelSidebar.Controls.Add(btnNavKyc);
             panelSidebar.Controls.Add(btnNavKlijenti);
+            panelSidebar.Controls.Add(btnNavDashboard);
             panelSidebar.Controls.Add(panelSidebarDivider);
             panelSidebar.Controls.Add(panelSidebarBrandDivider);
             panelSidebar.Controls.Add(panelSidebarBrand);
@@ -999,13 +1244,22 @@ namespace OwnerTrack.App
             panelSidebarBrandDivider.Name = "panelSidebarBrandDivider";
             panelSidebarBrandDivider.BackColor = UiTheme.SidebarDivider;
 
-            // ── btnNavKlijenti ────────────────────────────────────
+            // -- btnNavDashboard --
+            btnNavDashboard.Dock = DockStyle.Top;
+            btnNavDashboard.Height = 46;
+            btnNavDashboard.Name = "btnNavDashboard";
+            btnNavDashboard.Text = "Početni ekran";
+            btnNavDashboard.IconGlyph = "";
+            UiTheme.StyleSidebarButton(btnNavDashboard, active: true);
+            btnNavDashboard.Click += btnNavDashboard_Click;
+
+            // -- btnNavKlijenti --
             btnNavKlijenti.Dock = DockStyle.Top;
             btnNavKlijenti.Height = 46;
             btnNavKlijenti.Name = "btnNavKlijenti";
             btnNavKlijenti.Text = "Klijenti";
-            btnNavKlijenti.IconGlyph = "\uE716";
-            UiTheme.StyleSidebarButton(btnNavKlijenti, active: true);
+            btnNavKlijenti.IconGlyph = "";
+            UiTheme.StyleSidebarButton(btnNavKlijenti);
             btnNavKlijenti.Click += btnNavKlijenti_Click;
 
             // ── btnNavKyc ─────────────────────────────────────────
@@ -1044,6 +1298,15 @@ namespace OwnerTrack.App
             UiTheme.StyleSidebarButton(btnNavRizik);
             btnNavRizik.Click += btnNavRizik_Click;
 
+            // -- btnNavBezUgovora --
+            btnNavBezUgovora.Dock = DockStyle.Top;
+            btnNavBezUgovora.Height = 46;
+            btnNavBezUgovora.Name = "btnNavBezUgovora";
+            btnNavBezUgovora.Text = "Klijenti bez ugovora";
+            btnNavBezUgovora.IconGlyph = "";
+            UiTheme.StyleSidebarButton(btnNavBezUgovora);
+            btnNavBezUgovora.Click += btnNavBezUgovora_Click;
+
             // ── btnNavOtkazani ────────────────────────────────────
             btnNavOtkazani.Dock = DockStyle.Top;
             btnNavOtkazani.Height = 46;
@@ -1075,7 +1338,7 @@ namespace OwnerTrack.App
             btnNavAuditLog.Dock = DockStyle.Top;
             btnNavAuditLog.Height = 46;
             btnNavAuditLog.Name = "btnNavAuditLog";
-            btnNavAuditLog.Text = "Audit log";
+            btnNavAuditLog.Text = "Historija promjena";
             btnNavAuditLog.IconGlyph = "";
             UiTheme.StyleSidebarButton(btnNavAuditLog);
             btnNavAuditLog.Click += btnNavAuditLog_Click;
@@ -1099,6 +1362,7 @@ namespace OwnerTrack.App
             ((System.ComponentModel.ISupportInitialize)dataGridKlijenti).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridVlasnici).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridDirektori).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridBezUgovora).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridKyc).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridUbo).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridPep).EndInit();
@@ -1123,6 +1387,12 @@ namespace OwnerTrack.App
             panelStecajHeader.PerformLayout();
             panelAuditLogHeader.ResumeLayout(false);
             panelAuditLogHeader.PerformLayout();
+            panelDashboardHeader.ResumeLayout(false);
+            panelDashboardHeader.PerformLayout();
+            panelBezUgovoraHeader.ResumeLayout(false);
+            panelBezUgovoraHeader.PerformLayout();
+            panelViewDashboard.ResumeLayout(false);
+            panelViewBezUgovora.ResumeLayout(false);
             panelViewKyc.ResumeLayout(false);
             panelViewUbo.ResumeLayout(false);
             panelViewPep.ResumeLayout(false);
@@ -1156,11 +1426,45 @@ namespace OwnerTrack.App
         private System.Windows.Forms.Panel panelSidebarBrand;
         private System.Windows.Forms.Label lblSidebarBrand;
         private System.Windows.Forms.Panel panelSidebarBrandDivider;
+        private IconButton btnNavDashboard;
+        private System.Windows.Forms.Panel panelViewDashboard;
+        private System.Windows.Forms.Panel panelDashboardHeader;
+        private System.Windows.Forms.Label lblDashboardTitle;
+        private System.Windows.Forms.Label lblConfidiaBrand;
+        private StatTile tileDodajKlijenta;
+        private StatTile tileOtkaziKlijenta;
+        private StatTile tileExportPdf;
+        private StatTile tileDjelatnosti;
+        private StatTile tileOsvjezi;
+        // Nevidljivo dugme — postojeći PdfExportPresenter/DialogHelper.ExecutePdfExport
+        // obrazac treba Button (za busy-state tekst/Enabled tokom generisanja),
+        // a klik dolazi sa StatTile kartice, ne pravog dugmeta.
+        private Button btnDashboardExportPdfProxy;
+        private System.Windows.Forms.TableLayoutPanel panelDashboardTiles;
+        private StatTile tileAktivniKlijenti;
+        private StatTile tileKyc;
+        private StatTile tilePep;
+        private StatTile tileRizik;
+        private StatTile tileBezUgovora;
+        private StatTile tileUpozorenja;
+        private StatTile tileVlasnici;
+        private StatTile tileArhivirani;
+        private StatTile tileUdruzenja;
+        private StatTile tileStecaj;
+        private StatTile tileAuditLog;
         private IconButton btnNavKlijenti;
         private IconButton btnNavKyc;
         private IconButton btnNavUbo;
         private IconButton btnNavPep;
         private IconButton btnNavRizik;
+        private IconButton btnNavBezUgovora;
+        private System.Windows.Forms.Panel panelViewBezUgovora;
+        private System.Windows.Forms.Panel panelBezUgovoraHeader;
+        private System.Windows.Forms.Label lblBezUgovoraTitle;
+        private IconButton btnBezUgovoraSacuvajPdf;
+        private IconButton btnBezUgovoraExportPdf;
+        public System.Windows.Forms.DataGridView dataGridBezUgovora;
+        private System.Windows.Forms.Label lblEmptyBezUgovora;
         private IconButton btnNavOtkazani;
         private System.Windows.Forms.Panel panelViewOtkazani;
         private System.Windows.Forms.Panel panelOtkazaniHeader;

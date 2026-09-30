@@ -34,6 +34,11 @@ namespace OwnerTrack.App
             PopulateComboBoxes();
             LoadActivityCodes();
 
+            // Datum nije unesen dok korisnik ne označi checkbox (novi klijent);
+            // za izmjenu LoadKlijent postavlja stvarne vrijednosti.
+            foreach (var dt in new[] { dtDatumUspostave, dtDatumOsnivanja, dtDatumProcjene, dtPepDatumProvjere, dtDatumUgovora })
+                dt.Checked = false;
+
             if (_klijentId.HasValue)
             {
                 LoadKlijent(_klijentId.Value);
@@ -80,6 +85,9 @@ namespace OwnerTrack.App
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbGotovinaRizik);
             FormHelper.PopulateEnumComboWithEmpty<DaNe>(cbGeografskiRizik);
             FormHelper.PopulateEnumCombo<StatusEntiteta>(cbStatus);
+            // Arhiviranje ide isključivo kroz postojeći archive workflow (ArchivePresenter):
+            // ručno postavljen status ARHIVIRAN ne postavlja Obrisan niti kaskadira na djecu.
+            cbStatus.Items.Remove(StatusEntiteta.ARHIVIRAN.ToString());
 
             cbStatusUgovora.Items.Clear();
             cbStatusUgovora.Items.AddRange(ContractStatus.Svi);
@@ -139,10 +147,10 @@ namespace OwnerTrack.App
             if (!string.IsNullOrEmpty(k.SifraDjelatnosti))
                 cbSifra.SelectedValue = k.SifraDjelatnosti;
 
-            dtDatumUspostave.Value = k.DatumUspostave ?? DateTime.Now;
-            dtDatumOsnivanja.Value = k.DatumOsnivanja ?? DateTime.Now;
-            dtDatumProcjene.Value = k.DatumProcjene ?? DateTime.Now;
-            dtPepDatumProvjere.Value = k.PepDatumProvjere ?? DateTime.Now;
+            FormHelper.SetNullableDate(dtDatumUspostave, k.DatumUspostave);
+            FormHelper.SetNullableDate(dtDatumOsnivanja, k.DatumOsnivanja);
+            FormHelper.SetNullableDate(dtDatumProcjene, k.DatumProcjene);
+            FormHelper.SetNullableDate(dtPepDatumProvjere, k.PepDatumProvjere);
 
             if (k.VrstaKlijenta.HasValue)
                 cbVrstaKlijenta.SelectedValue = k.VrstaKlijenta.Value.ToString();
@@ -152,12 +160,16 @@ namespace OwnerTrack.App
             FormHelper.SetCombo(cbUboRizik, k.UboRizik);
             FormHelper.SetCombo(cbGotovinaRizik, k.GotovinaRizik);
             FormHelper.SetCombo(cbGeografskiRizik, k.GeografskiRizik);
+            // Klijent koji je već u statusu ARHIVIRAN (npr. ranije ručno postavljen) zadržava tu
+            // stavku, da ga spremanje ne "vrati" tiho u AKTIVAN.
+            if (k.Status == StatusEntiteta.ARHIVIRAN)
+                cbStatus.Items.Add(StatusEntiteta.ARHIVIRAN.ToString());
             FormHelper.SetCombo(cbStatus, k.Status.ToString());
 
             if (k.Ugovor is not null)
             {
                 txtVrstaUgovora.Text = k.Ugovor.VrstaUgovora ?? string.Empty;
-                dtDatumUgovora.Value = k.Ugovor.DatumUgovora ?? DateTime.Now;
+                FormHelper.SetNullableDate(dtDatumUgovora, k.Ugovor.DatumUgovora);
                 FormHelper.SetCombo(cbStatusUgovora, k.Ugovor.StatusUgovora);
             }
         }
@@ -207,22 +219,22 @@ namespace OwnerTrack.App
         {
             k.Adresa = txtAdresa.Text;
             k.SifraDjelatnosti = cbSifra.SelectedValue?.ToString() ?? string.Empty;
-            k.DatumUspostave = dtDatumUspostave.Value;
-            k.DatumOsnivanja = dtDatumOsnivanja.Value;
+            k.DatumUspostave = FormHelper.GetNullableDate(dtDatumUspostave);
+            k.DatumOsnivanja = FormHelper.GetNullableDate(dtDatumOsnivanja);
             k.Velicina = cbVelicina.SelectedValue?.ToString() ?? string.Empty;
             k.PepRizik = FormHelper.NullIfEmpty(cbPepRizik.Text);
             k.UboRizik = FormHelper.NullIfEmpty(cbUboRizik.Text);
             k.GotovinaRizik = FormHelper.NullIfEmpty(cbGotovinaRizik.Text);
             k.GeografskiRizik = FormHelper.NullIfEmpty(cbGeografskiRizik.Text);
             k.UkupnaProcjena = txtUkupnaProcjena.Text;
-            k.DatumProcjene = dtDatumProcjene.Value;
+            k.DatumProcjene = FormHelper.GetNullableDate(dtDatumProcjene);
             k.OvjeraCr = txtOvjeraCr.Text;
             k.Napomena = txtNapomena.Text;
             k.PepImePrezime = txtPepImePrezime.Text;
             k.PepFunkcija = txtPepFunkcija.Text;
             k.PepPovezanost = txtPepPovezanost.Text;
             k.PepMjerePoduzete = txtPepMjerePoduzete.Text;
-            k.PepDatumProvjere = dtPepDatumProvjere.Value;
+            k.PepDatumProvjere = FormHelper.GetNullableDate(dtPepDatumProvjere);
             k.OpciIndikatoriRizika = txtOpciIndikatoriRizika.Text;
             k.IndikatoriIdentifikacijeRizika = txtIndikatoriIdentifikacijeRizika.Text;
             k.IndikatoriTransakcijaRizika = txtIndikatoriTransakcijaRizika.Text;
@@ -236,7 +248,7 @@ namespace OwnerTrack.App
         {
             ugovor.VrstaUgovora = txtVrstaUgovora.Text;
             ugovor.StatusUgovora = cbStatusUgovora.Text;
-            ugovor.DatumUgovora = dtDatumUgovora.Value;
+            ugovor.DatumUgovora = FormHelper.GetNullableDate(dtDatumUgovora);
         }
 
        
@@ -268,6 +280,17 @@ namespace OwnerTrack.App
             string idBroj = txtIdBroj.Text.Trim();
 
             if (!ValidateFields(naziv, idBroj)) return;
+
+            // Prazan status ugovora pri izmjeni briše postojeći Ugovor — traži potvrdu
+            // (isti confirm helper kao za arhiviranje); "Ne" ostavlja formu otvorenom.
+            if (_klijentId.HasValue &&
+                string.IsNullOrWhiteSpace(cbStatusUgovora.Text) &&
+                _db.Ugovori.Any(u => u.KlijentId == _klijentId.Value) &&
+                !DialogHelper.ConfirmArchive(UiMessages.KlijentUgovorDeleteConfirm))
+            {
+                cbStatusUgovora.Focus();
+                return;
+            }
 
             btnSpremi.Enabled = false;
             try
@@ -361,6 +384,11 @@ namespace OwnerTrack.App
                 ("PEP funkcija", before.PepFunkcija, k.PepFunkcija),
                 ("PEP povezanost", before.PepPovezanost, k.PepPovezanost),
                 ("PEP datum provjere", before.PepDatumProvjere, FormatDate(k.PepDatumProvjere)),
+                ("PEP mjere poduzete", before.PepMjerePoduzete, k.PepMjerePoduzete),
+                ("Opći indikatori rizika", before.OpciIndikatoriRizika, k.OpciIndikatoriRizika),
+                ("Indikatori identifikacije rizika", before.IndikatoriIdentifikacijeRizika, k.IndikatoriIdentifikacijeRizika),
+                ("Indikatori transakcija rizika", before.IndikatoriTransakcijaRizika, k.IndikatoriTransakcijaRizika),
+                ("Napomena", before.Napomena, k.Napomena),
                 ("Vrsta ugovora", previousVrstaUgovora, ugovor?.VrstaUgovora),
                 ("Status ugovora", previousStatusUgovora, ugovor?.StatusUgovora),
                 ("Datum ugovora", previousDatumUgovora, FormatDate(ugovor?.DatumUgovora)));
@@ -377,14 +405,18 @@ namespace OwnerTrack.App
             string? Velicina, string? Email, string? Telefon, string? VrstaKlijenta, string? Status,
             string? PepRizik, string? UboRizik, string? GotovinaRizik, string? GeografskiRizik,
             string? UkupnaProcjena, string? DatumProcjene, string? OvjeraCr,
-            string? PepImePrezime, string? PepFunkcija, string? PepPovezanost, string? PepDatumProvjere);
+            string? PepImePrezime, string? PepFunkcija, string? PepPovezanost, string? PepDatumProvjere,
+            string? PepMjerePoduzete, string? OpciIndikatoriRizika, string? IndikatoriIdentifikacijeRizika,
+            string? IndikatoriTransakcijaRizika, string? Napomena);
 
         private static KlijentFieldSnapshot SnapshotKlijentFields(Klijent k) => new(
             k.IdBroj, k.Adresa, k.SifraDjelatnosti, FormatDate(k.DatumUspostave), FormatDate(k.DatumOsnivanja),
             k.Velicina, k.Email, k.Telefon, k.VrstaKlijenta?.ToString(), k.Status.ToString(),
             k.PepRizik, k.UboRizik, k.GotovinaRizik, k.GeografskiRizik,
             k.UkupnaProcjena, FormatDate(k.DatumProcjene), k.OvjeraCr,
-            k.PepImePrezime, k.PepFunkcija, k.PepPovezanost, FormatDate(k.PepDatumProvjere));
+            k.PepImePrezime, k.PepFunkcija, k.PepPovezanost, FormatDate(k.PepDatumProvjere),
+            k.PepMjerePoduzete, k.OpciIndikatoriRizika, k.IndikatoriIdentifikacijeRizika,
+            k.IndikatoriTransakcijaRizika, k.Napomena);
 
         private void SaveNew(string naziv, string idBroj)
         {

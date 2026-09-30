@@ -146,6 +146,7 @@ namespace OwnerTrack.App.Constants
             b.Font = Base(fontSize, FontStyle.Bold);
             b.Cursor = Cursors.Hand;
             b.UseVisualStyleBackColor = false;
+            b.TextAlign = ContentAlignment.MiddleCenter;
 
             AttachHoverEffect(b, backColor);
         }
@@ -204,13 +205,12 @@ namespace OwnerTrack.App.Constants
         {
             t.Font = Base(fontSize);
             t.BorderStyle = BorderStyle.None;
-            t.BackColor = InputBackground;
+            t.BackColor = Color.White;
         }
 
         /// <summary>
-        /// Wraps a TextBox in a 1px Panel "border" that highlights with the
-        /// accent colour on focus (WinForms TextBox has no native focus
-        /// border). Caller adds the returned Panel to its parent instead of
+        /// Wraps a borderless TextBox in a Panel that paints a thin 1px
+        /// border around it. Caller adds the returned Panel to its parent instead of
         /// the TextBox directly; the TextBox itself keeps working exactly as
         /// before (code-behind still reads/writes txt.Text unchanged).
         /// </summary>
@@ -220,27 +220,44 @@ namespace OwnerTrack.App.Constants
             {
                 Location = location,
                 Size = size,
-                BackColor = GridBorder,
+                BackColor = Color.White,
             };
 
-            // A hairline computed directly from the wrapper's own runtime
-            // ClientSize (not Panel.Padding, which gets inflated by the
-            // form's DPI/font auto-scaling) — this keeps the gap at exactly
-            // 1 physical pixel on every side regardless of scaling.
+            // Border is painted (not the panel background), so any height
+            // difference between the wrapper and the TextBox never shows up
+            // as a thick line; the gap just matches the input background.
+            wrapper.Paint += (_, e) =>
+            {
+                using var pen = new Pen(SystemColors.ControlDark);
+                e.Graphics.DrawRectangle(pen, 0, 0, wrapper.ClientSize.Width - 1, wrapper.ClientSize.Height - 1);
+            };
+
             void LayoutInput()
             {
                 int w = Math.Max(0, wrapper.ClientSize.Width - 2);
                 int h = Math.Max(0, wrapper.ClientSize.Height - 2);
-                input.SetBounds(1, 1, w, h);
+                if (input.Multiline)
+                {
+                    input.SetBounds(1, 1, w, h);
+                }
+                else
+                {
+                    // Borderless single-line TextBox draws text at the top of
+                    // its box; shrink it to the text height and centre it.
+                    int textH = Math.Min(h, input.PreferredHeight);
+                    input.SetBounds(1, 1 + (h - textH) / 2, w, textH);
+                }
+                wrapper.Invalidate();
             }
 
             input.Dock = DockStyle.None;
             wrapper.Controls.Add(input);
             LayoutInput();
             wrapper.Resize += (_, _) => LayoutInput();
-
-            input.Enter += (_, _) => wrapper.BackColor = Blue;
-            input.Leave += (_, _) => wrapper.BackColor = GridBorder;
+            // StyleTextBox / DPI scaling change the font after wrapping, so
+            // the centring must be recomputed once the final font is known.
+            input.FontChanged += (_, _) => LayoutInput();
+            wrapper.HandleCreated += (_, _) => LayoutInput();
 
             return wrapper;
         }

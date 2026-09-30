@@ -194,6 +194,7 @@ namespace OwnerTrack.App
             dtDatumUspostave.Size = new Size(158, 24);
             dtDatumUspostave.TabIndex = 9;
             UiTheme.StyleDateTimePicker(dtDatumUspostave, 9.5f);
+            dtDatumUspostave.ShowCheckBox = true;
 
             lblVrstaKlijenta.Location = new Point(9, 124);
             lblVrstaKlijenta.Name = "lblVrstaKlijenta";
@@ -219,6 +220,7 @@ namespace OwnerTrack.App
             dtDatumOsnivanja.Size = new Size(158, 24);
             dtDatumOsnivanja.TabIndex = 13;
             UiTheme.StyleDateTimePicker(dtDatumOsnivanja, 9.5f);
+            dtDatumOsnivanja.ShowCheckBox = true;
 
             lblVelicina.Location = new Point(9, 157);
             lblVelicina.Name = "lblVelicina";
@@ -339,6 +341,7 @@ namespace OwnerTrack.App
             dtDatumProcjene.Size = new Size(158, 24);
             dtDatumProcjene.TabIndex = 11;
             UiTheme.StyleDateTimePicker(dtDatumProcjene, 9.5f);
+            dtDatumProcjene.ShowCheckBox = true;
 
             lblOvjeraCr.Location = new Point(9, 92);
             lblOvjeraCr.Name = "lblOvjeraCr";
@@ -423,6 +426,7 @@ namespace OwnerTrack.App
             dtPepDatumProvjere.Size = new Size(111, 24);
             dtPepDatumProvjere.TabIndex = 7;
             UiTheme.StyleDateTimePicker(dtPepDatumProvjere, 9.5f);
+            dtPepDatumProvjere.ShowCheckBox = true;
 
             lblPepMjerePoduzete.Location = new Point(9, 92);
             lblPepMjerePoduzete.Name = "lblPepMjerePoduzete";
@@ -522,6 +526,7 @@ namespace OwnerTrack.App
             dtDatumUgovora.Size = new Size(158, 24);
             dtDatumUgovora.TabIndex = 5;
             UiTheme.StyleDateTimePicker(dtDatumUgovora, 9.5f);
+            dtDatumUgovora.ShowCheckBox = true;
 
             // ── groupBoxKontakti ──────────────────────────────────
             groupBoxKontakti.Controls.Add(lblEmail);
@@ -614,16 +619,16 @@ namespace OwnerTrack.App
             panelButtons.Size = new Size(700, 56);
             panelButtons.TabIndex = 1;
 
-            btnSpremi.Location = new Point(420, 11);
+            btnSpremi.Location = new Point(196, 11);
             btnSpremi.Name = "btnSpremi";
-            btnSpremi.Size = new Size(131, 36);
+            btnSpremi.Size = new Size(165, 36);
             btnSpremi.TabIndex = 0;
             btnSpremi.Text = "Spremi";
             btnSpremi.IconGlyph = "";
             UiTheme.StyleFlatButton(btnSpremi, UiTheme.Green, 10f);
             btnSpremi.Click += btnSpremi_Click;
 
-            btnOtkazi.Location = new Point(560, 11);
+            btnOtkazi.Location = new Point(373, 11);
             btnOtkazi.Name = "btnOtkazi";
             btnOtkazi.Size = new Size(131, 36);
             btnOtkazi.TabIndex = 1;

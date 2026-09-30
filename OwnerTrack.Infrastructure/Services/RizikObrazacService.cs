@@ -48,10 +48,36 @@ namespace OwnerTrack.Infrastructure.Services
 
             _db.Entry(klijent).Property(k => k.Version).OriginalValue = expectedVersion;
 
+            string? prijeUkupna = klijent.UkupnaProcjena;
+            string? prijeDatum = klijent.DatumProcjene?.ToString("dd.MM.yyyy");
+
             klijent.RizikObrazacJson = JsonSerializer.Serialize(podaci);
+
+            // Profil, evidencije, dashboard i PDF čitaju Klijent.UkupnaProcjena/DatumProcjene,
+            // pa se rezultat obrasca prenosi na ta polja (isti SaveChanges). Prazna procjena
+            // u obrascu ne briše postojeću vrijednost na klijentu.
+            if (!string.IsNullOrWhiteSpace(podaci.UkupnaProcjena))
+            {
+                klijent.UkupnaProcjena = podaci.UkupnaProcjena;
+                if (podaci.DatumProcjene.HasValue)
+                    klijent.DatumProcjene = podaci.DatumProcjene;
+            }
+
             klijent.Azuriran = DateTime.Now;
             klijent.Version = expectedVersion + 1;
-            new AuditService(_db).LogUpdated("Klijenti", klijentId, "Ažuriran obrazac za procjenu rizika");
+
+            string? poslijeDatum = klijent.DatumProcjene?.ToString("dd.MM.yyyy");
+            var promjene = new List<string>();
+            if (prijeUkupna != klijent.UkupnaProcjena)
+                promjene.Add($"Ukupna procjena: '{prijeUkupna}' → '{klijent.UkupnaProcjena}'");
+            if (prijeDatum != poslijeDatum)
+                promjene.Add($"Datum procjene: '{prijeDatum}' → '{poslijeDatum}'");
+
+            string opis = promjene.Count == 0
+                ? "Ažuriran obrazac za procjenu rizika"
+                : "Ažuriran obrazac za procjenu rizika — " + string.Join("; ", promjene);
+
+            new AuditService(_db).LogUpdated("Klijenti", klijentId, opis);
             _db.SaveChanges();
 
             return klijent.Version;

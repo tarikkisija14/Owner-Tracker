@@ -24,6 +24,9 @@ namespace OwnerTrack.App.Helpers
         {
             using var cts = new CancellationTokenSource();
             bool importDone = false;
+            // true kad import nije završio čisto (fatalna greška, otkazivanje, greške u
+            // redovima ili nula uvezenih redova) — pozivalac tada nudi vraćanje backupa (onError).
+            bool needsRecovery = false;
 
             using var progressForm = ImportProgressFormFactory.Create(
                 out var progressBar,
@@ -48,6 +51,7 @@ namespace OwnerTrack.App.Helpers
                         cts.Token);
 
                     importDone = true;
+                    needsRecovery = cts.IsCancellationRequested || result.ErrorCount > 0 || result.SuccessCount == 0;
                     ActivateCloseButton(btnClose, btnCancel);
                     lblStatus.Text = ImportProgressFormatter.FormatResult(result, cts.IsCancellationRequested);
 
@@ -57,19 +61,20 @@ namespace OwnerTrack.App.Helpers
                 catch (OperationCanceledException)
                 {
                     importDone = true;
+                    needsRecovery = true;
                     lblStatus.Text = UiMessages.ImportCancelledByUser;
                     ActivateCloseButton(btnClose, btnCancel);
                 }
                 catch (Exception ex)
                 {
                     importDone = true;
+                    needsRecovery = true;
                     AppLogger.LogException(ex);
                     MessageBox.Show(
                         string.Format(UiMessages.ImportErrorFormat, ex.Message),
                         UiMessages.ImportErrorTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     progressForm.Close();
-                    onError?.Invoke();
                     return;
                 }
 
@@ -77,14 +82,19 @@ namespace OwnerTrack.App.Helpers
                 {
                     btnClose.Click -= OnCloseClicked;
                     progressForm.Close();
-                    if (!cts.IsCancellationRequested)
-                        onCompleted?.Invoke();
                 }
 
                 btnClose.Click += OnCloseClicked;
             };
 
             progressForm.ShowDialog(owner);
+
+            // Dijalog je zatvoren (dugme "Zatvori", X ili greška) — svi putevi prolaze ovuda,
+            // pa UI uvijek prikaže stvarno stanje baze (i nakon otkazivanja, koje commituje
+            // već uvezene redove), a pozivalac po potrebi nudi vraćanje backupa.
+            onCompleted?.Invoke();
+            if (needsRecovery)
+                onError?.Invoke();
         }
 
       

@@ -12,6 +12,7 @@ namespace OwnerTrack.App
         private readonly OwnerTrackDbContext _db;
         private readonly bool _dbOwned;
         private List<WarningDetail> _allWarnings = new();
+        private HashSet<(string EntityType, int EntityId, DateTime DatumIsteka)> _acknowledgedKeys = new();
         private int _hoverRowFirme = -1;
         private int _hoverRowDetalji = -1;
 
@@ -44,6 +45,7 @@ namespace OwnerTrack.App
             try
             {
                 _allWarnings = new WarningQueryService(_db).GetWarnings();
+                _acknowledgedKeys = new WarningAcknowledgementService(_db).GetAcknowledgedKeys();
                 RenderSummaryPanel(DateTime.Today);
                 RenderFirmsGrid(DateTime.Today);
             }
@@ -53,17 +55,25 @@ namespace OwnerTrack.App
             }
         }
 
+        private bool IsAcknowledged(WarningDetail w) =>
+            _acknowledgedKeys.Contains((w.Tip, w.EntityId, w.DatumIsteka));
+
         // ── Summary panel ─────────────────────────────────────────────────────
 
         private void RenderSummaryPanel(DateTime today)
         {
-            int expired = _allWarnings.Count(x => x.DatumIsteka < today);
-            int critical = _allWarnings.Count(x =>
+            // Pregledana (acknowledged) upozorenja se ne broje u ove brojače
+            // (isti princip kao Form1 badge preko WarningQueryService.GetStats),
+            // ali ostaju vidljiva u gridovima ispod, samo drugačije obojena.
+            var active = _allWarnings.Where(x => !IsAcknowledged(x)).ToList();
+
+            int expired = active.Count(x => x.DatumIsteka < today);
+            int critical = active.Count(x =>
                 x.DatumIsteka >= today &&
                 x.DatumIsteka <= today.AddDays(AppConstants.DanaKriticnoUpozorenje));
-            int upcoming = _allWarnings.Count(x =>
+            int upcoming = active.Count(x =>
                 x.DatumIsteka > today.AddDays(AppConstants.DanaKriticnoUpozorenje));
-            int firmCount = _allWarnings.Select(x => x.KlijentId).Distinct().Count();
+            int firmCount = active.Select(x => x.KlijentId).Distinct().Count();
 
             lblStatFirmi.Text = firmCount.ToString();
 
@@ -128,11 +138,13 @@ namespace OwnerTrack.App
                 .Where(x => x.KlijentId == klijentId)
                 .Select(x => new
                 {
+                    x.EntityId,
                     x.Tip,
                     x.ImePrezime,
                     x.DatumIsteka,
                     DanaDoIsteka = DaysUntilExpiry(x.DatumIsteka, today),
                     Status = WarningStatusText(x.DatumIsteka, today),
+                    Pregledano = IsAcknowledged(x) ? "Da" : "Ne",
                 })
                 .OrderBy(x => x.DatumIsteka)
                 .ToList();
@@ -143,11 +155,15 @@ namespace OwnerTrack.App
 
             if (gridDetalji.Columns.Count == 0) return;
 
+            if (gridDetalji.Columns.Contains("EntityId"))
+                gridDetalji.Columns["EntityId"].Visible = false;
+
             GridHelper.ConfigureColumn(gridDetalji, "Tip", "Tip", 15);
-            GridHelper.ConfigureColumn(gridDetalji, "ImePrezime", "Ime i prezime", 35);
-            GridHelper.ConfigureColumn(gridDetalji, "DatumIsteka", "Datum isteka", 20, "dd.MM.yyyy");
+            GridHelper.ConfigureColumn(gridDetalji, "ImePrezime", "Ime i prezime", 30);
+            GridHelper.ConfigureColumn(gridDetalji, "DatumIsteka", "Datum isteka", 15, "dd.MM.yyyy");
             GridHelper.ConfigureColumn(gridDetalji, "DanaDoIsteka", "Dana do isteka", 15);
             GridHelper.ConfigureColumn(gridDetalji, "Status", "Status", 15);
+            GridHelper.ConfigureColumn(gridDetalji, "Pregledano", "Pregledano", 12);
         }
 
         // ── Row colourisation ─────────────────────────────────────────────────
@@ -161,8 +177,25 @@ namespace OwnerTrack.App
         private static void ColorizeRow(DataGridView grid, DataGridViewCellFormattingEventArgs e, int hoverRow)
         {
             if (e.RowIndex < 0 || grid.Rows[e.RowIndex].DataBoundItem is null) return;
-            dynamic item = grid.Rows[e.RowIndex].DataBoundItem;
-            Color baseColor = RowColorForDays(item.DanaDoIsteka);
+            object item = grid.Rows[e.RowIndex].DataBoundItem;
+
+            // gridDetalji redovi imaju "Pregledano" polje — kad je "Da", red se
+            // prigušuje (siva boja) umjesto obojenog po hitnosti, jer je
+            // korisnik već obradio taj slučaj (warning i dalje postoji, samo
+            // više nije "aktivan" za pažnju korisnika). gridFirme redovi
+            // (grupisano po firmi) nemaju to polje pa reflection vraća null i
+            // ponašanje ostaje nepromijenjeno.
+            var pregledanoProp = item.GetType().GetProperty("Pregledano");
+            if (pregledanoProp?.GetValue(item) is "Da")
+            {
+                grid.Rows[e.RowIndex].DefaultCellStyle.ForeColor = UiTheme.MutedText;
+                grid.Rows[e.RowIndex].DefaultCellStyle.BackColor =
+                    e.RowIndex == hoverRow ? UiTheme.GridHoverRow : Color.White;
+                return;
+            }
+
+            dynamic dynamicItem = item;
+            Color baseColor = RowColorForDays(dynamicItem.DanaDoIsteka);
             grid.Rows[e.RowIndex].DefaultCellStyle.BackColor =
                 e.RowIndex == hoverRow ? ControlPaint.Dark(baseColor, 0.06f) : baseColor;
         }
@@ -194,6 +227,33 @@ namespace OwnerTrack.App
         }
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
+
+        private void btnOznaciPregledano_Click(object sender, EventArgs e)
+        {
+            if (gridDetalji.SelectedRows.Count == 0)
+            {
+                MessageBox.Show(UiMessages.SelectWarningRow);
+                return;
+            }
+
+            dynamic row = gridDetalji.SelectedRows[0].DataBoundItem;
+            int entityId = row.EntityId;
+            string tip = row.Tip;
+            DateTime datumIsteka = row.DatumIsteka;
+
+            var warning = _allWarnings.FirstOrDefault(w =>
+                w.EntityId == entityId && w.Tip == tip && w.DatumIsteka == datumIsteka);
+            if (warning is null) return;
+
+            if (IsAcknowledged(warning))
+            {
+                MessageBox.Show(UiMessages.WarningAlreadyAcknowledged);
+                return;
+            }
+
+            if (new FrmOznaciUpozorenje(_db, warning).ShowDialog(this) == DialogResult.OK)
+                LoadWarnings();
+        }
 
         
 

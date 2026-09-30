@@ -2,13 +2,15 @@ using System.Drawing.Drawing2D;
 using OwnerTrack.App.Constants;
 using OwnerTrack.App.Helpers;
 using OwnerTrack.Data.Enums;
+using OwnerTrack.Infrastructure.Database;
+using OwnerTrack.Infrastructure.Services;
 using OwnerTrack.Infrastructure.ViewModels;
 
 namespace OwnerTrack.App
 {
     public partial class FrmKlijentProfil : Form
     {
-        private readonly KlijentProfilViewModel _profil;
+        private KlijentProfilViewModel _profil;
 
         private const int CardWidth = 860;
         private const int CardHeaderHeight = 36;
@@ -106,11 +108,58 @@ namespace OwnerTrack.App
 
             y = LayoutGridCard(groupBoxVlasnici, y, "Vlasnici (aktivni i arhivirani)", vlasnistvoText, vlasnistvoColor);
             y = LayoutGridCard(groupBoxDirektori, y, "Direktori (aktivni i arhivirani)");
-            LayoutGridCard(groupBoxHistorija, y, "Historija promjena");
+
+            // btnHistorijaTabela/btnHistorijaTimeline su Designer-deklarisani
+            // (moraju preživjeti refresh), pa ih AttachHistorijaToggle mora
+            // maknuti iz starog headera PRIJE nego RemoveExistingHeader taj
+            // header (i sve što je u njemu ostalo) obriše — inače bi Dispose
+            // na starom headeru obrisao i njih.
+            btnHistorijaTabela.Parent?.Controls.Remove(btnHistorijaTabela);
+            btnHistorijaTimeline.Parent?.Controls.Remove(btnHistorijaTimeline);
+            RemoveExistingHeader(groupBoxHistorija);
+            groupBoxHistorija.Location = new Point(10, y);
+            var historijaHeader = AddCardHeader(groupBoxHistorija, "Historija promjena");
+            AttachHistorijaToggle(historijaHeader);
 
             PopulateVlasniciGrid();
             PopulateDirektoriGrid();
             PopulateHistorijaGrid();
+        }
+
+        // btnHistorijaTabela/btnHistorijaTimeline su deklarisani u Designeru
+        // (fiksne veličine), ali se pozicioniraju ovdje jer se card header
+        // gradi dinamički u AddCardHeader — isto mjesto gdje se pravi rightText
+        // labela na Vlasnici kartici.
+        private void AttachHistorijaToggle(Panel header)
+        {
+            btnHistorijaTimeline.Location = new Point(header.Width - btnHistorijaTimeline.Width - 14, 6);
+            btnHistorijaTabela.Location = new Point(btnHistorijaTimeline.Left - btnHistorijaTabela.Width - 6, 6);
+            header.Controls.Add(btnHistorijaTabela);
+            header.Controls.Add(btnHistorijaTimeline);
+        }
+
+        private void btnHistorijaTabela_Click(object sender, EventArgs e) => ShowHistorijaTabela();
+        private void btnHistorijaTimeline_Click(object sender, EventArgs e) => ShowHistorijaTimeline();
+
+        private void ShowHistorijaTabela()
+        {
+            gridHistorija.Visible = _profil.Historija.Count > 0;
+            lblEmptyHistorija.Visible = _profil.Historija.Count == 0;
+            timelineHistorija.Visible = false;
+            UiTheme.StyleFlatButton(btnHistorijaTabela, UiTheme.Blue, 8f);
+            UiTheme.StyleFlatButton(btnHistorijaTimeline, UiTheme.PanelLight, 8f);
+            btnHistorijaTimeline.ForeColor = UiTheme.Navy;
+        }
+
+        private void ShowHistorijaTimeline()
+        {
+            timelineHistorija.SetEntries(_profil.Historija);
+            timelineHistorija.Visible = true;
+            gridHistorija.Visible = false;
+            lblEmptyHistorija.Visible = false;
+            UiTheme.StyleFlatButton(btnHistorijaTimeline, UiTheme.Blue, 8f);
+            UiTheme.StyleFlatButton(btnHistorijaTabela, UiTheme.PanelLight, 8f);
+            btnHistorijaTabela.ForeColor = UiTheme.Navy;
         }
 
         // ── Card layout ───────────────────────────────────────────────────
@@ -224,9 +273,25 @@ namespace OwnerTrack.App
 
         private static int LayoutGridCard(Panel card, int y, string title, string? rightText = null, Color? rightColor = null)
         {
+            // Isti razlog kao Controls.Clear() u LayoutFieldCard: card ovdje
+            // sadrži i DataGridView deklarisan u Designeru (koji mora ostati),
+            // pa se briše samo prethodno dinamički dodani header umjesto cijelog
+            // Controls — bez ovoga bi drugi poziv Populate() (npr. refresh
+            // profila nakon spremanja obrasca za procjenu rizika) naslagao
+            // dupli header panel svaki put.
+            RemoveExistingHeader(card);
             card.Location = new Point(10, y);
             AddCardHeader(card, title, rightText, rightColor);
             return y + card.Height + 16;
+        }
+
+        private static void RemoveExistingHeader(Panel card)
+        {
+            var existingHeader = card.Controls.OfType<Panel>().FirstOrDefault(c => c.Dock == DockStyle.Top);
+            if (existingHeader is null) return;
+
+            card.Controls.Remove(existingHeader);
+            existingHeader.Dispose();
         }
 
         private static void SizeAsPill(Label lbl)
@@ -294,8 +359,40 @@ namespace OwnerTrack.App
 
         private void btnZatvori_Click(object sender, EventArgs e) => Close();
 
-        private void btnObrazacRizika_Click(object sender, EventArgs e) =>
-            new FrmRizikObrazac(_profil.Id, _profil.Naziv ?? string.Empty).ShowDialog(this);
+        private void btnObrazacRizika_Click(object sender, EventArgs e)
+        {
+            var frm = new FrmRizikObrazac(_profil.Id, _profil.Naziv ?? string.Empty);
+            frm.ShowDialog(this);
+
+            // Obrazac za procjenu rizika piše direktno u bazu (RizikObrazacJson,
+            // Version, Azuriran) — ovaj profil je učitan kao snapshot prije
+            // otvaranja tog obrasca, pa bez ovoga ostaje na starim podacima i
+            // nakon uspješnog save-a. Refresh se radi samo kad je nešto stvarno
+            // sačuvano (WasSaved), ne pri svakom zatvaranju obrasca.
+            if (frm.WasSaved)
+                RefreshProfile();
+        }
+
+        // Ponovo učitava profil iz baze kroz isti query servis koji je Form1
+        // koristio da prvi put otvori ovu formu (Form1.OpenKlijentProfil), i
+        // ponovo poziva postojeći Populate() — bez zatvaranja/ponovnog otvaranja
+        // cijele forme i bez duple query logike.
+        private void RefreshProfile()
+        {
+            try
+            {
+                using var db = DbContextFactory.Create();
+                var refreshed = new KlijentProfilQueryService(db).GetProfile(_profil.Id);
+                if (refreshed is null) return;
+
+                _profil = refreshed;
+                Populate();
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri osvježavanju profila firme");
+            }
+        }
 
         private static string FormatDate(DateTime? d) => d.HasValue ? d.Value.ToString("dd.MM.yyyy") : "—";
     }

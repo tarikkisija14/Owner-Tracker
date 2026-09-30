@@ -42,7 +42,7 @@ namespace OwnerTrack.Infrastructure.Services
                 .Include(k => k.Vlasnici)
                 .Include(k => k.Direktori)
                 .AsNoTracking()
-                .OrderBy(k => k.Naziv)
+                .OrderBy(k => k.Id)
                 .ToList();
 
             return klijenti.Select((k, i) => new KycViewModel
@@ -70,7 +70,7 @@ namespace OwnerTrack.Infrastructure.Services
             var result = _db.Vlasnici
                 .Include(v => v.Klijent)
                 .AsNoTracking()
-                .OrderBy(v => v.Klijent!.Naziv).ThenBy(v => v.ImePrezime)
+                .OrderBy(v => v.KlijentId).ThenBy(v => v.ImePrezime)
                 .Select(v => new VlasnikSaFirmomViewModel
                 {
                     Id = v.KlijentId,
@@ -94,7 +94,7 @@ namespace OwnerTrack.Infrastructure.Services
             var result = _db.Klijenti
                 .Where(k => k.PepRizik == "DA")
                 .AsNoTracking()
-                .OrderBy(k => k.Naziv)
+                .OrderBy(k => k.Id)
                 .Select(k => new PepViewModel
                 {
                     Id = k.Id,
@@ -121,7 +121,7 @@ namespace OwnerTrack.Infrastructure.Services
                 .Include(k => k.Vlasnici)
                 .Include(k => k.Direktori)
                 .AsNoTracking()
-                .OrderBy(k => k.Naziv)
+                .OrderBy(k => k.Id)
                 .ToList();
 
             return klijenti.Select((k, i) => new RizikProcjenaViewModel

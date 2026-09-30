@@ -96,7 +96,7 @@ namespace OwnerTrack.App
             UiTheme.StyleFlatButton(btnZatvori, UiTheme.Red, 10f);
             btnZatvori.Click += btnZatvori_Click;
 
-            btnExportPdf.Text = "Export PDF / Printaj";
+            btnExportPdf.Text = "Sačuvaj kao PDF / Štampaj";
             btnExportPdf.Location = new Point(598, 11);
             btnExportPdf.Size = new Size(170, 34);
             btnExportPdf.Anchor = AnchorStyles.Top | AnchorStyles.Right;

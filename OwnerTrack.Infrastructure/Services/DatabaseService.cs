@@ -28,7 +28,8 @@ namespace OwnerTrack.Infrastructure.Services
         public void RestoreBackup(string backupPath)
         {
             if (string.IsNullOrEmpty(backupPath) || !File.Exists(backupPath))
-                return;
+                throw new FileNotFoundException(
+                    "Backup fajl nije pronađen, pa vraćanje nije izvršeno.", backupPath);
 
             try
             {

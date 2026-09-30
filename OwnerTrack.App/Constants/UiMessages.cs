@@ -36,6 +36,7 @@
 
         public const string SelectFirmFirst = "Prvo odaberi firmu!";
         public const string SelectFirm = "Odaberi firmu!";
+        public const string SelectFirmOnKlijentiScreen = "Odaberi firmu iz liste i klikni 'Obriši' da je arhiviraš.";
         public const string SelectVlasnik = "Odaberi vlasnika!";
         public const string SelectDirektor = "Odaberi direktora!";
 
@@ -71,7 +72,7 @@
         public const string ExcelValidationErrorFormat = "Odabrani fajl nije validan:\n\n{0}";
 
         public const string BackupRestorePromptFormat =
-            "Import nije uspio, a baza je već bila obrisana.\n\n" +
+            "Import nije završen u potpunosti (greška, otkazivanje, greške u redovima ili nijedan uvezen red), a baza je već bila obrisana.\n\n" +
             "Hoćeš li vratiti podatke iz backupa?\n\nBackup: {0}";
         public const string BackupRestoreTitle = "Vraćanje podataka";
         public const string BackupKeptFormat = "Backup ostaje sačuvan na:\n{0}\n\nMožeš ga ručno vratiti ako zatreba.";
@@ -87,8 +88,11 @@
 
         public const string KlijentNazivRequired = "Naziv klijenta je obavezan.";
         public const string KlijentIdBrojRequired = "Molimo unesite ID broj.";
-        public const string KlijentSaveChangesButton = "💾 Spremi izmjene";
-        public const string KlijentSaveNewButton = "💾 Dodaj";
+        public const string KlijentUgovorDeleteConfirm =
+            "Status ugovora je prazan, pa će postojeći ugovor ovog klijenta biti OBRISAN " +
+            "(uključujući vrstu, datum i napomenu ugovora).";
+        public const string KlijentSaveChangesButton = "Spremi izmjene";
+        public const string KlijentSaveNewButton = "Dodaj";
         public const string KlijentEditTitle = "Izmijeni firmu";
         public const string KlijentSavedUpdate = "Klijent ažuriran!";
         public const string KlijentSavedNew = "Klijent dodan!";
@@ -130,12 +134,18 @@
         public const string WarningStatusCritical = "Kritično";
         public const string WarningStatusUpcoming = "Uskoro";
 
-        
+        public const string WarningAcknowledgedSaved = "Upozorenje označeno kao pregledano.";
+        public const string WarningAlreadyAcknowledged = "Ovo upozorenje je već označeno kao pregledano.";
+        public const string SelectWarningRow = "Odaberi upozorenje iz liste.";
+
+
 
         public const string SavedTitle = "Sačuvano";
 
         public const string UnsavedChangesTitle = "Nesačuvane promjene";
         public const string UnsavedChangesPrompt = "Imate nesačuvane promjene. Želite li zatvoriti bez spremanja?";
+        public const string UnsavedChangesSavePrompt =
+            "Imate nesačuvane promjene.\n\nŽelite li ih sačuvati prije zatvaranja?";
 
         public const string GenericErrorPrefix = "Greška";
         public const string GenericErrorFormat = "Greška: {0}";

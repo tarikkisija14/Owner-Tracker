@@ -43,7 +43,6 @@ namespace OwnerTrack.Infrastructure.Services
             public const int DatumUgovora = 26;
         }
 
-        private const int BatchSize = 50;
         private const int ExcelHeaderRows = 2;
         private const string SummarySheetKeyword = "ZBIRNA";
 
@@ -96,8 +95,6 @@ namespace OwnerTrack.Infrastructure.Services
                     var existingNames = db.Klijenti.IgnoreQueryFilters().AsNoTracking().Select(k => k.Naziv).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var existingActivityCodes = db.Djelatnosti.AsNoTracking().Select(d => d.Sifra).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                    int pendingChanges = 0;
-
                     for (int i = 0; i < dataRows.Count; i++)
                     {
                         if (cancellationToken.IsCancellationRequested)
@@ -124,6 +121,9 @@ namespace OwnerTrack.Infrastructure.Services
                         // nastavi normalno.
                         string savepointName = $"row_{i}";
                         tx.CreateSavepoint(savepointName);
+
+                        string? addedActivityCode = null;
+                        bool rowRegisteredInDedupe = false;
 
                         try
                         {
@@ -158,8 +158,9 @@ namespace OwnerTrack.Infrastructure.Services
                             string sifraDjelatnosti = ReadCell(workbookPart, row, Column.SifraDjelatnosti);
                             string? nazivDjelatnosti = ReadCellOrNull(workbookPart, row, Column.NazivDjelatnosti);
 
-                            if (!string.IsNullOrWhiteSpace(sifraDjelatnosti))
-                                EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti);
+                            if (!string.IsNullOrWhiteSpace(sifraDjelatnosti) &&
+                                EnsureActivityCodeExists(db, existingActivityCodes, sifraDjelatnosti, nazivDjelatnosti))
+                                addedActivityCode = sifraDjelatnosti;
 
                             var klijent = MapKlijent(workbookPart, row, naziv, idBroj, sifraDjelatnosti);
                             db.Klijenti.Add(klijent);
@@ -167,19 +168,20 @@ namespace OwnerTrack.Infrastructure.Services
 
                             existingIdBrojevi.Add(idBroj);
                             existingNames.Add(naziv);
+                            rowRegisteredInDedupe = true;
 
                             ImportVlasnici(workbookPart, row, klijent, result, db);
                             ImportDirektori(workbookPart, row, klijent, result, db);
                             ImportUgovor(workbookPart, row, klijent, db);
 
-                            result.SuccessCount++;
-                            pendingChanges++;
+                            // Klijent + Vlasnici + Direktori + Ugovor jednog Excel reda se
+                            // spremaju ZAJEDNO unutar savepointa ovog reda. Ako ovaj
+                            // SaveChanges (ili bilo šta iznad) baci, catch ispod vraća
+                            // cijeli red, pa nema klijenta bez svoje djece, a red se ne
+                            // broji kao uspješan.
+                            db.SaveChanges();
 
-                            if (pendingChanges >= BatchSize)
-                            {
-                                db.SaveChanges();
-                                pendingChanges = 0;
-                            }
+                            result.SuccessCount++;
                         }
                         catch (Exception ex)
                         {
@@ -190,13 +192,20 @@ namespace OwnerTrack.Infrastructure.Services
 
                             ClearTrackedEntities(db);
                             tx.RollbackToSavepoint(savepointName);
+
+                            // Rollback savepointa je vratio bazu, ali ne i ove in-memory
+                            // skupove — vrati ih da poništeni red ne utiče na sljedeće redove.
+                            if (rowRegisteredInDedupe)
+                            {
+                                existingIdBrojevi.Remove(idBroj);
+                                existingNames.Remove(naziv);
+                            }
+                            if (addedActivityCode is not null)
+                                existingActivityCodes.Remove(addedActivityCode);
                         }
 
                         progress?.Report(prog);
                     }
-
-                    if (pendingChanges > 0)
-                        db.SaveChanges();
 
                     tx.Commit();
 
@@ -333,13 +342,14 @@ namespace OwnerTrack.Infrastructure.Services
 
         
 
-        private static void EnsureActivityCodeExists(
+        // Vraća true samo ako je šifra stvarno dodana (pozivalac je mora vratiti ako red padne).
+        private static bool EnsureActivityCodeExists(
             OwnerTrackDbContext db,
             HashSet<string> existingCodes,
             string code,
             string? rawName)
         {
-            if (existingCodes.Contains(code)) return;
+            if (existingCodes.Contains(code)) return false;
 
             string displayName = string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("=")
                 ? $"Djelatnost {code}"
@@ -347,6 +357,7 @@ namespace OwnerTrack.Infrastructure.Services
 
             db.Djelatnosti.Add(new Djelatnost { Sifra = code, Naziv = displayName });
             existingCodes.Add(code);
+            return true;
         }
 
        

@@ -32,6 +32,24 @@
             cb.SelectedIndex = idx >= 0 ? idx : 0;
         }
 
+        // Za DateTimePicker sa ShowCheckBox = true: neoznačen checkbox znači "datum nije unesen"
+        // (null), a ne "danas". Isti obrazac kao dtDatumValjanosti u FrmDodajVlasnika/Direktora.
+        public static void SetNullableDate(DateTimePicker dt, DateTime? value)
+        {
+            if (value.HasValue)
+            {
+                dt.Value = value.Value;
+                dt.Checked = true;
+            }
+            else
+            {
+                dt.Checked = false;
+            }
+        }
+
+        public static DateTime? GetNullableDate(DateTimePicker dt)
+            => dt.Checked ? dt.Value : null;
+
         public static string? NullIfEmpty(string? s)
             => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 

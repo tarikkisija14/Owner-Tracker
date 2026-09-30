@@ -32,6 +32,7 @@ namespace OwnerTrack.App
             gridDetalji = new System.Windows.Forms.DataGridView();
             lblDetalji = new System.Windows.Forms.Label();
             lblEmptyDetalji = new System.Windows.Forms.Label();
+            btnOznaciPregledano = new IconButton();
 
             panelTop.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)split).BeginInit();
@@ -149,6 +150,16 @@ namespace OwnerTrack.App
             lblDetalji.Text = "Detalji za odabranu firmu";
             lblDetalji.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
+            // ── btnOznaciPregledano ───────────────────────────────
+            btnOznaciPregledano.Dock = System.Windows.Forms.DockStyle.Right;
+            btnOznaciPregledano.Width = 210;
+            btnOznaciPregledano.Name = "btnOznaciPregledano";
+            btnOznaciPregledano.Text = "Označi kao pregledano";
+            btnOznaciPregledano.IconGlyph = "";
+            UiTheme.StyleAccentButton(btnOznaciPregledano, UiTheme.Blue, 9f);
+            btnOznaciPregledano.Click += btnOznaciPregledano_Click;
+            lblDetalji.Controls.Add(btnOznaciPregledano);
+
             // ── gridDetalji ───────────────────────────────────────
             gridDetalji.AllowUserToAddRows = false;
             gridDetalji.AllowUserToDeleteRows = false;
@@ -230,5 +241,6 @@ namespace OwnerTrack.App
         private System.Windows.Forms.DataGridView gridDetalji;
         private System.Windows.Forms.Label lblDetalji;
         private System.Windows.Forms.Label lblEmptyDetalji;
+        private IconButton btnOznaciPregledano;
     }
 }

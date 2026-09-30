@@ -224,6 +224,108 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
+        public string GenerateComplianceSummaryPdf(ComplianceSummaryData data, string outputPath)
+        {
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    ApplySinglePageStyle(page);
+                    page.Header().Element(BuildComplianceSummaryHeader);
+                    page.Content().Element(c => BuildComplianceSummaryContent(c, data));
+                    page.Footer().Element(BuildFooter);
+                });
+            }).GeneratePdf(outputPath);
+
+            return outputPath;
+        }
+
+        private static void BuildComplianceSummaryHeader(IContainer c)
+        {
+            c.Background(PdfColours.Navy).Padding(14).Column(col =>
+            {
+                col.Item().Text(txt =>
+                {
+                    txt.AlignCenter();
+                    txt.Span("COMPLIANCE SUMMARY").FontSize(18).FontColor(PdfColours.White).Bold();
+                });
+                col.Item().PaddingTop(4).Text(txt =>
+                {
+                    txt.AlignCenter();
+                    txt.Span($"Datum izvještaja: {DateTime.Now:dd.MM.yyyy.}")
+                       .FontSize(9).FontColor(PdfColours.HeaderSub);
+                });
+            });
+        }
+
+        private static void BuildComplianceSummaryContent(IContainer c, ComplianceSummaryData data)
+        {
+            c.PaddingTop(10).Column(col =>
+            {
+                col.Spacing(10);
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "OPĆI PREGLED"));
+                col.Item().Table(tbl =>
+                {
+                    tbl.ColumnsDefinition(cd =>
+                    {
+                        cd.ConstantColumn(60, Unit.Millimetre);
+                        cd.RelativeColumn();
+                        cd.ConstantColumn(60, Unit.Millimetre);
+                        cd.RelativeColumn();
+                    });
+
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.White,
+                        "Aktivnih klijenata:", data.AktivniKlijenti.ToString(),
+                        "PEP klijenata:", data.PepKlijenti.ToString());
+                    PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.Grey,
+                        "Klijenata bez ugovora:", data.KlijentiBezUgovora.ToString(),
+                        "Ukupno upozorenja:", data.UpozorenjaUkupno.ToString());
+                });
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "KLIJENTI PO RIZIKU"));
+                col.Item().Element(x => BuildRiskBreakdown(x, data.KlijentiPoRiziku));
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "UPOZORENJA"));
+                col.Item().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(6)
+                   .Text(txt =>
+                   {
+                       txt.Span("Ima isteklih dokumenata: ").FontColor(PdfColours.TextMuted);
+                       txt.Span(data.UpozorenjaImaIsteklih ? "DA" : "NE").Bold()
+                          .FontColor(data.UpozorenjaImaIsteklih ? PdfColours.Red : PdfColours.Green);
+                   });
+            });
+        }
+
+        private static void BuildRiskBreakdown(IContainer c, Dictionary<string, int> riziciPoKlijentima)
+        {
+            if (riziciPoKlijentima.Count == 0)
+            {
+                PdfRenderHelpers.RenderEmptyNote(c, "Nema podataka o procjeni rizika.");
+                return;
+            }
+
+            c.Table(tbl =>
+            {
+                tbl.ColumnsDefinition(cd =>
+                {
+                    cd.RelativeColumn();
+                    cd.ConstantColumn(30, Unit.Millimetre);
+                });
+
+                PdfRenderHelpers.RenderTableHeader(tbl, "Procjena rizika");
+                PdfRenderHelpers.RenderTableHeader(tbl, "Broj klijenata");
+
+                int i = 0;
+                foreach (var kv in riziciPoKlijentima.OrderByDescending(x => x.Value))
+                {
+                    string bg = PdfRenderHelpers.AlternatingBackground(i++);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, kv.Key);
+                    PdfRenderHelpers.RenderTableCell(tbl, bg, kv.Value.ToString(), center: true);
+                }
+            });
+        }
+
         public string GenerateGenericTable(string title, string[] headers, float[] weights, List<string[]> rows, string outputPath)
         {
             Document.Create(container =>

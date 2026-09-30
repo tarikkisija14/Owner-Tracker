@@ -17,6 +17,7 @@ namespace OwnerTrack.Infrastructure.Database
         public DbSet<Direktor> Direktori { get; set; } = null!;
         public DbSet<Ugovor> Ugovori { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+        public DbSet<WarningAcknowledgement> WarningAcknowledgements { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -71,6 +72,9 @@ namespace OwnerTrack.Infrastructure.Database
             mb.Entity<Vlasnik>().HasIndex(v => new { v.KlijentId, v.ImePrezime });
             mb.Entity<Direktor>().HasIndex(d => d.KlijentId);
             mb.Entity<Ugovor>().HasIndex(u => u.KlijentId).IsUnique();
+            mb.Entity<WarningAcknowledgement>()
+                .HasIndex(w => new { w.EntityType, w.EntityId, w.DatumIsteka })
+                .IsUnique();
         }
 
         // Optimistic concurrency: EF adds "WHERE Version = @original" to the

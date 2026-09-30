@@ -38,6 +38,14 @@
             ("IndikatoriTransakcijaRizika",    200, "Indikatori transakcija",    null),
         };
 
+        // Kolone koje PDF izvoz prikazuje za grid-ove sa GridColumns.Klijenti (Bez ugovora,
+        // Udruženja, Stečaj) — isti skup koji koristi PdfExportService.GenerateClientTable.
+        public static readonly string[] KlijentiPdf =
+        {
+            "Naziv", "IdBroj", "Djelatnost", "Velicina", "PepRizik", "UboRizik", "UkupnaProcjena",
+            "StatusUgovora", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "StatusKlijenta",
+        };
+
         public static readonly (string Ime, int Sirina, string Zaglavlje, string? Format)[] Vlasnici =
         {
             ("Id",                       40,  "ID",                 null),

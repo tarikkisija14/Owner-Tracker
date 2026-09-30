@@ -19,25 +19,42 @@ namespace OwnerTrack.Infrastructure.Services
             var today = DateTime.Today;
             var threshold = today.AddDays(AppConstants.DanaUpozerenja);
 
+            // "Pregledana" (acknowledged) upozorenja i dalje postoje kao stvarna
+            // upozorenja (vidljiva u FrmUpozorenja), ali se ne broje u badge/count
+            // logici — korisnik ih je već obradio. Isključuju se anti-joinom na
+            // WarningAcknowledgements po (EntityType, EntityId, DatumIsteka).
+            var acknowledgedOwnerIds = _db.WarningAcknowledgements
+                .AsNoTracking()
+                .Where(a => a.EntityType == "Vlasnik")
+                .Select(a => new { a.EntityId, a.DatumIsteka });
+            var acknowledgedDirectorIds = _db.WarningAcknowledgements
+                .AsNoTracking()
+                .Where(a => a.EntityType == "Direktor")
+                .Select(a => new { a.EntityId, a.DatumIsteka });
+
             bool hasExpired =
                 _db.Vlasnici.AsNoTracking().Any(v =>
                     v.DatumValjanostiDokumenta < today
                     && v.Status == StatusEntiteta.AKTIVAN
-                    && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
+                    && v.Klijent.Status != StatusEntiteta.ARHIVIRAN
+                    && !acknowledgedOwnerIds.Any(a => a.EntityId == v.Id && a.DatumIsteka == v.DatumValjanostiDokumenta))
                 || _db.Direktori.AsNoTracking().Any(d =>
                     d.DatumValjanosti < today
                     && d.Status == StatusEntiteta.AKTIVAN
-                    && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
+                    && d.Klijent.Status != StatusEntiteta.ARHIVIRAN
+                    && !acknowledgedDirectorIds.Any(a => a.EntityId == d.Id && a.DatumIsteka == d.DatumValjanosti));
 
             int count =
                 _db.Vlasnici.AsNoTracking().Count(v =>
                     v.DatumValjanostiDokumenta <= threshold
                     && v.Status == StatusEntiteta.AKTIVAN
-                    && v.Klijent.Status != StatusEntiteta.ARHIVIRAN)
+                    && v.Klijent.Status != StatusEntiteta.ARHIVIRAN
+                    && !acknowledgedOwnerIds.Any(a => a.EntityId == v.Id && a.DatumIsteka == v.DatumValjanostiDokumenta))
                 + _db.Direktori.AsNoTracking().Count(d =>
                     d.DatumValjanosti <= threshold
                     && d.Status == StatusEntiteta.AKTIVAN
-                    && d.Klijent.Status != StatusEntiteta.ARHIVIRAN);
+                    && d.Klijent.Status != StatusEntiteta.ARHIVIRAN
+                    && !acknowledgedDirectorIds.Any(a => a.EntityId == d.Id && a.DatumIsteka == d.DatumValjanosti));
 
             return new WarningStats(count, hasExpired);
         }
@@ -64,6 +81,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     KlijentId = v.KlijentId,
                     NazivFirme = v.Klijent.Naziv,
+                    EntityId = v.Id,
                     ImePrezime = v.ImePrezime,
                     Tip = "Vlasnik",
                     DatumIsteka = v.DatumValjanostiDokumenta!.Value,
@@ -82,6 +100,7 @@ namespace OwnerTrack.Infrastructure.Services
                 {
                     KlijentId = d.KlijentId,
                     NazivFirme = d.Klijent.Naziv,
+                    EntityId = d.Id,
                     ImePrezime = d.ImePrezime,
                     Tip = "Direktor",
                     DatumIsteka = d.DatumValjanosti!.Value,

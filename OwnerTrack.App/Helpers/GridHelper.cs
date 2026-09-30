@@ -127,10 +127,12 @@
         /// matches what's on screen, nothing more.
         /// </summary>
         public static (string[] Headers, float[] Weights, List<string[]> Rows) ExtractVisibleData(
-            DataGridView grid, bool selectedOnly)
+            DataGridView grid, bool selectedOnly, string[]? onlyColumns = null)
         {
+            // onlyColumns: za grid-ove sa velikim brojem kolona (npr. GridColumns.Klijenti, 31
+            // kolona) izvozi samo navedene po imenu, da PDF tabela ostane čitljiva.
             var cols = grid.Columns.Cast<DataGridViewColumn>()
-                .Where(c => c.Visible)
+                .Where(c => c.Visible && (onlyColumns is null || onlyColumns.Contains(c.Name)))
                 .OrderBy(c => c.DisplayIndex)
                 .ToList();
 

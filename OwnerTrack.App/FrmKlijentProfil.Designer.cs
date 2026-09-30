@@ -1,4 +1,5 @@
 using OwnerTrack.App.Constants;
+using OwnerTrack.App.Controls;
 
 namespace OwnerTrack.App
 {
@@ -34,6 +35,9 @@ namespace OwnerTrack.App
             groupBoxHistorija = new Panel();
             gridHistorija = new DataGridView();
             lblEmptyHistorija = new Label();
+            timelineHistorija = new ActivityTimeline();
+            btnHistorijaTabela = new IconButton();
+            btnHistorijaTimeline = new IconButton();
             panelButtons = new Panel();
             btnZatvori = new Button();
             btnObrazacRizika = new Button();
@@ -162,7 +166,28 @@ namespace OwnerTrack.App
             gridHistorija.Name = "gridHistorija";
             UiTheme.StyleGrid(gridHistorija);
             UiTheme.StyleEmptyState(lblEmptyHistorija, "Nema evidentiranih promjena.");
+
+            timelineHistorija.Location = new Point(12, 46);
+            timelineHistorija.Size = new Size(836, 216);
+            timelineHistorija.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            timelineHistorija.Name = "timelineHistorija";
+            timelineHistorija.Visible = false;
+
+            btnHistorijaTabela.Size = new Size(70, 24);
+            btnHistorijaTabela.Text = "Tabela";
+            btnHistorijaTabela.Name = "btnHistorijaTabela";
+            UiTheme.StyleFlatButton(btnHistorijaTabela, UiTheme.Blue, 8f);
+            btnHistorijaTabela.Click += btnHistorijaTabela_Click;
+
+            btnHistorijaTimeline.Size = new Size(80, 24);
+            btnHistorijaTimeline.Text = "Timeline";
+            btnHistorijaTimeline.Name = "btnHistorijaTimeline";
+            UiTheme.StyleFlatButton(btnHistorijaTimeline, UiTheme.PanelLight, 8f);
+            btnHistorijaTimeline.ForeColor = UiTheme.Navy;
+            btnHistorijaTimeline.Click += btnHistorijaTimeline_Click;
+
             groupBoxHistorija.Controls.Add(gridHistorija);
+            groupBoxHistorija.Controls.Add(timelineHistorija);
             groupBoxHistorija.Controls.Add(lblEmptyHistorija);
 
             scrollPanel.Controls.Add(groupBoxHistorija);
@@ -234,6 +259,9 @@ namespace OwnerTrack.App
         private Panel groupBoxHistorija;
         private DataGridView gridHistorija;
         private Label lblEmptyHistorija;
+        private ActivityTimeline timelineHistorija;
+        private IconButton btnHistorijaTabela;
+        private IconButton btnHistorijaTimeline;
         private Panel panelButtons;
         private Button btnZatvori;
         private Button btnObrazacRizika;

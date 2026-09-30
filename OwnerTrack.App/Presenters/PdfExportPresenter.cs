@@ -70,7 +70,7 @@ namespace OwnerTrack.App.Presenters
         /// PEP, procjena rizika) — all currently visible rows, with that
         /// grid's own columns. No Klijent-specific PDF structure involved.
         /// </summary>
-        public async Task ExportGenericTableAsync(DataGridView grid, Button button, string title, string filePrefix)
+        public async Task ExportGenericTableAsync(DataGridView grid, Button button, string title, string filePrefix, string[]? onlyColumns = null)
         {
             if (grid.Rows.Count == 0)
             {
@@ -78,7 +78,7 @@ namespace OwnerTrack.App.Presenters
                 return;
             }
 
-            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: false);
+            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: false, onlyColumns);
 
             using var dialog = DialogHelper.CreateSaveDialogPdf(
                 UiMessages.PdfTableSaveTitle,
@@ -100,7 +100,7 @@ namespace OwnerTrack.App.Presenters
         /// Same as <see cref="ExportGenericTableAsync"/> but for just the
         /// selected row — a one-row PDF with that grid's own columns.
         /// </summary>
-        public async Task ExportGenericSingleRowAsync(DataGridView grid, Button button, string title, string filePrefix)
+        public async Task ExportGenericSingleRowAsync(DataGridView grid, Button button, string title, string filePrefix, string[]? onlyColumns = null)
         {
             if (grid.SelectedRows.Count == 0)
             {
@@ -108,7 +108,7 @@ namespace OwnerTrack.App.Presenters
                 return;
             }
 
-            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: true);
+            var (headers, weights, rows) = GridHelper.ExtractVisibleData(grid, selectedOnly: true, onlyColumns);
 
             using var dialog = DialogHelper.CreateSaveDialogPdf(
                 UiMessages.PdfReportSaveTitle,
@@ -127,6 +127,30 @@ namespace OwnerTrack.App.Presenters
         }
 
 
+
+        /// <summary>
+        /// Compliance Summary — jedan agregatni PDF sa Dashboard brojevima
+        /// (ne generički table export, jer podaci nisu red-po-red). Podaci se
+        /// prikupljaju u pozivaocu (Form1) i prosljeđuju kao gotov DTO, da PDF
+        /// servis ne pokreće drugi/paralelni upit.
+        /// </summary>
+        public async Task ExportComplianceSummaryAsync(Button button, OwnerTrack.Infrastructure.Models.ComplianceSummaryData data)
+        {
+            using var dialog = DialogHelper.CreateSaveDialogPdf(
+                UiMessages.PdfReportSaveTitle,
+                $"Compliance_Summary_{DateTime.Now:yyyyMMdd}.pdf");
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            string savedPath = dialog.FileName;
+            await DialogHelper.ExecutePdfExport(
+                button, button.Text,
+                path =>
+                {
+                    using var db = DbContextFactory.Create();
+                    return new PdfExportService(db).GenerateComplianceSummaryPdf(data, path);
+                },
+                savedPath);
+        }
 
         private static List<int> CollectVisibleIds(DataGridView grid) =>
             grid.Rows
