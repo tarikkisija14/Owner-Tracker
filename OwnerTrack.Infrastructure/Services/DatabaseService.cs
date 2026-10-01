@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 
 namespace OwnerTrack.Infrastructure.Services
@@ -7,7 +8,7 @@ namespace OwnerTrack.Infrastructure.Services
     public class DatabaseService
     {
         private static readonly string[] DataTables =
-            { "AuditLogs", "Ugovori", "Vlasnici", "Direktori", "Klijenti" };
+            { "AuditLogs", "WarningAcknowledgements", "Ugovori", "Vlasnici", "Direktori", "Klijenti" };
 
         private readonly string _dbPath;
         private readonly string _connectionString;
@@ -22,6 +23,7 @@ namespace OwnerTrack.Infrastructure.Services
         {
             string backupPath = CreateBackup();
             DeleteAllData();
+            LogReset(backupPath);
             return backupPath;
         }
 
@@ -55,6 +57,18 @@ namespace OwnerTrack.Infrastructure.Services
             }
         }
 
+        // Reset briše cijeli AuditLogs, pa je ovo prvi zapis nove historije: ko je i kada
+        // resetovao bazu i gdje je backup prethodnog stanja.
+        private static void LogReset(string backupPath)
+        {
+            using var db = DbContextFactory.Create();
+            new AuditService(db).Log("Baza", null, AuditConstants.Obrisano,
+                string.IsNullOrEmpty(backupPath)
+                    ? "Reset baze prije reimporta"
+                    : $"Reset baze prije reimporta. Backup: {backupPath}");
+            db.SaveChanges();
+        }
+
         private string CreateBackup()
         {
             if (!File.Exists(_dbPath))
@@ -67,8 +81,27 @@ namespace OwnerTrack.Infrastructure.Services
                 // In WAL mode, recently committed data can still live only in the
                 // -wal file. Copying Firme.db alone would silently drop that data from
                 // the backup, so force it back into the main file first.
-                CheckpointWal();
-                File.Copy(_dbPath, backupPath, overwrite: true);
+                // SQLite online backup API: konzistentan snimak čak i dok drugi korisnici
+                // pišu u bazu (običan File.Copy bi mogao kopirati napola upisane stranice).
+                // U režimu bez WAL (baza na serveru) backup može dobiti "database is locked"
+                // ako drugi korisnik upravo piše — pokušava se ponovo nekoliko puta.
+                for (int attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        using var source = new SqliteConnection(_connectionString);
+                        using var destination = new SqliteConnection($"Data Source={backupPath}");
+                        source.Open();
+                        destination.Open();
+                        source.BackupDatabase(destination);
+                        break;
+                    }
+                    catch (SqliteException ex) when (attempt < 10 && (ex.SqliteErrorCode == 5 || ex.SqliteErrorCode == 6))
+                    {
+                        SqliteConnection.ClearAllPools();
+                        Thread.Sleep(300 * attempt);
+                    }
+                }
                 return backupPath;
             }
             catch (Exception ex)
@@ -77,12 +110,6 @@ namespace OwnerTrack.Infrastructure.Services
                     $"Backup baze nije uspio: {ex.Message}\n" +
                     "Reset je otkazan radi sigurnosti podataka.", ex);
             }
-        }
-
-        private void CheckpointWal()
-        {
-            using var db = DbContextFactory.Create();
-            db.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint(TRUNCATE);");
         }
 
         private void DeleteStaleWalSidecarFiles()
@@ -103,7 +130,7 @@ namespace OwnerTrack.Infrastructure.Services
             string tableList = string.Join(",", DataTables.Select(t => $"'{t}'"));
 
             using var db = DbContextFactory.Create();
-            using var tx = db.Database.BeginTransaction();
+            using var tx = TransactionHelper.BeginImmediate(db);
 
             try
             {

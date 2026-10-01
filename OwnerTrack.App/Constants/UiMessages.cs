@@ -41,7 +41,46 @@
         public const string NewUserDuplicate = "Korisnik s tim korisničkim imenom već postoji.";
         public const string NewUserCreatedFormat = "Korisnik '{0}' je dodan. Može se prijaviti sa zadanom lozinkom.";
 
+        public const string DbSettingsTitle = "Postavke baze";
+        public const string DbLocationLocal = "lokalna baza (samo ovaj računar)";
+        public const string DbLocationSharedFormat = "dijeljena baza na serveru:\n{0}";
+        public const string DbLoginLinkLocal = "Baza: lokalna — promijeni";
+        public const string DbLoginLinkSharedFormat = "Baza: {0} — promijeni";
+        public const string DbFolderRequired = "Unesi folder u kojem se nalazi baza.";
+        public const string DbFolderUnavailableFormat =
+            "Folder nije dostupan ili u njemu nema prava za pisanje:\n{0}\n\nGreška: {1}\n\n" +
+            "Provjeri vezu sa serverom i prava na tom folderu.";
+        public const string DbNoDatabaseWithLocalPrompt =
+            "U odabranom folderu nema baze.\n\n" +
+            "Da — prebaci postojeću lokalnu bazu (sa podacima) u taj folder\n" +
+            "Ne — napravi novu, praznu bazu u tom folderu\n" +
+            "Otkaži — ne mijenjaj ništa";
+        public const string DbNoDatabaseNoLocalPrompt =
+            "U odabranom folderu nema baze, a ni lokalna baza ne postoji.\n\nNapraviti novu, praznu bazu u tom folderu?";
+        public const string DbSwitchedFormat = "Baza je postavljena na:\n{0}";
+        public const string DbSwitchedLocal = "Aplikacija sada koristi lokalnu bazu na ovom računaru.";
+        public const string DbSwitchLocalPrompt =
+            "Aplikacija će ponovo koristiti lokalnu bazu na ovom računaru, a ne bazu na serveru.\n\nNastaviti?";
+        public const string DbSwitchFailedFormat =
+            "Postavljanje baze nije uspjelo, vraćena je prethodna postavka.\n\nGreška: {0}";
+        public const string DbUnreachableTitle = "Baza nije dostupna";
+        public const string DbUnreachableFormat =
+            "Baza podataka na serveru trenutno nije dostupna:\n{0}\n\n" +
+            "Provjeri da je server uključen i da je računar na mreži.\n\n" +
+            "Da — pokušaj ponovo\nNe — otvori postavke baze\nOtkaži — izlaz";
+
         public const string LogoutPrompt = "Odjaviti se iz aplikacije?";
+
+        public const string UsersTitle = "Korisnici";
+        public const string UsersSelectUser = "Odaberi korisnika iz liste.";
+        public const string UsersNotFound = "Korisnik nije pronađen.";
+        public const string UsersCannotDeactivateSelf = "Ne možeš deaktivirati vlastiti račun.";
+        public const string UsersCannotDeactivateLast = "Ne možeš deaktivirati zadnjeg aktivnog korisnika.";
+        public const string UsersDeactivateConfirmFormat =
+            "Korisnik '{0}' se više neće moći prijaviti (podaci i historija ostaju sačuvani).";
+        public const string UsersButton = "Korisnici";
+        public const string ProfileFirstLogin = "Ovo je prva prijava";
+        public const string ProfileActivitySummaryFormat = "Izmjena danas: {0}";
         public const string ProfileActiveStatus = "AKTIVAN";
         public const string ProfileInactiveStatus = "NEAKTIVAN";
 

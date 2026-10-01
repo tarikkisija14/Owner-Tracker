@@ -108,6 +108,8 @@ namespace OwnerTrack.App.Controls
             AuditConstants.Izmijenjeno => UiTheme.Blue,
             AuditConstants.Obrisano => UiTheme.Red,
             AuditConstants.Pregledano => UiTheme.Blue,
+            AuditConstants.Deaktivirano => UiTheme.Red,
+            AuditConstants.Aktivirano => UiTheme.Green,
             _ => UiTheme.MutedText,
         };
     }

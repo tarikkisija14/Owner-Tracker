@@ -23,7 +23,15 @@ namespace OwnerTrack.App
         private readonly PdfExportPresenter _pdfPresenter;
         private readonly ToolTip _sidebarToolTip = new();
         private bool _sidebarExpanded = true;
+        private Image? _sidebarAvatar;
         private SidebarView _currentView = SidebarView.Dashboard;
+
+        // Automatsko osvježavanje: drugi korisnici rade nad istom bazom, pa se periodično
+        // provjerava je li se baza promijenila i, ako jest, ponovo učitava trenutni pogled.
+        private const int AutoRefreshIntervalMs = 20_000;
+        private readonly System.Windows.Forms.Timer _autoRefreshTimer = new() { Interval = AutoRefreshIntervalMs };
+        private string? _lastChangeToken;
+        private bool _autoRefreshBusy;
 
         // True kad je korisnik kliknuo Odjava — Program tada vraća prikaz Login forme
         // umjesto da završi aplikaciju.
@@ -75,6 +83,63 @@ namespace OwnerTrack.App
             Load += Form1_Load;
         }
 
+        private async void AutoRefreshTimer_Tick(object? sender, EventArgs e)
+        {
+            // Enabled == false znači da je otvoren modalni prozor (profil, forma za izmjenu) —
+            // tada se ne dira pozadina; osvježi se kad se prozor zatvori ili sljedeći tick.
+            if (_autoRefreshBusy || !Enabled || !Visible) return;
+
+            _autoRefreshBusy = true;
+            try
+            {
+                string token = await Task.Run(() =>
+                {
+                    using var db = DbContextFactory.Create();
+                    return new EvidencijaQueryService(db).GetChangeToken();
+                });
+
+                if (_lastChangeToken is null)
+                {
+                    _lastChangeToken = token;
+                    return;
+                }
+
+                if (token == _lastChangeToken || !Enabled) return;
+
+                _lastChangeToken = token;
+                RefreshCurrentView();
+            }
+            catch (Exception ex)
+            {
+                // Mrežni prekid ili zaključana baza ne smiju smetati korisniku — pokušava se opet.
+                AppLogger.LogException(ex);
+            }
+            finally
+            {
+                _autoRefreshBusy = false;
+            }
+        }
+
+        private void RefreshCurrentView()
+        {
+            switch (_currentView)
+            {
+                case SidebarView.Dashboard: LoadDashboard(); break;
+                case SidebarView.Klijenti: GridHelper.ReloadKeepingState(dataGridKlijenti, ApplyCurrentFilters); break;
+                case SidebarView.Kyc: GridHelper.ReloadKeepingState(dataGridKyc, LoadKyc); break;
+                case SidebarView.Ubo: GridHelper.ReloadKeepingState(dataGridUbo, LoadUbo); break;
+                case SidebarView.Pep: GridHelper.ReloadKeepingState(dataGridPep, LoadPep); break;
+                case SidebarView.Rizik: GridHelper.ReloadKeepingState(dataGridRizik, LoadRizik); break;
+                case SidebarView.BezUgovora: GridHelper.ReloadKeepingState(dataGridBezUgovora, LoadBezUgovoraKlijenata); break;
+                case SidebarView.Otkazani: GridHelper.ReloadKeepingState(dataGridOtkazani, LoadOtkazaniKlijenti); break;
+                case SidebarView.Udruzenja: GridHelper.ReloadKeepingState(dataGridUdruzenja, LoadUdruzenja); break;
+                case SidebarView.Stecaj: GridHelper.ReloadKeepingState(dataGridStecaj, LoadStecajKlijenti); break;
+                case SidebarView.AuditLog: GridHelper.ReloadKeepingState(dataGridAuditLog, LoadAuditLog); break;
+            }
+
+            RefreshWarningsBadge();
+        }
+
         private void OpenKlijentProfil(DataGridView grid)
         {
             if (!GridHelper.TryGetSelectedId(grid, out int klijentId)) return;
@@ -85,6 +150,22 @@ namespace OwnerTrack.App
                 var profil = new KlijentProfilQueryService(db).GetProfile(klijentId);
                 if (profil == null) return;
                 new FrmKlijentProfil(profil).ShowDialog(this);
+
+                // Profil (i obrazac za procjenu rizika iz njega) piše direktno u bazu,
+                // pa grid iz kojeg je profil otvoren i glavna tabela klijenata moraju
+                // ponovo pročitati podatke — inače ostaju na starom snapshotu.
+                ApplyCurrentFilters();
+                switch (_currentView)
+                {
+                    case SidebarView.Kyc: LoadKyc(); break;
+                    case SidebarView.Ubo: LoadUbo(); break;
+                    case SidebarView.Pep: LoadPep(); break;
+                    case SidebarView.Rizik: LoadRizik(); break;
+                    case SidebarView.BezUgovora: LoadBezUgovoraKlijenata(); break;
+                    case SidebarView.Otkazani: LoadOtkazaniKlijenti(); break;
+                    case SidebarView.Udruzenja: LoadUdruzenja(); break;
+                    case SidebarView.Stecaj: LoadStecajKlijenti(); break;
+                }
             }
             catch (Exception ex)
             {
@@ -99,11 +180,16 @@ namespace OwnerTrack.App
             try
             {
                 // Migracije se primjenjuju u Program.Main, prije prijave.
+                btnNavProfil.Text = ProfileNavLabel;
+                LoadSidebarAvatar();
                 LoadActivityCodeFilter();
                 LoadSizeFilter();
                 LoadClients();
                 RefreshWarningsBadge();
                 ShowView(SidebarView.Dashboard);
+
+                _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
+                _autoRefreshTimer.Start();
 
                 // ProductVersion nosi i build metapodatke (npr. "1.0.0+49abc123") —
                 // korisniku prikazujemo samo Major.Minor.Patch dio.
@@ -127,6 +213,9 @@ namespace OwnerTrack.App
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _searchDebounceTimer.Dispose();
+            _autoRefreshTimer.Dispose();
+            btnNavProfil.AvatarImage = null;
+            _sidebarAvatar?.Dispose();
             base.OnFormClosed(e);
         }
 
@@ -232,10 +321,10 @@ namespace OwnerTrack.App
 
         private void StyleKlijentiGrid()
         {
-            GridHelper.ApplyColumns(dataGridKlijenti, GridColumns.Klijenti);
-            GridHelper.FreezeColumns(dataGridKlijenti, "Id", "Naziv");
+            GridHelper.ApplyExactColumns(dataGridKlijenti, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridKlijenti, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridKlijenti,
-                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "Redni", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
                 "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridKlijenti, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
@@ -302,7 +391,7 @@ namespace OwnerTrack.App
 
         private void StyleKycGrid()
         {
-            GridHelper.ApplyColumns(dataGridKyc, GridColumns.Kyc);
+            GridHelper.ApplyExactColumns(dataGridKyc, GridColumns.Kyc);
             GridHelper.FreezeColumns(dataGridKyc, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridKyc, "Redni", "DatumUspostaveOdnosa", "VrstaKlijenta");
             if (dataGridKyc.Columns.Contains("Id")) dataGridKyc.Columns["Id"].Visible = false;
@@ -327,7 +416,7 @@ namespace OwnerTrack.App
 
         private void StyleUboGrid()
         {
-            GridHelper.ApplyColumns(dataGridUbo, GridColumns.UboSveFirme);
+            GridHelper.ApplyExactColumns(dataGridUbo, GridColumns.UboSveFirme);
             GridHelper.FreezeColumns(dataGridUbo, "Redni", "KlijentNaziv");
             GridHelper.AlignCenter(dataGridUbo, "Redni", "ProcenatVlasnistva", "DatumUtvrdjivanja");
             if (dataGridUbo.Columns.Contains("Id")) dataGridUbo.Columns["Id"].Visible = false;
@@ -352,7 +441,7 @@ namespace OwnerTrack.App
 
         private void StylePepGrid()
         {
-            GridHelper.ApplyColumns(dataGridPep, GridColumns.Pep);
+            GridHelper.ApplyExactColumns(dataGridPep, GridColumns.Pep);
             GridHelper.FreezeColumns(dataGridPep, "Redni", "NazivKlijenta");
             GridHelper.AlignCenter(dataGridPep, "Redni", "PepDatumProvjere");
             if (dataGridPep.Columns.Contains("Id")) dataGridPep.Columns["Id"].Visible = false;
@@ -377,7 +466,7 @@ namespace OwnerTrack.App
 
         private void StyleRizikGrid()
         {
-            GridHelper.ApplyColumns(dataGridRizik, GridColumns.RizikProcjena);
+            GridHelper.ApplyExactColumns(dataGridRizik, GridColumns.RizikProcjena);
             GridHelper.FreezeColumns(dataGridRizik, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridRizik, "Redni", "DatumProcjeneRizika", "DatumUgovora", "VrstaKlijenta");
             if (dataGridRizik.Columns.Contains("Id")) dataGridRizik.Columns["Id"].Visible = false;
@@ -402,10 +491,10 @@ namespace OwnerTrack.App
 
         private void StyleBezUgovoraGrid()
         {
-            GridHelper.ApplyColumns(dataGridBezUgovora, GridColumns.Klijenti);
-            GridHelper.FreezeColumns(dataGridBezUgovora, "Id", "Naziv");
+            GridHelper.ApplyExactColumns(dataGridBezUgovora, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridBezUgovora, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridBezUgovora,
-                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "Redni", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
                 "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridBezUgovora, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
@@ -527,10 +616,10 @@ namespace OwnerTrack.App
 
         private void StyleOtkazaniGrid()
         {
-            GridHelper.ApplyColumns(dataGridOtkazani, GridColumns.Klijenti);
-            GridHelper.FreezeColumns(dataGridOtkazani, "Id", "Naziv");
+            GridHelper.ApplyExactColumns(dataGridOtkazani, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridOtkazani, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridOtkazani,
-                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "Redni", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
                 "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridOtkazani, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
@@ -554,10 +643,10 @@ namespace OwnerTrack.App
 
         private void StyleUdruzenjaGrid()
         {
-            GridHelper.ApplyColumns(dataGridUdruzenja, GridColumns.Klijenti);
-            GridHelper.FreezeColumns(dataGridUdruzenja, "Id", "Naziv");
+            GridHelper.ApplyExactColumns(dataGridUdruzenja, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridUdruzenja, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridUdruzenja,
-                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "Redni", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
                 "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridUdruzenja, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
@@ -581,10 +670,10 @@ namespace OwnerTrack.App
 
         private void StyleStecajGrid()
         {
-            GridHelper.ApplyColumns(dataGridStecaj, GridColumns.Klijenti);
-            GridHelper.FreezeColumns(dataGridStecaj, "Id", "Naziv");
+            GridHelper.ApplyExactColumns(dataGridStecaj, GridColumns.Klijenti);
+            GridHelper.FreezeColumns(dataGridStecaj, "Redni", "Naziv");
             GridHelper.AlignCenter(dataGridStecaj,
-                "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
+                "Redni", "DatumUspostaveOdnosa", "DatumOsnivanjaFirme", "DatumProcjeneRizika", "DatumPotpisaUgovora",
                 "VrstaKlijenta", "BrojVlasnika", "BrojDirektora", "PepDatumProvjere");
             GridHelper.Emphasize(dataGridStecaj, "Naziv", UiTheme.Base(9f, FontStyle.Bold));
         }
@@ -608,14 +697,7 @@ namespace OwnerTrack.App
 
         private void StyleAuditLogGrid()
         {
-            // AutoSizeColumnsMode.Fill (postavljen u Designeru) razvlači kolone
-            // preko cijele širine grida umjesto GridColumns.AuditLog fiksnih
-            // Width vrijednosti, pa se ovdje isti omjer širina (140/120/80/110/400)
-            // prenosi kroz FillWeight — isti obrazac kao ostali gridovi u
-            // aplikaciji koji koriste Fill (npr. FrmKlijentProfil).
-            foreach (var (ime, sirina, zaglavlje, format) in GridColumns.AuditLog)
-                GridHelper.ConfigureColumn(dataGridAuditLog, ime, zaglavlje, sirina, format);
-
+            GridHelper.ApplyFixedWidthsWithWideColumn(dataGridAuditLog, GridColumns.AuditLog, "Opis");
             GridHelper.FreezeColumns(dataGridAuditLog, "Vrijeme");
             GridHelper.AlignCenter(dataGridAuditLog, "Vrijeme", "EntitetId", "Akcija");
         }
@@ -673,6 +755,7 @@ namespace OwnerTrack.App
             var user = _session.CurrentUser;
             if (user is null) return;
 
+            FitAktivnostWidth();
             lblProfilKorisnickoImeValue.Text = user.Username;
             lblProfilPrikaznoImeValue.Text = user.DisplayName;
             lblProfilStatusValue.Text = user.IsActive
@@ -680,19 +763,60 @@ namespace OwnerTrack.App
                 : UiMessages.ProfileInactiveStatus;
             lblProfilStatusValue.ForeColor = user.IsActive ? UiTheme.Green : UiTheme.Red;
 
+            lblProfilZadnjaPrijavaValue.Text = user.PreviousLogin is { } previous
+                ? previous.ToString("dd.MM.yyyy HH:mm")
+                : UiMessages.ProfileFirstLogin;
+
             try
             {
                 using var db = DbContextFactory.Create();
                 ShowProfilPhoto(new AuthService(db).GetPhoto(user.Id));
+
+                var evidencija = new EvidencijaQueryService(db);
+                var entries = evidencija.GetAuditEntriesForUser(user.Username, UiConstants.ProfileActivityRows);
+                int today = evidencija.CountAuditEntriesForUserSince(user.Username, DateTime.Today);
+                dataGridAktivnost.DataSource = entries;
+                StyleAktivnostGrid();
+                dataGridAktivnost.ClearSelection();
+                lblEmptyAktivnost.Visible = entries.Count == 0;
+                lblAktivnostSazetak.Text = string.Format(UiMessages.ProfileActivitySummaryFormat, today);
             }
             catch (Exception ex)
             {
-                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju profilne slike");
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju profila");
             }
+        }
+
+        // Kartica aktivnosti se širi do desnog ruba ekrana Profil (uz isti razmak od 24 px).
+        private void FitAktivnostWidth() =>
+            groupBoxAktivnost.Width = Math.Max(400, panelViewProfil.ClientSize.Width - groupBoxAktivnost.Left - 24);
+
+        private void StyleAktivnostGrid()
+        {
+            // Isti omjeri širina kao Historija promjena (GridColumns.AuditLog); kolona
+            // Korisnik se ovdje ne prikazuje jer su svi zapisi trenutnog korisnika.
+            GridHelper.ApplyFixedWidthsWithWideColumn(dataGridAktivnost, GridColumns.AuditLog, "Opis");
+
+            if (dataGridAktivnost.Columns.Contains("Korisnik"))
+                dataGridAktivnost.Columns["Korisnik"].Visible = false;
+
+            GridHelper.AlignCenter(dataGridAktivnost, "Vrijeme", "EntitetId", "Akcija");
+        }
+
+        // Profilna slika (ili placeholder) uz ime korisnika u sidebaru.
+        private void ShowSidebarAvatar(byte[]? photo)
+        {
+            var old = _sidebarAvatar;
+            _sidebarAvatar = photo is { Length: > 0 }
+                ? ProfileImageHelper.FromBytes(photo)
+                : ProfileImageHelper.CreatePlaceholder(96);
+            btnNavProfil.AvatarImage = _sidebarAvatar;
+            old?.Dispose();
         }
 
         private void ShowProfilPhoto(byte[]? photo)
         {
+            ShowSidebarAvatar(photo);
             var old = picProfil.Image;
             picProfil.Image = photo is { Length: > 0 }
                 ? ProfileImageHelper.FromBytes(photo)
@@ -763,6 +887,37 @@ namespace OwnerTrack.App
             form.ShowDialog(this);
         }
 
+        private void btnKorisnici_Click(object sender, EventArgs e)
+        {
+            var user = _session.CurrentUser;
+            if (user is null) return;
+
+            using var form = new FrmKorisnici(user.Id);
+            form.ShowDialog(this);
+        }
+
+        private void LoadSidebarAvatar()
+        {
+            byte[]? photo = null;
+            try
+            {
+                if (_session.CurrentUser is { } user)
+                {
+                    using var db = DbContextFactory.Create();
+                    photo = new AuthService(db).GetPhoto(user.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogException(ex);
+            }
+
+            ShowSidebarAvatar(photo);
+        }
+
+        // Stavka Profil u sidebaru nosi ime i prezime prijavljenog korisnika.
+        private string ProfileNavLabel => _session.CurrentUser?.DisplayName ?? "Profil";
+
         private void btnNavProfil_Click(object sender, EventArgs e) => ShowView(SidebarView.Profil);
 
         private void btnNavLogout_Click(object sender, EventArgs e)
@@ -793,10 +948,10 @@ namespace OwnerTrack.App
             await _pdfPresenter.ExportGenericTableAsync(dataGridPep, btnPepExportPdf, "PEP evidencija", "PEP_tabela");
 
         private async void btnRizikSacuvajPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridRizik, btnRizikSacuvajPdf, "Procjena rizika", "Rizik");
+            await _pdfPresenter.ExportGenericSingleRowAsync(dataGridRizik, btnRizikSacuvajPdf, "Evidencija procjena rizika", "Rizik");
 
         private async void btnRizikExportPdf_Click(object sender, EventArgs e) =>
-            await _pdfPresenter.ExportGenericTableAsync(dataGridRizik, btnRizikExportPdf, "Procjena rizika", "Rizik_tabela");
+            await _pdfPresenter.ExportGenericTableAsync(dataGridRizik, btnRizikExportPdf, "Evidencija procjena rizika", "Rizik_tabela");
 
         private async void btnUdruzenjaSacuvajPdf_Click(object sender, EventArgs e) =>
             await _pdfPresenter.ExportGenericSingleRowAsync(dataGridUdruzenja, btnUdruzenjaSacuvajPdf, "Udruženja", "Udruzenje", GridColumns.KlijentiPdf);
@@ -1090,13 +1245,13 @@ namespace OwnerTrack.App
             SetNavButtonLabel(btnNavKyc, "KYC evidencija");
             SetNavButtonLabel(btnNavUbo, "UBO / Vlasništvo");
             SetNavButtonLabel(btnNavPep, "PEP evidencija");
-            SetNavButtonLabel(btnNavRizik, "Procjena rizika");
+            SetNavButtonLabel(btnNavRizik, "Evidencija procjena rizika");
             SetNavButtonLabel(btnNavBezUgovora, "Klijenti bez ugovora");
             SetNavButtonLabel(btnNavOtkazani, "Otkazani klijenti");
             SetNavButtonLabel(btnNavUdruzenja, "Udruženja");
             SetNavButtonLabel(btnNavStecaj, "Klijenti u stečaju");
             SetNavButtonLabel(btnNavAuditLog, "Historija promjena");
-            SetNavButtonLabel(btnNavProfil, "Profil");
+            SetNavButtonLabel(btnNavProfil, ProfileNavLabel);
             SetNavButtonLabel(btnNavLogout, "Odjava");
         }
 

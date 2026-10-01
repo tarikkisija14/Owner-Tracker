@@ -30,6 +30,11 @@ namespace OwnerTrack.App
 
             ApplicationConfiguration.Initialize();
 
+            // Ako je baza na serveru, a server nije dostupan, aplikacija se NE vraća
+            // tiho na lokalnu bazu (korisnik bi radio u pogrešnoj bazi) nego čeka.
+            if (!EnsureDatabaseReachable())
+                return;
+
             // Migracije (uključujući tabelu Korisnici i seed) moraju proći prije
             // prijave, jer login čita korisnike iz baze.
             try
@@ -71,6 +76,28 @@ namespace OwnerTrack.App
             }
 
             session.SignOut();
+        }
+
+        private static bool EnsureDatabaseReachable()
+        {
+            while (!DatabaseLocationService.IsConfiguredLocationReachable())
+            {
+                var answer = MessageBox.Show(
+                    string.Format(UiMessages.DbUnreachableFormat, DbContextFactory.DbPath),
+                    UiMessages.DbUnreachableTitle,
+                    MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+                if (answer == DialogResult.Cancel)
+                    return false;
+
+                if (answer == DialogResult.No)
+                {
+                    using var settings = new FrmPostavkeBaze();
+                    settings.ShowDialog();
+                }
+            }
+
+            return true;
         }
     }
 }

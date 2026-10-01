@@ -3,6 +3,7 @@
     public class KlijentViewModel
     {
         public int Id { get; set; }
+        public int Redni { get; set; }
         public string? Naziv { get; set; }
         public string? IdBroj { get; set; }
         public string? Adresa { get; set; }
@@ -33,5 +34,12 @@
         public string? OpciIndikatoriRizika { get; set; }
         public string? IndikatoriIdentifikacijeRizika { get; set; }
         public string? IndikatoriTransakcijaRizika { get; set; }
+        public string? VlasnikImena { get; set; }
+        public string? DatumVazenjaDokumentaVlasnika { get; set; }
+        public string? ProcenatVlasnistva { get; set; }
+        public string? DatumUtvrdjivanjaVlasnistva { get; set; }
+        public string? IzvorPodatkaVlasnistvo { get; set; }
+        public string? DirektorImena { get; set; }
+        public string? DatumVazenjaDokumentaDirektora { get; set; }
     }
 }

@@ -23,12 +23,15 @@ namespace OwnerTrack.App
         // da uvijek refresha bez obzira je li se išta stvarno promijenilo u bazi.
         public bool WasSaved { get; private set; }
 
-        private readonly List<ComboBox> _combosStranke = new();
-        private readonly List<ComboBox> _combosPoslovniOdnos = new();
+        private readonly List<ComboBox> _combosOpci = new();
+        private readonly List<ComboBox> _combosIdentifikacija = new();
+        private readonly List<ComboBox> _combosTransakcije = new();
         private readonly List<ComboBox> _combosGeografski = new();
-        private ComboBox _comboProcjenaStranke = null!;
-        private ComboBox _comboProcjenaPoslovnogOdnosa = null!;
+        private ComboBox _comboProcjenaOpcih = null!;
+        private ComboBox _comboProcjenaIdentifikacije = null!;
+        private ComboBox _comboProcjenaTransakcija = null!;
         private ComboBox _comboProcjenaGeografskog = null!;
+        private TextBox _txtOstalaZapazanja = null!;
         private ComboBox _comboUkupnaProcjena = null!;
         private DateTimePicker _dtDatumProcjene = null!;
         private TextBox _txtOdobrio = null!;
@@ -107,13 +110,13 @@ namespace OwnerTrack.App
             lblOdgovoreno.Location = new Point(panelHeader.Width - lblOdgovoreno.Width - 20, 22);
         }
 
-        // Broji koliko je od ukupno svih pitanja (sva tri bloka) dobilo bilo
+        // Broji koliko je od ukupno svih pitanja (sva četiri bloka) dobilo bilo
         // kakav odgovor (Da/Ne/N-P) — čisto informativno, ne utječe na
         // mogućnost snimanja obrasca.
         private void UpdateOdgovorenoCounter()
         {
-            var sviCombosi = _combosStranke.Concat(_combosPoslovniOdnos).Concat(_combosGeografski);
-            int ukupno = _combosStranke.Count + _combosPoslovniOdnos.Count + _combosGeografski.Count;
+            var sviCombosi = _combosOpci.Concat(_combosIdentifikacija).Concat(_combosTransakcije).Concat(_combosGeografski).ToList();
+            int ukupno = sviCombosi.Count;
             int odgovoreno = sviCombosi.Count(c => !string.IsNullOrEmpty(c.Text));
 
             lblOdgovoreno.Text = $"{odgovoreno} / {ukupno} pitanja odgovoreno";
@@ -125,13 +128,16 @@ namespace OwnerTrack.App
         private void BuildLayout()
         {
             int y = 10;
-            y = LayoutKriterijiCard(cardStranke, y, "Rizik stranke",
-                RizikObrazacKriteriji.RizikStranke, _combosStranke, out _comboProcjenaStranke);
-            y = LayoutKriterijiCard(cardPoslovniOdnos, y, "Rizik poslovnog odnosa",
-                RizikObrazacKriteriji.RizikPoslovnogOdnosa, _combosPoslovniOdnos, out _comboProcjenaPoslovnogOdnosa);
-            LayoutKriterijiCard(cardGeografski, y, "Geografski rizik",
-                RizikObrazacKriteriji.GeografskiRizik, _combosGeografski, out _comboProcjenaGeografskog);
-            LayoutUkupnoCard(cardUkupno, y + cardGeografski.Height + 16);
+            y = LayoutKriterijiCard(cardOpci, y, "Opći indikatori",
+                RizikObrazacKriteriji.OpciIndikatori, _combosOpci, out _comboProcjenaOpcih);
+            y = LayoutKriterijiCard(cardIdentifikacija, y, "Indikatori vezani za identifikaciju klijenata",
+                RizikObrazacKriteriji.IndikatoriIdentifikacije, _combosIdentifikacija, out _comboProcjenaIdentifikacije);
+            y = LayoutKriterijiCard(cardTransakcije, y, "Indikatori vezani za transakcije",
+                RizikObrazacKriteriji.IndikatoriTransakcija, _combosTransakcije, out _comboProcjenaTransakcija);
+            y = LayoutKriterijiCard(cardGeografski, y, "Geografski rizik i ostali rizici",
+                RizikObrazacKriteriji.GeografskiRizikOstali, _combosGeografski, out _comboProcjenaGeografskog,
+                withOstalaZapazanja: true);
+            LayoutUkupnoCard(cardUkupno, y);
         }
 
         private static Panel AddCardHeader(Panel card, string title)
@@ -151,7 +157,8 @@ namespace OwnerTrack.App
             return header;
         }
 
-        private int LayoutKriterijiCard(Panel card, int y, string title, string[] pitanja, List<ComboBox> combos, out ComboBox procjenaCombo)
+        private int LayoutKriterijiCard(Panel card, int y, string title, string[] pitanja, List<ComboBox> combos, out ComboBox procjenaCombo,
+            bool withOstalaZapazanja = false)
         {
             card.Controls.Clear();
             combos.Clear();
@@ -160,10 +167,28 @@ namespace OwnerTrack.App
             AddCardHeader(card, title);
 
             int cy = CardHeaderHeight + 14;
-            foreach (string pitanje in pitanja)
+            for (int i = 0; i < pitanja.Length; i++)
             {
-                cy = AddKriterijRow(card, cy, pitanje, out var combo);
+                cy = AddKriterijRow(card, cy, $"{i + 1}. {pitanja[i]}", out var combo);
                 combos.Add(combo);
+            }
+
+            if (withOstalaZapazanja)
+            {
+                var lblZapazanja = new Label
+                {
+                    Text = $"{pitanja.Length + 1}. {RizikObrazacKriteriji.OstalaSumnjivaZapazanja}:",
+                    Location = new Point(15, cy + 4),
+                    AutoSize = true,
+                    Font = UiTheme.Base(9f),
+                    ForeColor = UiTheme.LabelText,
+                };
+                card.Controls.Add(lblZapazanja);
+
+                _txtOstalaZapazanja = new TextBox { Name = "txtOstalaZapazanja" };
+                UiTheme.StyleTextBox(_txtOstalaZapazanja);
+                card.Controls.Add(UiTheme.WrapWithFocusBorder(_txtOstalaZapazanja, new Point(230, cy), new Size(610, 24)));
+                cy += 34;
             }
 
             var lblProcjena = new Label
@@ -226,12 +251,16 @@ namespace OwnerTrack.App
             procjenaCombo.Text = da > 0 ? RizikObrazacKriteriji.Vise : RizikObrazacKriteriji.Nize;
         }
 
-        // Ukupna procjena je VIŠE čim je bilo koja od tri pod-procjene VIŠE
+        // Ukupna procjena je VIŠE čim je bilo koja od četiri pod-procjene VIŠE
         // (konzervativno — jedan faktor povišenog rizika je dovoljan), inače
         // NIŽE. Ništa se ne postavlja dok nijedna pod-procjena nije određena.
         private void RecalculateUkupnaProcjena()
         {
-            var podprocjene = new[] { _comboProcjenaStranke.Text, _comboProcjenaPoslovnogOdnosa.Text, _comboProcjenaGeografskog.Text };
+            var podprocjene = new[]
+            {
+                _comboProcjenaOpcih.Text, _comboProcjenaIdentifikacije.Text,
+                _comboProcjenaTransakcija.Text, _comboProcjenaGeografskog.Text,
+            };
             if (podprocjene.All(string.IsNullOrEmpty)) return;
 
             _comboUkupnaProcjena.Text = podprocjene.Contains(RizikObrazacKriteriji.Vise)
@@ -335,13 +364,16 @@ namespace OwnerTrack.App
 
         private void Populate(RizikObrazacPodaci p)
         {
-            SetCombos(_combosStranke, p.RizikStrankeOdgovori);
-            SetCombos(_combosPoslovniOdnos, p.RizikPoslovnogOdnosaOdgovori);
+            SetCombos(_combosOpci, p.OpciIndikatoriOdgovori);
+            SetCombos(_combosIdentifikacija, p.IdentifikacijaOdgovori);
+            SetCombos(_combosTransakcije, p.TransakcijeOdgovori);
             SetCombos(_combosGeografski, p.GeografskiRizikOdgovori);
 
-            _comboProcjenaStranke.Text = p.ProcjenaStranke ?? "";
-            _comboProcjenaPoslovnogOdnosa.Text = p.ProcjenaPoslovnogOdnosa ?? "";
+            _comboProcjenaOpcih.Text = p.ProcjenaOpcihIndikatora ?? "";
+            _comboProcjenaIdentifikacije.Text = p.ProcjenaIdentifikacije ?? "";
+            _comboProcjenaTransakcija.Text = p.ProcjenaTransakcija ?? "";
             _comboProcjenaGeografskog.Text = p.ProcjenaGeografskog ?? "";
+            _txtOstalaZapazanja.Text = p.OstalaSumnjivaZapazanja ?? "";
             _comboUkupnaProcjena.Text = p.UkupnaProcjena ?? "";
 
             if (p.DatumProcjene.HasValue)
@@ -358,11 +390,14 @@ namespace OwnerTrack.App
 
         private RizikObrazacPodaci CollectPodaci() => new()
         {
-            RizikStrankeOdgovori = ReadCombos(_combosStranke),
-            ProcjenaStranke = NullIfEmpty(_comboProcjenaStranke.Text),
-            RizikPoslovnogOdnosaOdgovori = ReadCombos(_combosPoslovniOdnos),
-            ProcjenaPoslovnogOdnosa = NullIfEmpty(_comboProcjenaPoslovnogOdnosa.Text),
+            OpciIndikatoriOdgovori = ReadCombos(_combosOpci),
+            ProcjenaOpcihIndikatora = NullIfEmpty(_comboProcjenaOpcih.Text),
+            IdentifikacijaOdgovori = ReadCombos(_combosIdentifikacija),
+            ProcjenaIdentifikacije = NullIfEmpty(_comboProcjenaIdentifikacije.Text),
+            TransakcijeOdgovori = ReadCombos(_combosTransakcije),
+            ProcjenaTransakcija = NullIfEmpty(_comboProcjenaTransakcija.Text),
             GeografskiRizikOdgovori = ReadCombos(_combosGeografski),
+            OstalaSumnjivaZapazanja = NullIfEmpty(_txtOstalaZapazanja.Text),
             ProcjenaGeografskog = NullIfEmpty(_comboProcjenaGeografskog.Text),
             UkupnaProcjena = NullIfEmpty(_comboUkupnaProcjena.Text),
             DatumProcjene = _dtDatumProcjene.Value,

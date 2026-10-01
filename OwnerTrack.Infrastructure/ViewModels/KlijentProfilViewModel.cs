@@ -64,6 +64,7 @@ namespace OwnerTrack.Infrastructure.ViewModels
         public string? Tabela { get; set; }
         public int? EntitetId { get; set; }
         public string? Akcija { get; set; }
+        public string? Korisnik { get; set; }
         public string? Opis { get; set; }
     }
 }

@@ -18,6 +18,9 @@ namespace OwnerTrack.Data.Entities
         [StringLength(20)]
         public string Akcija { get; set; } = string.Empty;
 
+        [StringLength(100)]
+        public string? Korisnik { get; set; }
+
         [StringLength(1000)]
         public string Opis { get; set; } = string.Empty;
 

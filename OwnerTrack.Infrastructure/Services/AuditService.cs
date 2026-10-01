@@ -21,6 +21,7 @@ namespace OwnerTrack.Infrastructure.Services
                 EntitetId = entitetId,
                 Akcija = akcija,
                 Opis = opis,
+                Korisnik = AuditContext.CurrentUsername,
                 Vrijeme = DateTime.Now,
             });
         }
@@ -35,6 +36,16 @@ namespace OwnerTrack.Infrastructure.Services
         {
             entity.Status = StatusEntiteta.ARHIVIRAN;
             entity.Obrisan = DateTime.Now;
+
+            // Arhiviranje mora poništiti sve otvorene forme za izmjenu istog zapisa:
+            // bez povećanja Version bi njihovo kasnije snimanje prošlo provjeru
+            // istovremenih izmjena i tiho vratilo status zapisa na AKTIVAN.
+            switch (entity)
+            {
+                case Klijent k: k.Version++; break;
+                case Vlasnik v: v.Version++; break;
+                case Direktor d: d.Version++; break;
+            }
             Log(tabela, id, AuditConstants.Obrisano, opis);
         }
 

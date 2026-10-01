@@ -11,11 +11,7 @@ namespace OwnerTrack.Infrastructure.ViewModels
         public string? Djelatnost { get; set; }
         public DateTime? DatumUspostaveOdnosa { get; set; }
         public string? VrstaKlijenta { get; set; }
-        public string? VlasnikImena { get; set; }
-        public string? DirektorImena { get; set; }
-        public string? Velicina { get; set; }
         public string? PepRizik { get; set; }
-        public string? UboRizik { get; set; }
         public string? UkupnaProcjena { get; set; }
     }
 }

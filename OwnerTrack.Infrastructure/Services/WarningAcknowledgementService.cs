@@ -24,19 +24,22 @@ namespace OwnerTrack.Infrastructure.Services
 
         public void Acknowledge(string entityType, int entityId, DateTime datumIsteka, string? napomena, string nazivFirme, string imePrezime)
         {
-            bool alreadyAcknowledged = _db.WarningAcknowledgements.Any(a =>
-                a.EntityType == entityType && a.EntityId == entityId && a.DatumIsteka == datumIsteka);
-            if (alreadyAcknowledged) return;
-
+            // Provjera je unutar transakcije (zaključane za upis) pa je idempotentna: ako je
+            // drugi korisnik u međuvremenu označio isto upozorenje, ovo je samo prazan uspjeh
+            // umjesto greške zbog UNIQUE indeksa.
             TransactionHelper.Execute(_db, db =>
             {
+                bool alreadyAcknowledged = db.WarningAcknowledgements.Any(a =>
+                    a.EntityType == entityType && a.EntityId == entityId && a.DatumIsteka == datumIsteka);
+                if (alreadyAcknowledged) return;
+
                 var ack = new WarningAcknowledgement
                 {
                     EntityType = entityType,
                     EntityId = entityId,
                     DatumIsteka = datumIsteka,
                     Napomena = string.IsNullOrWhiteSpace(napomena) ? null : napomena.Trim(),
-                    Korisnik = Environment.UserName,
+                    Korisnik = AuditContext.CurrentUsername,
                 };
                 db.WarningAcknowledgements.Add(ack);
                 db.SaveChanges();

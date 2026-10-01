@@ -144,21 +144,25 @@ namespace OwnerTrack.Infrastructure.Services
                     });
 
                     PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.White,
-                        "Naziv/ime i prezime:", PdfRenderHelpers.Fmt(k.Naziv),
-                        "MB/JMB:", PdfRenderHelpers.Fmt(k.IdBroj));
+                        "Naziv:", PdfRenderHelpers.Fmt(k.Naziv),
+                        "ID:", PdfRenderHelpers.Fmt(k.IdBroj));
                     PdfRenderHelpers.RenderInfoRow(tbl, PdfColours.Grey,
-                        "Adresa sjedišta/boravišta:", PdfRenderHelpers.Fmt(k.Adresa),
-                        "Država:", PdfRenderHelpers.Fmt(o.Drzava));
+                        "Adresa:", PdfRenderHelpers.Fmt(k.Adresa),
+                        "Djelatnost:", PdfRenderHelpers.Fmt(k.Djelatnost?.Naziv));
                 });
 
-                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "RIZIK STRANKE"));
-                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.RizikStranke, o.RizikStrankeOdgovori, o.ProcjenaStranke));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "OPĆI INDIKATORI"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.OpciIndikatori, o.OpciIndikatoriOdgovori, o.ProcjenaOpcihIndikatora));
 
-                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "RIZIK POSLOVNOG ODNOSA"));
-                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.RizikPoslovnogOdnosa, o.RizikPoslovnogOdnosaOdgovori, o.ProcjenaPoslovnogOdnosa));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "INDIKATORI VEZANI ZA IDENTIFIKACIJU KLIJENATA"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.IndikatoriIdentifikacije, o.IdentifikacijaOdgovori, o.ProcjenaIdentifikacije));
 
-                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "GEOGRAFSKI RIZIK"));
-                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.GeografskiRizik, o.GeografskiRizikOdgovori, o.ProcjenaGeografskog));
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "INDIKATORI VEZANI ZA TRANSAKCIJE"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.IndikatoriTransakcija, o.TransakcijeOdgovori, o.ProcjenaTransakcija));
+
+                col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "GEOGRAFSKI RIZIK I OSTALI RIZICI"));
+                col.Item().Element(x => BuildKriterijiTable(x, RizikObrazacKriteriji.GeografskiRizikOstali, o.GeografskiRizikOdgovori, o.ProcjenaGeografskog,
+                    $"{RizikObrazacKriteriji.GeografskiRizikOstali.Length + 1}. {RizikObrazacKriteriji.OstalaSumnjivaZapazanja}: {PdfRenderHelpers.Fmt(o.OstalaSumnjivaZapazanja)}"));
 
                 col.Item().Element(x => PdfRenderHelpers.RenderSectionHeader(x, "UKUPNA PROCJENA RIZIKA"));
                 col.Item().Background(PdfColours.White).PaddingHorizontal(8).PaddingVertical(6)
@@ -182,7 +186,7 @@ namespace OwnerTrack.Infrastructure.Services
             });
         }
 
-        private static void BuildKriterijiTable(IContainer c, string[] pitanja, List<string?> odgovori, string? procjena)
+        private static void BuildKriterijiTable(IContainer c, string[] pitanja, List<string?> odgovori, string? procjena, string? dodatniRed = null)
         {
             c.Column(col =>
             {
@@ -208,12 +212,15 @@ namespace OwnerTrack.Infrastructure.Services
                         string bg = PdfRenderHelpers.AlternatingBackground(i);
                         string? odgovor = i < odgovori.Count ? odgovori[i] : null;
 
-                        PdfRenderHelpers.RenderTableCell(tbl, bg, pitanja[i]);
+                        PdfRenderHelpers.RenderTableCell(tbl, bg, $"{i + 1}. {pitanja[i]}");
                         PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Da ? "DA" : "", bold: true, center: true);
                         PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Ne ? "NE" : "", bold: true, center: true);
                         PdfRenderHelpers.RenderTableCell(tbl, bg, odgovor == RizikObrazacKriteriji.Np ? "N/P" : "", bold: true, center: true);
                     }
                 });
+
+                if (dodatniRed != null)
+                    col.Item().Text(txt => txt.Span(dodatniRed));
 
                 col.Item().Text(txt =>
                 {

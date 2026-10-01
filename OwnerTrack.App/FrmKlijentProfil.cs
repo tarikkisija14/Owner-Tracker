@@ -12,6 +12,11 @@ namespace OwnerTrack.App
     {
         private KlijentProfilViewModel _profil;
 
+        // Profil je samo prikaz, pa se sam osvježava kad neko drugi izmijeni ovu firmu.
+        private readonly System.Windows.Forms.Timer _autoRefreshTimer = new() { Interval = 20_000 };
+        private string? _lastToken;
+        private bool _autoRefreshBusy;
+
         private const int CardWidth = 860;
         private const int CardHeaderHeight = 36;
         private const int FieldColGap = 20;
@@ -27,6 +32,55 @@ namespace OwnerTrack.App
         {
             Populate();
             Shown += (_, _) => ResetScrollToTop();
+
+            try
+            {
+                using var db = DbContextFactory.Create();
+                _lastToken = new KlijentProfilQueryService(db).GetProfileToken(_profil.Id);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogException(ex);
+            }
+
+            _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
+            _autoRefreshTimer.Start();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _autoRefreshTimer.Dispose();
+            base.OnFormClosed(e);
+        }
+
+        private async void AutoRefreshTimer_Tick(object? sender, EventArgs e)
+        {
+            // Enabled == false: otvoren je modalni prozor iznad profila (npr. obrazac rizika).
+            if (_autoRefreshBusy || !Enabled || !Visible) return;
+
+            _autoRefreshBusy = true;
+            try
+            {
+                int id = _profil.Id;
+                string token = await Task.Run(() =>
+                {
+                    using var db = DbContextFactory.Create();
+                    return new KlijentProfilQueryService(db).GetProfileToken(id);
+                });
+
+                if (token == _lastToken || !Enabled) return;
+
+                _lastToken = token;
+                RefreshProfile();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogException(ex);
+            }
+            finally
+            {
+                _autoRefreshBusy = false;
+            }
         }
 
         // Populate() postavlja DataSource na tri DataGridView-a odozgo prema
@@ -310,6 +364,12 @@ namespace OwnerTrack.App
 
         // ── Grid-ovi ──────────────────────────────────────────────────────
 
+        private void GridVlasnici_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e) =>
+            ColorizeArchivedRow(gridVlasnici, e);
+
+        private void GridDirektori_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e) =>
+            ColorizeArchivedRow(gridDirektori, e);
+
         private void PopulateVlasniciGrid()
         {
             gridVlasnici.DataSource = _profil.Vlasnici;
@@ -320,7 +380,8 @@ namespace OwnerTrack.App
             GridHelper.ConfigureColumn(gridVlasnici, "ProcenatVlasnistva", "% vlasništva", 15);
             GridHelper.ConfigureColumn(gridVlasnici, "DatumValjanostiDokumenta", "Valjanost dokumenta", 25, "dd.MM.yyyy");
             GridHelper.ConfigureColumn(gridVlasnici, "Status", "Status", 15);
-            gridVlasnici.CellFormatting += (s, e) => ColorizeArchivedRow(gridVlasnici, e);
+            gridVlasnici.CellFormatting -= GridVlasnici_CellFormatting;
+            gridVlasnici.CellFormatting += GridVlasnici_CellFormatting;
         }
 
         private void PopulateDirektoriGrid()
@@ -333,7 +394,8 @@ namespace OwnerTrack.App
             GridHelper.ConfigureColumn(gridDirektori, "DatumValjanosti", "Valjanost", 20, "dd.MM.yyyy");
             GridHelper.ConfigureColumn(gridDirektori, "TipValjanosti", "Tip valjanosti", 20);
             GridHelper.ConfigureColumn(gridDirektori, "Status", "Status", 15);
-            gridDirektori.CellFormatting += (s, e) => ColorizeArchivedRow(gridDirektori, e);
+            gridDirektori.CellFormatting -= GridDirektori_CellFormatting;
+            gridDirektori.CellFormatting += GridDirektori_CellFormatting;
         }
 
         private void PopulateHistorijaGrid()
@@ -385,8 +447,15 @@ namespace OwnerTrack.App
                 var refreshed = new KlijentProfilQueryService(db).GetProfile(_profil.Id);
                 if (refreshed is null) return;
 
+                var scroll = new Point(-scrollPanel.AutoScrollPosition.X, -scrollPanel.AutoScrollPosition.Y);
                 _profil = refreshed;
                 Populate();
+                scrollPanel.AutoScrollPosition = scroll;
+
+                // Token se osvježava i nakon vlastitog snimanja (obrazac rizika), da se isti
+                // pomak ne bi ponovo učitavao pri sljedećem tick-u.
+                using var tokenDb = DbContextFactory.Create();
+                _lastToken = new KlijentProfilQueryService(tokenDb).GetProfileToken(_profil.Id);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OwnerTrack.Data.Enums;
 using OwnerTrack.Infrastructure.Database;
 using OwnerTrack.Infrastructure.Models;
 
@@ -63,11 +64,28 @@ namespace OwnerTrack.Infrastructure.Services
                     klijent.DatumProcjene = podaci.DatumProcjene;
             }
 
+            // Procjene četiri bloka obrasca (VIŠE/NIŽE) prenose se u kolone rizika
+            // na klijentu kao DA/NE; neodređena procjena daje prazno polje.
+            var prijeBlokovi = (klijent.OpciIndikatoriRizika, klijent.IndikatoriIdentifikacijeRizika,
+                                klijent.IndikatoriTransakcijaRizika, klijent.GeografskiRizik);
+            klijent.OpciIndikatoriRizika = ToDaNe(podaci.ProcjenaOpcihIndikatora);
+            klijent.IndikatoriIdentifikacijeRizika = ToDaNe(podaci.ProcjenaIdentifikacije);
+            klijent.IndikatoriTransakcijaRizika = ToDaNe(podaci.ProcjenaTransakcija);
+            klijent.GeografskiRizik = ToDaNe(podaci.ProcjenaGeografskog);
+
             klijent.Azuriran = DateTime.Now;
             klijent.Version = expectedVersion + 1;
 
             string? poslijeDatum = klijent.DatumProcjene?.ToString("dd.MM.yyyy");
             var promjene = new List<string>();
+            void Blok(string naziv, string? prije, string? poslije)
+            {
+                if (prije != poslije) promjene.Add($"{naziv}: '{prije}' → '{poslije}'");
+            }
+            Blok("Opći indikatori", prijeBlokovi.OpciIndikatoriRizika, klijent.OpciIndikatoriRizika);
+            Blok("Indikatori identifikacije", prijeBlokovi.IndikatoriIdentifikacijeRizika, klijent.IndikatoriIdentifikacijeRizika);
+            Blok("Indikatori transakcija", prijeBlokovi.IndikatoriTransakcijaRizika, klijent.IndikatoriTransakcijaRizika);
+            Blok("Geografski rizik", prijeBlokovi.GeografskiRizik, klijent.GeografskiRizik);
             if (prijeUkupna != klijent.UkupnaProcjena)
                 promjene.Add($"Ukupna procjena: '{prijeUkupna}' → '{klijent.UkupnaProcjena}'");
             if (prijeDatum != poslijeDatum)
@@ -82,5 +100,12 @@ namespace OwnerTrack.Infrastructure.Services
 
             return klijent.Version;
         }
+
+        private static string? ToDaNe(string? procjena) => procjena switch
+        {
+            RizikObrazacKriteriji.Vise => DaNeConstants.Da,
+            RizikObrazacKriteriji.Nize => DaNeConstants.Ne,
+            _ => null,
+        };
     }
 }

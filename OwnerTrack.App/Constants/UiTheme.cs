@@ -189,7 +189,13 @@ namespace OwnerTrack.App.Constants
             b.MouseEnter += (_, _) => b.BackColor = hover;
             b.MouseLeave += (_, _) => b.BackColor = baseColor;
             b.MouseDown += (_, _) => b.BackColor = pressed;
-            b.MouseUp += (_, _) => b.BackColor = b.ClientRectangle.Contains(b.PointToClient(Cursor.Position)) ? hover : baseColor;
+            b.MouseUp += (_, _) =>
+            {
+                // Click handler može zatvoriti (i uništiti) formu prije MouseUp-a
+                // (npr. Odjava) — dodir uništenog dugmeta bi bacio ObjectDisposedException.
+                if (b.IsDisposed) return;
+                b.BackColor = b.ClientRectangle.Contains(b.PointToClient(Cursor.Position)) ? hover : baseColor;
+            };
         }
 
         // ── Form input controls ──────────────────────────────────────

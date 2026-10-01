@@ -1,4 +1,5 @@
 using OwnerTrack.Infrastructure.Models;
+using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.App.Helpers
 {
@@ -11,8 +12,16 @@ namespace OwnerTrack.App.Helpers
 
         public bool IsAuthenticated => CurrentUser is not null;
 
-        public void SignIn(AuthenticatedUser user) => CurrentUser = user;
+        public void SignIn(AuthenticatedUser user)
+        {
+            CurrentUser = user;
+            AuditContext.CurrentUsername = user.Username;
+        }
 
-        public void SignOut() => CurrentUser = null;
+        public void SignOut()
+        {
+            CurrentUser = null;
+            AuditContext.CurrentUsername = null;
+        }
     }
 }

@@ -21,6 +21,137 @@
             }
         }
 
+        // Za tabele koje moraju imati TAČNO kolone iz Excel evidencije: primjenjuje
+        // nazive/širine, redoslijed kolona kakav je u listi, a sve kolone koje nisu
+        // u listi (npr. "Id" za odabir reda) ostaju u gridu ali skrivene.
+        public static void ApplyExactColumns(
+            DataGridView grid,
+            (string Ime, int Sirina, string Zaglavlje, string? Format)[] columns)
+        {
+            if (grid.Columns.Count == 0) return;
+
+            ApplyColumns(grid, columns);
+
+            var listed = columns.Select(c => c.Ime).ToHashSet();
+            foreach (DataGridViewColumn c in grid.Columns)
+                c.Visible = listed.Contains(c.Name);
+
+            int index = 0;
+            foreach (var (ime, _, _, _) in columns)
+                if (grid.Columns.Contains(ime))
+                    grid.Columns[ime].DisplayIndex = index++;
+
+            // Ostatak širine grida se raspoređuje na kolone proporcionalno njihovim
+            // širinama (nijedna ne ide ispod zadate širine, pa se uz uske ekrane
+            // pojavi horizontalni scroll). Prve dvije kolone (RED i naziv) ostaju
+            // fiksne jer se zamrzavaju pri lijevom rubu.
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            int pos = 0;
+            foreach (var (ime, sirina, _, _) in columns)
+            {
+                if (!grid.Columns.Contains(ime)) continue;
+                var col = grid.Columns[ime];
+                col.MinimumWidth = Math.Min(sirina, 50);
+                if (pos++ >= 2)
+                {
+                    col.MinimumWidth = sirina;
+                    col.FillWeight = sirina;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                }
+            }
+        }
+
+        // Ponovo učitava podatke grida (reload) ali čuva odabrani red (po koloni "Id") i
+        // poziciju scrolla, da automatsko osvježavanje ne prekida korisnika u radu.
+        public static void ReloadKeepingState(DataGridView grid, Action reload)
+        {
+            int? selectedId = null;
+            if (grid.Columns.Contains("Id") && grid.SelectedRows.Count > 0 &&
+                grid.SelectedRows[0].Cells["Id"].Value is int id)
+                selectedId = id;
+
+            int firstRow = grid.FirstDisplayedScrollingRowIndex;
+            int horizontalOffset = grid.HorizontalScrollingOffset;
+
+            reload();
+
+            if (grid.Rows.Count == 0) return;
+
+            if (selectedId is int sid)
+            {
+                var firstVisible = grid.Columns.GetFirstColumn(DataGridViewElementStates.Visible);
+                foreach (DataGridViewRow row in grid.Rows)
+                {
+                    if (row.Cells["Id"].Value is int rid && rid == sid)
+                    {
+                        if (firstVisible != null) grid.CurrentCell = row.Cells[firstVisible.Index];
+                        row.Selected = true;
+                        break;
+                    }
+                }
+            }
+
+            try
+            {
+                if (firstRow >= 0 && firstRow < grid.Rows.Count)
+                    grid.FirstDisplayedScrollingRowIndex = firstRow;
+                grid.HorizontalScrollingOffset = horizontalOffset;
+            }
+            catch (InvalidOperationException)
+            {
+                // Grid još nije prikazan — scroll se ne može postaviti, nije bitno.
+            }
+        }
+
+        // Kolona s dugim tekstom (npr. opis aktivnosti) se u Fill načinu skuplja i siječe tekst
+        // bez mogućnosti scrolla. Minimalna širina se postavlja na širinu najdužeg teksta, pa
+        // kolona zadrži Fill (popuni prazan prostor) ali duži tekst izlazi iz ekrana i grid
+        // dobije horizontalni scroll.
+        public static void FitColumnToContent(DataGridView grid, string columnName, int maxWidth = 4000)
+        {
+            if (!grid.Columns.Contains(columnName)) return;
+
+            var column = grid.Columns[columnName];
+            var font = column.DefaultCellStyle.Font ?? grid.DefaultCellStyle.Font ?? grid.Font;
+
+            int widest = 0;
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                string text = row.Cells[column.Index].FormattedValue?.ToString() ?? string.Empty;
+                widest = Math.Max(widest, TextRenderer.MeasureText(text, font).Width);
+            }
+
+            column.MinimumWidth = Math.Min(maxWidth, Math.Max(60, widest + 28));
+        }
+
+        // Kao glavna tabela Klijenti: sve kolone zadržavaju svoju zadatu širinu (horizontalni
+        // scroll lijevo/desno), a samo jedna "široka" kolona (npr. Opis) popuni prazan prostor
+        // i, ako je tekst duži, izađe iz ekrana tako da se može doscrollati do kraja.
+        public static void ApplyFixedWidthsWithWideColumn(
+            DataGridView grid,
+            (string Ime, int Sirina, string Zaglavlje, string? Format)[] columns,
+            string wideColumn)
+        {
+            if (grid.Columns.Count == 0) return;
+
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            ApplyColumns(grid, columns);
+
+            foreach (var (ime, sirina, _, _) in columns)
+            {
+                if (!grid.Columns.Contains(ime)) continue;
+                var col = grid.Columns[ime];
+                col.MinimumWidth = Math.Min(sirina, 50);
+                if (ime == wideColumn)
+                {
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    col.FillWeight = sirina;
+                }
+            }
+
+            FitColumnToContent(grid, wideColumn);
+        }
+
         public static void ConfigureColumn(
             DataGridView grid,
             string name,

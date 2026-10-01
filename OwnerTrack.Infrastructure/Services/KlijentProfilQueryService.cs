@@ -14,6 +14,26 @@ namespace OwnerTrack.Infrastructure.Services
             _db = db;
         }
 
+        // Otisak stanja jedne firme (verzije firme, vlasnika i direktora, uključujući
+        // arhivirane) — mijenja se kad god bilo ko izmijeni ili arhivira bilo šta od toga.
+        public string GetProfileToken(int klijentId)
+        {
+            var firma = _db.Klijenti.IgnoreQueryFilters().AsNoTracking()
+                .Where(k => k.Id == klijentId)
+                .Select(k => new { k.Version })
+                .FirstOrDefault();
+            if (firma is null) return "obrisano";
+
+            var vlasnici = _db.Vlasnici.IgnoreQueryFilters().AsNoTracking()
+                .Where(v => v.KlijentId == klijentId)
+                .Select(v => v.Version).ToList();
+            var direktori = _db.Direktori.IgnoreQueryFilters().AsNoTracking()
+                .Where(d => d.KlijentId == klijentId)
+                .Select(d => d.Version).ToList();
+
+            return $"{firma.Version}|{vlasnici.Count}:{vlasnici.Sum()}|{direktori.Count}:{direktori.Sum()}";
+        }
+
         public KlijentProfilViewModel? GetProfile(int klijentId)
         {
             var k = _db.Klijenti

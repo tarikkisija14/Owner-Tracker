@@ -54,7 +54,7 @@ namespace OwnerTrack.Infrastructure.Services
 
         public static string GetLogPath()
         {
-            string directory = Path.GetDirectoryName(DbContextFactory.DbPath)
+            string directory = DbContextFactory.LocalDataDirectory
                                ?? AppDomain.CurrentDomain.BaseDirectory;
             return Path.Combine(directory, LogFileName);
         }

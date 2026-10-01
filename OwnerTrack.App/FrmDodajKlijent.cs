@@ -308,6 +308,10 @@ namespace OwnerTrack.App
             {
                 DialogHelper.ShowConcurrencyConflict();
             }
+            catch (BusinessRuleException ex)
+            {
+                MessageBox.Show(ex.Message, UiMessages.KlijentDuplicateTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex, "Greška pri snimanju");
@@ -326,7 +330,32 @@ namespace OwnerTrack.App
 
 
 
+        // Sve (provjera duplikata, izmjena i upis) se radi unutar jedne transakcije koja
+        // odmah zaključava bazu za upis — drugi korisnik ne može između provjere i upisa
+        // unijeti isti ID broj/naziv.
         private void SaveChanges(int id, string naziv, string idBroj)
+        {
+            TransactionHelper.Execute(_db, _ =>
+            {
+                EnsureNoDuplicates(naziv, idBroj, id);
+                ApplyAndSaveKlijent(id, naziv, idBroj);
+            });
+
+            DialogHelper.ShowSaved(UiMessages.KlijentSavedUpdate);
+        }
+
+        private void EnsureNoDuplicates(string naziv, string idBroj, int currentId)
+        {
+            if (_db.Set<Klijent>().IgnoreQueryFilters()
+                    .Any(k => k.IdBroj == idBroj && k.Id != currentId && k.Obrisan == null))
+                throw new BusinessRuleException(string.Format(UiMessages.KlijentDuplicateIdBrojFormat, idBroj));
+
+            if (_db.Set<Klijent>().IgnoreQueryFilters()
+                    .Any(k => k.Naziv == naziv && k.Id != currentId && k.Obrisan == null))
+                throw new BusinessRuleException(string.Format(UiMessages.KlijentDuplicateNazivFormat, naziv));
+        }
+
+        private void ApplyAndSaveKlijent(int id, string naziv, string idBroj)
         {
             var k = _db.Klijenti.Find(id);
             if (k is null) return;
@@ -393,9 +422,9 @@ namespace OwnerTrack.App
                 ("Status ugovora", previousStatusUgovora, ugovor?.StatusUgovora),
                 ("Datum ugovora", previousDatumUgovora, FormatDate(ugovor?.DatumUgovora)));
 
-            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Klijenti", id, opis));
-
-            DialogHelper.ShowSaved(UiMessages.KlijentSavedUpdate);
+            _db.SaveChanges();
+            _audit.LogUpdated("Klijenti", id, opis);
+            _db.SaveChanges();
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -425,6 +454,7 @@ namespace OwnerTrack.App
 
             TransactionHelper.Execute(_db, db =>
             {
+                EnsureNoDuplicates(naziv, idBroj, 0);
                 db.Klijenti.Add(k);
                 db.SaveChanges();
 

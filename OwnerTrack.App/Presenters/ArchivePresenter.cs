@@ -95,6 +95,10 @@ namespace OwnerTrack.App.Presenters
 
                 onSuccess?.Invoke();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                DialogHelper.ShowConcurrencyConflict();
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);

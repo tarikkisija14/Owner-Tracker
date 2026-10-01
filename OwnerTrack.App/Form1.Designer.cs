@@ -41,6 +41,7 @@ namespace OwnerTrack.App
             btnNavProfil = new IconButton();
             btnNavLogout = new IconButton();
             panelSidebarBottomDivider = new Panel();
+            panelSidebarLogoutDivider = new Panel();
             panelViewProfil = new Panel();
             panelProfilHeader = new Panel();
             lblProfilTitle = new Label();
@@ -51,8 +52,15 @@ namespace OwnerTrack.App
             lblProfilPrikaznoImeValue = new Label();
             lblProfilStatus = new Label();
             lblProfilStatusValue = new Label();
+            lblProfilZadnjaPrijava = new Label();
+            lblProfilZadnjaPrijavaValue = new Label();
+            groupBoxAktivnost = new GroupBox();
+            lblAktivnostSazetak = new Label();
+            dataGridAktivnost = new DataGridView();
+            lblEmptyAktivnost = new Label();
             btnPromijeniLozinku = new IconButton();
             btnNoviKorisnik = new IconButton();
+            btnKorisnici = new IconButton();
             picProfil = new PictureBox();
             btnOdaberiSliku = new IconButton();
             btnUkloniSliku = new IconButton();
@@ -655,7 +663,7 @@ namespace OwnerTrack.App
             tilePep.Name = "tilePep";
             tilePep.TileClick += tilePep_TileClick;
 
-            tileRizik.Title = "Procjena rizika";
+            tileRizik.Title = "Evidencija procjena rizika";
             tileRizik.AccentColor = Color.White;
             tileRizik.Name = "tileRizik";
             tileRizik.TileClick += tileRizik_TileClick;
@@ -961,10 +969,10 @@ namespace OwnerTrack.App
             lblRizikTitle.Font = UiTheme.Base(11f, FontStyle.Bold);
             lblRizikTitle.TextAlign = ContentAlignment.MiddleLeft;
             lblRizikTitle.Padding = new Padding(12, 0, 0, 0);
-            lblRizikTitle.Text = "Procjena rizika";
+            lblRizikTitle.Text = "Evidencija procjena rizika klijenata";
             lblRizikTitle.Name = "lblRizikTitle";
 
-            btnRizikSacuvajPdf.Location = new Point(220, 6);
+            btnRizikSacuvajPdf.Location = new Point(400, 6);
             btnRizikSacuvajPdf.Name = "btnRizikSacuvajPdf";
             btnRizikSacuvajPdf.Size = new Size(168, 36);
             btnRizikSacuvajPdf.Text = "Sačuvaj kao PDF";
@@ -972,7 +980,7 @@ namespace OwnerTrack.App
             UiTheme.StyleAccentButton(btnRizikSacuvajPdf, UiTheme.PdfSaveAccent, 10f);
             btnRizikSacuvajPdf.Click += btnRizikSacuvajPdf_Click;
 
-            btnRizikExportPdf.Location = new Point(398, 6);
+            btnRizikExportPdf.Location = new Point(578, 6);
             btnRizikExportPdf.Name = "btnRizikExportPdf";
             btnRizikExportPdf.Size = new Size(180, 36);
             btnRizikExportPdf.Text = "Sačuvaj tabelu kao PDF";
@@ -1195,7 +1203,7 @@ namespace OwnerTrack.App
 
             UiTheme.StyleGroupBox(groupBoxProfil, "Prijavljeni korisnik");
             groupBoxProfil.Location = new Point(24, 216);
-            groupBoxProfil.Size = new Size(480, 150);
+            groupBoxProfil.Size = new Size(480, 190);
             groupBoxProfil.Name = "groupBoxProfil";
 
             lblProfilKorisnickoIme.Text = "Korisničko ime:";
@@ -1232,6 +1240,46 @@ namespace OwnerTrack.App
             groupBoxProfil.Controls.Add(lblProfilStatus);
             groupBoxProfil.Controls.Add(lblProfilStatusValue);
 
+            lblProfilZadnjaPrijava.Text = "Zadnja prijava:";
+            lblProfilZadnjaPrijava.Location = new Point(12, 144);
+            lblProfilZadnjaPrijava.Name = "lblProfilZadnjaPrijava";
+            UiTheme.StyleLabel(lblProfilZadnjaPrijava);
+            lblProfilZadnjaPrijavaValue.Location = new Point(165, 144);
+            lblProfilZadnjaPrijavaValue.Name = "lblProfilZadnjaPrijavaValue";
+            UiTheme.StyleLabel(lblProfilZadnjaPrijavaValue);
+            lblProfilZadnjaPrijavaValue.Font = UiTheme.Base(9.5f, FontStyle.Bold);
+            groupBoxProfil.Controls.Add(lblProfilZadnjaPrijava);
+            groupBoxProfil.Controls.Add(lblProfilZadnjaPrijavaValue);
+
+            // ── Moja zadnja aktivnost ─────────────────────────────
+            UiTheme.StyleGroupBox(groupBoxAktivnost, "Moja zadnja aktivnost");
+            groupBoxAktivnost.Location = new Point(528, 68);
+            groupBoxAktivnost.Size = new Size(760, 346);
+            groupBoxAktivnost.Name = "groupBoxAktivnost";
+
+            lblAktivnostSazetak.Dock = DockStyle.Top;
+            lblAktivnostSazetak.Height = 26;
+            lblAktivnostSazetak.TextAlign = ContentAlignment.MiddleLeft;
+            lblAktivnostSazetak.ForeColor = UiTheme.LabelText;
+            lblAktivnostSazetak.Font = UiTheme.Base(9.5f);
+            lblAktivnostSazetak.Name = "lblAktivnostSazetak";
+
+            dataGridAktivnost.AllowUserToAddRows = false;
+            dataGridAktivnost.AllowUserToDeleteRows = false;
+            dataGridAktivnost.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridAktivnost.Dock = DockStyle.Fill;
+            dataGridAktivnost.MultiSelect = false;
+            dataGridAktivnost.Name = "dataGridAktivnost";
+            dataGridAktivnost.ReadOnly = true;
+            dataGridAktivnost.RowHeadersVisible = false;
+            dataGridAktivnost.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            UiTheme.StyleGrid(dataGridAktivnost);
+            UiTheme.StyleEmptyState(lblEmptyAktivnost, "Još nema zabilježenih aktivnosti.");
+
+            groupBoxAktivnost.Controls.Add(dataGridAktivnost);
+            groupBoxAktivnost.Controls.Add(lblEmptyAktivnost);
+            groupBoxAktivnost.Controls.Add(lblAktivnostSazetak);
+
             // ── Profilna slika ────────────────────────────────────
             picProfil.Location = new Point(24, 68);
             picProfil.Size = new Size(130, 130);
@@ -1256,7 +1304,7 @@ namespace OwnerTrack.App
             UiTheme.StyleFlatButton(btnUkloniSliku, UiTheme.Red, 10f);
             btnUkloniSliku.Click += btnUkloniSliku_Click;
 
-            btnPromijeniLozinku.Location = new Point(24, 386);
+            btnPromijeniLozinku.Location = new Point(24, 424);
             btnPromijeniLozinku.Size = new Size(200, 36);
             btnPromijeniLozinku.Text = "Promijeni lozinku";
             btnPromijeniLozinku.Name = "btnPromijeniLozinku";
@@ -1264,7 +1312,7 @@ namespace OwnerTrack.App
             UiTheme.StyleFlatButton(btnPromijeniLozinku, UiTheme.Blue, 10f);
             btnPromijeniLozinku.Click += btnPromijeniLozinku_Click;
 
-            btnNoviKorisnik.Location = new Point(236, 386);
+            btnNoviKorisnik.Location = new Point(236, 424);
             btnNoviKorisnik.Size = new Size(200, 36);
             btnNoviKorisnik.Text = "Novi korisnik";
             btnNoviKorisnik.Name = "btnNoviKorisnik";
@@ -1272,12 +1320,23 @@ namespace OwnerTrack.App
             UiTheme.StyleFlatButton(btnNoviKorisnik, UiTheme.Green, 10f);
             btnNoviKorisnik.Click += btnNoviKorisnik_Click;
 
+            btnKorisnici.Location = new Point(448, 424);
+            btnKorisnici.Size = new Size(200, 36);
+            btnKorisnici.Text = UiMessages.UsersButton;
+            btnKorisnici.Name = "btnKorisnici";
+            btnKorisnici.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnKorisnici, UiTheme.Blue, 10f);
+            btnKorisnici.Click += btnKorisnici_Click;
+
             panelViewProfil.Dock = DockStyle.Fill;
             panelViewProfil.Name = "panelViewProfil";
             panelViewProfil.Visible = false;
             panelViewProfil.AutoScroll = true;
+            panelViewProfil.Resize += (_, _) => FitAktivnostWidth();
+            panelViewProfil.Controls.Add(groupBoxAktivnost);
             panelViewProfil.Controls.Add(btnPromijeniLozinku);
             panelViewProfil.Controls.Add(btnNoviKorisnik);
+            panelViewProfil.Controls.Add(btnKorisnici);
             panelViewProfil.Controls.Add(picProfil);
             panelViewProfil.Controls.Add(btnOdaberiSliku);
             panelViewProfil.Controls.Add(btnUkloniSliku);
@@ -1314,6 +1373,7 @@ namespace OwnerTrack.App
             panelSidebar.BackColor = UiTheme.SidebarBackground;
             panelSidebar.Controls.Add(panelSidebarBottomDivider);
             panelSidebar.Controls.Add(btnNavProfil);
+            panelSidebar.Controls.Add(panelSidebarLogoutDivider);
             panelSidebar.Controls.Add(btnNavLogout);
             panelSidebar.Controls.Add(btnNavAuditLog);
             panelSidebar.Controls.Add(btnNavStecaj);
@@ -1423,7 +1483,7 @@ namespace OwnerTrack.App
             btnNavRizik.Dock = DockStyle.Top;
             btnNavRizik.Height = 46;
             btnNavRizik.Name = "btnNavRizik";
-            btnNavRizik.Text = "Procjena rizika";
+            btnNavRizik.Text = "Evidencija procjena rizika";
             btnNavRizik.IconGlyph = "\uE730";
             UiTheme.StyleSidebarButton(btnNavRizik);
             btnNavRizik.Click += btnNavRizik_Click;
@@ -1478,6 +1538,11 @@ namespace OwnerTrack.App
             panelSidebarBottomDivider.Height = 1;
             panelSidebarBottomDivider.Name = "panelSidebarBottomDivider";
             panelSidebarBottomDivider.BackColor = UiTheme.SidebarDivider;
+
+            panelSidebarLogoutDivider.Dock = DockStyle.Bottom;
+            panelSidebarLogoutDivider.Height = 1;
+            panelSidebarLogoutDivider.Name = "panelSidebarLogoutDivider";
+            panelSidebarLogoutDivider.BackColor = UiTheme.SidebarDivider;
 
             btnNavProfil.Dock = DockStyle.Bottom;
             btnNavProfil.Height = 46;
@@ -1643,6 +1708,7 @@ namespace OwnerTrack.App
         private IconButton btnNavProfil;
         private IconButton btnNavLogout;
         private System.Windows.Forms.Panel panelSidebarBottomDivider;
+        private System.Windows.Forms.Panel panelSidebarLogoutDivider;
         private System.Windows.Forms.Panel panelViewProfil;
         private System.Windows.Forms.Panel panelProfilHeader;
         private System.Windows.Forms.Label lblProfilTitle;
@@ -1653,8 +1719,15 @@ namespace OwnerTrack.App
         private System.Windows.Forms.Label lblProfilPrikaznoImeValue;
         private System.Windows.Forms.Label lblProfilStatus;
         private System.Windows.Forms.Label lblProfilStatusValue;
+        private System.Windows.Forms.Label lblProfilZadnjaPrijava;
+        private System.Windows.Forms.Label lblProfilZadnjaPrijavaValue;
+        private System.Windows.Forms.GroupBox groupBoxAktivnost;
+        private System.Windows.Forms.Label lblAktivnostSazetak;
+        private System.Windows.Forms.DataGridView dataGridAktivnost;
+        private System.Windows.Forms.Label lblEmptyAktivnost;
         private IconButton btnPromijeniLozinku;
         private IconButton btnNoviKorisnik;
+        private IconButton btnKorisnici;
         private System.Windows.Forms.PictureBox picProfil;
         private IconButton btnOdaberiSliku;
         private IconButton btnUkloniSliku;

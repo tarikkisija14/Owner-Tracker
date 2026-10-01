@@ -123,7 +123,7 @@ namespace OwnerTrack.Infrastructure.Services
                  .AsEnumerable()
                  .Select(k => (k.Id, k.Naziv, k.IdBroj));
 
-        private static List<KlijentViewModel> ProjectClients(IQueryable<Klijent> query)
+        private List<KlijentViewModel> ProjectClients(IQueryable<Klijent> query)
         {
             // Eksplicitan OrderBy — bez njega SQL ne garantuje nikakav
             // redoslijed rezultata (raniji "sortirano po Id" izgled je bio
@@ -172,7 +172,57 @@ namespace OwnerTrack.Infrastructure.Services
                 if (k.VrstaKlijenta != null && Enum.TryParse<VrstaKlijenta>(k.VrstaKlijenta, out var vk))
                     k.VrstaKlijenta = vk.ToDisplay();
 
+            FillOwnersAndDirectors(result);
+            for (int i = 0; i < result.Count; i++)
+                result[i].Redni = i + 1;
+
             return result;
+        }
+
+        // Excel "ZBIRNA E-LISTA" ima vlasnika i direktora u istom redu firme — više
+        // osoba se spaja zarezom, a datumi/procenti ostaju u istom redoslijedu
+        // kao imena.
+        private void FillOwnersAndDirectors(List<KlijentViewModel> klijenti)
+        {
+            if (klijenti.Count == 0) return;
+            var ids = klijenti.Select(k => k.Id).ToList();
+
+            var vlasniciPoKlijentu = _db.Vlasnici.AsNoTracking()
+                .Where(v => ids.Contains(v.KlijentId))
+                .OrderBy(v => v.ImePrezime)
+                .ToList()
+                .GroupBy(v => v.KlijentId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var direktoriPoKlijentu = _db.Direktori.AsNoTracking()
+                .Where(d => ids.Contains(d.KlijentId))
+                .OrderBy(d => d.ImePrezime)
+                .ToList()
+                .GroupBy(d => d.KlijentId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            static string? Spoji(IEnumerable<string?> vrijednosti)
+            {
+                var lista = vrijednosti.ToList();
+                return lista.Count == 0 ? null : string.Join(", ", lista.Select(x => x ?? "—"));
+            }
+            static string Datum(DateTime? d) => d?.ToString("dd.MM.yyyy") ?? "—";
+
+            foreach (var k in klijenti)
+            {
+                if (vlasniciPoKlijentu.TryGetValue(k.Id, out var vlasnici))
+                {
+                    k.VlasnikImena = Spoji(vlasnici.Select(v => v.ImePrezime));
+                    k.DatumVazenjaDokumentaVlasnika = Spoji(vlasnici.Select(v => (string?)Datum(v.DatumValjanostiDokumenta)));
+                    k.ProcenatVlasnistva = Spoji(vlasnici.Select(v => (string?)v.ProcenatVlasnistva.ToString("0.##")));
+                    k.DatumUtvrdjivanjaVlasnistva = Spoji(vlasnici.Select(v => (string?)Datum(v.DatumUtvrdjivanja)));
+                    k.IzvorPodatkaVlasnistvo = Spoji(vlasnici.Select(v => v.IzvorPodatka));
+                }
+                if (direktoriPoKlijentu.TryGetValue(k.Id, out var direktori))
+                {
+                    k.DirektorImena = Spoji(direktori.Select(d => d.ImePrezime));
+                    k.DatumVazenjaDokumentaDirektora = Spoji(direktori.Select(d => (string?)Datum(d.DatumValjanosti)));
+                }
+            }
         }
 
         public int GetTotalCount() => _db.Klijenti.Count();

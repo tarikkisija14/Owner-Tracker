@@ -21,8 +21,35 @@ namespace OwnerTrack.App
         {
             AcceptButton = btnPrijava;
             CancelButton = btnIzlaz;
-            txtKorisnik.Focus();
+            RefreshDatabaseLink();
+
+            string? remembered = LoginPreferences.LoadRememberedUsername();
+            if (remembered is not null)
+            {
+                txtKorisnik.Text = remembered;
+                chkZapamti.Checked = true;
+                ActiveControl = txtLozinka;
+            }
+            else
+            {
+                ActiveControl = txtKorisnik;
+            }
         }
+
+        private void RefreshDatabaseLink() =>
+            lblBaza.Text = DbContextFactory.IsShared
+                ? string.Format(UiMessages.DbLoginLinkSharedFormat, DbContextFactory.SharedFolder)
+                : UiMessages.DbLoginLinkLocal;
+
+        private void lblBaza_Click(object? sender, EventArgs e)
+        {
+            using var settings = new FrmPostavkeBaze();
+            settings.ShowDialog(this);
+            RefreshDatabaseLink();
+        }
+
+        private void chkPrikaziLozinku_CheckedChanged(object? sender, EventArgs e) =>
+            txtLozinka.UseSystemPasswordChar = !chkPrikaziLozinku.Checked;
 
         private void btnPrijava_Click(object sender, EventArgs e)
         {
@@ -34,14 +61,14 @@ namespace OwnerTrack.App
             if (username.Length == 0)
             {
                 MessageBox.Show(UiMessages.LoginUsernameRequired);
-                txtKorisnik.Focus();
+                ActiveControl = txtKorisnik;
                 return;
             }
 
             if (password.Length == 0)
             {
                 MessageBox.Show(UiMessages.LoginPasswordRequired);
-                txtLozinka.Focus();
+                ActiveControl = txtLozinka;
                 return;
             }
 
@@ -61,11 +88,17 @@ namespace OwnerTrack.App
                         UiMessages.LoginFailedTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtLozinka.Clear();
-                    txtLozinka.Focus();
+                    ActiveControl = txtLozinka;
                     return;
                 }
 
+                if (chkZapamti.Checked)
+                    LoginPreferences.SaveRememberedUsername(user.Username);
+                else
+                    LoginPreferences.ClearRememberedUsername();
+
                 txtLozinka.Clear();
+                chkPrikaziLozinku.Checked = false;
                 _session.SignIn(user);
                 DialogResult = DialogResult.OK;
                 Close();

@@ -131,6 +131,10 @@ namespace OwnerTrack.App
             {
                 DialogHelper.ShowConcurrencyConflict();
             }
+            catch (BusinessRuleException ex)
+            {
+                MessageBox.Show(ex.Message, UiMessages.VlasnikDuplicateTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);
@@ -184,7 +188,33 @@ namespace OwnerTrack.App
 
        
 
+        // Provjere (firma postoji, duplikat imena), izmjena i upis se rade unutar jedne
+        // transakcije koja odmah zaključava bazu za upis.
         private void SaveChanges(int vlasnikId, string imePrezime, decimal percentage)
+        {
+            TransactionHelper.Execute(_db, _ =>
+            {
+                EnsureVlasnikRules(imePrezime, vlasnikId);
+                ApplyAndSaveVlasnik(vlasnikId, imePrezime, percentage);
+            });
+
+            DialogHelper.ShowSaved(UiMessages.VlasnikSavedUpdate);
+        }
+
+        private void EnsureVlasnikRules(string imePrezime, int currentId)
+        {
+            if (!_db.Klijenti.Any(k => k.Id == _klijentId))
+                throw new BusinessRuleException("Firma više ne postoji ili je u međuvremenu arhivirana.");
+
+            if (_db.Set<Vlasnik>().IgnoreQueryFilters()
+                    .Any(v => v.KlijentId == _klijentId
+                           && v.ImePrezime == imePrezime
+                           && v.Id != currentId
+                           && v.Obrisan == null))
+                throw new BusinessRuleException(string.Format(UiMessages.VlasnikDuplicateFormat, imePrezime));
+        }
+
+        private void ApplyAndSaveVlasnik(int vlasnikId, string imePrezime, decimal percentage)
         {
             var v = _db.Vlasnici.Find(vlasnikId);
             if (v is null) return;
@@ -205,9 +235,9 @@ namespace OwnerTrack.App
                 ("Datum utvrđivanja", previousDatumUtvrdjivanja, FormatDate(v.DatumUtvrdjivanja)),
                 ("Izvor podatka", previousIzvor, v.IzvorPodatka));
 
-            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Vlasnici", vlasnikId, opis));
-
-            DialogHelper.ShowSaved(UiMessages.VlasnikSavedUpdate);
+            _db.SaveChanges();
+            _audit.LogUpdated("Vlasnici", vlasnikId, opis);
+            _db.SaveChanges();
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -217,9 +247,14 @@ namespace OwnerTrack.App
             var v = new Vlasnik { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
             ApplyFormFieldsToVlasnik(v, imePrezime, percentage);
 
-            _db.Vlasnici.Add(v);
-            TransactionHelper.SaveWithAudit(_db,
-                () => _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'"));
+            TransactionHelper.Execute(_db, db =>
+            {
+                EnsureVlasnikRules(imePrezime, 0);
+                db.Vlasnici.Add(v);
+                db.SaveChanges();
+                _audit.LogAdded("Vlasnici", v.Id, $"Novi vlasnik: '{imePrezime}'");
+                db.SaveChanges();
+            });
 
             DialogHelper.ShowSaved(UiMessages.VlasnikSavedNew);
         }

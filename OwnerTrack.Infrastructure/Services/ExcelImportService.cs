@@ -41,6 +41,7 @@ namespace OwnerTrack.Infrastructure.Services
             public const int OvjeraCr = 24;
             public const int StatusUgovora = 25;
             public const int DatumUgovora = 26;
+            public const int Napomena = 27;
         }
 
         private const int ExcelHeaderRows = 2;
@@ -85,7 +86,7 @@ namespace OwnerTrack.Infrastructure.Services
                 try
                 {
                     db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
-                    using var tx = db.Database.BeginTransaction();
+                    using var tx = TransactionHelper.BeginImmediate(db);
 
                     // IgnoreQueryFilters() so archived (soft-deleted) clients are still
                     // treated as "already exist" during dedup — otherwise re-importing a
@@ -207,6 +208,15 @@ namespace OwnerTrack.Infrastructure.Services
                         progress?.Report(prog);
                     }
 
+                    if (result.SuccessCount > 0)
+                    {
+                        new AuditService(db).Log("Klijenti", null, AuditConstants.Dodano,
+                            $"Excel import{(cancellationToken.IsCancellationRequested ? " (otkazan)" : string.Empty)}: " +
+                            $"uvezeno firmi: {result.SuccessCount}, vlasnika: {result.VlasnikCount}, " +
+                            $"preskočeno: {result.SkipCount}, grešaka: {result.ErrorCount}");
+                        db.SaveChanges();
+                    }
+
                     tx.Commit();
 
                     Debug.WriteLine($"[IMPORT-END] Success={result.SuccessCount} Skip={result.SkipCount} Errors={result.ErrorCount}");
@@ -249,6 +259,7 @@ namespace OwnerTrack.Infrastructure.Services
                 UkupnaProcjena = ReadCellOrNull(wbp, row, Column.UkupnaProcjena),
                 DatumProcjene = ExcelValueNormalizer.ParseDate(ReadCellOrNull(wbp, row, Column.DatumProcjene)),
                 OvjeraCr = ReadCellOrNull(wbp, row, Column.OvjeraCr),
+                Napomena = ReadCellOrNull(wbp, row, Column.Napomena),
                 Kreiran = DateTime.Now,
                 Status = StatusEntiteta.AKTIVAN,
             };

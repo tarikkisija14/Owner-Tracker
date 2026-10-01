@@ -54,6 +54,8 @@ namespace OwnerTrack.Infrastructure
             if (version < 16) ApplyV16(conn);
             if (version < 17) ApplyV17(conn);
             if (version < 18) ApplyV18(conn);
+            if (version < 19) ApplyV19(conn);
+            if (version < 20) ApplyV20(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -458,16 +460,59 @@ namespace OwnerTrack.Infrastructure
                 AddColumnIfMissing(c, tx, "Korisnici", "Slika", "BLOB");
             });
 
+        private void ApplyV19(SqliteConnection conn) =>
+            ApplyMigration(conn, 19, "dodavanje AuditLogs.Korisnik i Korisnici.ZadnjaPrijava", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "AuditLogs", "Korisnik", "TEXT");
+                AddColumnIfMissing(c, tx, "Korisnici", "ZadnjaPrijava", "TEXT");
+            });
+
+        // Čitljiva lozinka (za prikaz na ekranu Korisnici). Postojeći računi je nemaju, pa se
+        // za početne korisnike popunjava samo ako se zadana lozinka još podudara s hashom
+        // (tj. nije promijenjena); ostali ostaju s null dok se lozinka ne postavi ponovo.
+        private void ApplyV20(SqliteConnection conn) =>
+            ApplyMigration(conn, 20, "dodavanje Korisnici.LozinkaTekst (prikaz lozinke na ekranu Korisnici)", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "Korisnici", "LozinkaTekst", "TEXT");
+
+                var rows = new List<(int Id, string Ime, string Hash, string Salt)>();
+                using (var select = c.CreateCommand())
+                {
+                    select.Transaction = tx;
+                    select.CommandText = "SELECT Id, KorisnickoIme, PasswordHash, PasswordSalt FROM Korisnici WHERE LozinkaTekst IS NULL";
+                    using var reader = select.ExecuteReader();
+                    while (reader.Read())
+                        rows.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+                }
+
+                foreach (var (id, ime, hash, salt) in rows)
+                {
+                    foreach (var (korisnickoIme, _, lozinka) in PocetniKorisnici)
+                    {
+                        if (!korisnickoIme.Equals(ime, StringComparison.OrdinalIgnoreCase) ||
+                            !PasswordHasher.Verify(lozinka, hash, salt))
+                            continue;
+
+                        using var update = c.CreateCommand();
+                        update.Transaction = tx;
+                        update.CommandText = "UPDATE Korisnici SET LozinkaTekst = @l WHERE Id = @id";
+                        update.Parameters.AddWithValue("@l", lozinka);
+                        update.Parameters.AddWithValue("@id", id);
+                        update.ExecuteNonQuery();
+                    }
+                }
+            });
+
+        private static readonly (string KorisnickoIme, string PrikaznoIme, string Lozinka)[] PocetniKorisnici =
+        {
+            ("admin", "Administrator", "0000"),
+            ("indira.ugarak", "Indira Ugarak", "0111"),
+            ("minela.kulas", "Minela Kulas", "1907"),
+        };
+
         private static void SeedKorisnici(SqliteConnection conn, SqliteTransaction tx)
         {
-            var pocetniKorisnici = new (string KorisnickoIme, string PrikaznoIme, string Lozinka)[]
-            {
-                ("admin", "Administrator", "0000"),
-                ("indira.ugarak", "Indira Ugarak", "0111"),
-                ("minela.kulas", "Minela Kulas", "1907"),
-            };
-
-            foreach (var (korisnickoIme, prikaznoIme, lozinka) in pocetniKorisnici)
+            foreach (var (korisnickoIme, prikaznoIme, lozinka) in PocetniKorisnici)
             {
                 using (var exists = conn.CreateCommand())
                 {

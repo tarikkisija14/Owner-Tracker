@@ -140,6 +140,10 @@ namespace OwnerTrack.App
             {
                 DialogHelper.ShowConcurrencyConflict();
             }
+            catch (BusinessRuleException ex)
+            {
+                MessageBox.Show(ex.Message, UiMessages.DirektorDuplicateTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             catch (Exception ex)
             {
                 DialogHelper.LogAndShowError(ex);
@@ -168,7 +172,33 @@ namespace OwnerTrack.App
 
 
 
+        // Provjere (firma postoji, duplikat imena), izmjena i upis se rade unutar jedne
+        // transakcije koja odmah zaključava bazu za upis.
         private void SaveChanges(int direktorId, DateTime? dateOfValidity)
+        {
+            TransactionHelper.Execute(_db, _ =>
+            {
+                EnsureDirektorRules(txtImePrezime.Text.Trim(), direktorId);
+                ApplyAndSaveDirektor(direktorId, dateOfValidity);
+            });
+
+            DialogHelper.ShowSaved(UiMessages.DirektorSavedUpdate);
+        }
+
+        private void EnsureDirektorRules(string imePrezime, int currentId)
+        {
+            if (!_db.Klijenti.Any(k => k.Id == _klijentId))
+                throw new BusinessRuleException("Firma više ne postoji ili je u međuvremenu arhivirana.");
+
+            if (_db.Set<Direktor>().IgnoreQueryFilters()
+                    .Any(d => d.KlijentId == _klijentId
+                           && d.ImePrezime == imePrezime
+                           && d.Id != currentId
+                           && d.Obrisan == null))
+                throw new BusinessRuleException(string.Format(UiMessages.DirektorDuplicateFormat, imePrezime));
+        }
+
+        private void ApplyAndSaveDirektor(int direktorId, DateTime? dateOfValidity)
         {
             var d = _db.Direktori.Find(direktorId);
             if (d is null) return;
@@ -187,9 +217,9 @@ namespace OwnerTrack.App
                 ("Tip valjanosti", previousTipValjanosti, d.TipValjanosti),
                 ("JMBG", previousJmbg, d.Jmbg));
 
-            TransactionHelper.SaveWithAudit(_db, () => _audit.LogUpdated("Direktori", direktorId, opis));
-
-            DialogHelper.ShowSaved(UiMessages.DirektorSavedUpdate);
+            _db.SaveChanges();
+            _audit.LogUpdated("Direktori", direktorId, opis);
+            _db.SaveChanges();
         }
 
         private static string? FormatDate(DateTime? d) => d?.ToString("dd.MM.yyyy");
@@ -199,9 +229,14 @@ namespace OwnerTrack.App
             var d = new Direktor { KlijentId = _klijentId, Status = StatusEntiteta.AKTIVAN };
             ApplyFormFieldsToDirektor(d, dateOfValidity);
 
-            _db.Direktori.Add(d);
-            TransactionHelper.SaveWithAudit(_db,
-                () => _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'"));
+            TransactionHelper.Execute(_db, db =>
+            {
+                EnsureDirektorRules(d.ImePrezime ?? string.Empty, 0);
+                db.Direktori.Add(d);
+                db.SaveChanges();
+                _audit.LogAdded("Direktori", d.Id, $"Novi direktor: '{d.ImePrezime}'");
+                db.SaveChanges();
+            });
 
             DialogHelper.ShowSaved(UiMessages.DirektorSavedNew);
         }

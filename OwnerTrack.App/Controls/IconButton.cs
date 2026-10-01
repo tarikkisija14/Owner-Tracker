@@ -28,6 +28,64 @@ namespace OwnerTrack.App.Controls
             }
         }
 
+        private Image? _avatarImage;
+
+        /// <summary>
+        /// Okrugla slika umjesto glyph ikone (npr. profilna slika u sidebaru). Ima prednost
+        /// nad IconGlyph; vlasnik slike je pozivalac (on je i uništava).
+        /// </summary>
+        public Image? AvatarImage
+        {
+            get => _avatarImage;
+            set
+            {
+                _avatarImage = value;
+                RebuildAvatarBitmap();
+                UpdateIconPadding();
+                Invalidate();
+            }
+        }
+
+        public int AvatarSize { get; set; } = 26;
+
+        // Slika unaprijed smanjena na tačnu veličinu avatara: glatke ivice kruga dolaze iz
+        // FillEllipse + TextureBrush (antialiasing radi), a ne iz SetClip (ima nazubljen rub).
+        private Bitmap? _avatarBitmap;
+
+        private void RebuildAvatarBitmap()
+        {
+            _avatarBitmap?.Dispose();
+            _avatarBitmap = null;
+            if (_avatarImage is null) return;
+
+            // Krug se crta 4× većim, sa prozirnom pozadinom i Clamp wrap modom (inače
+            // TextureBrush na rubu uzorkuje suprotnu stranu slike i pravi tamni/svijetli obrub),
+            // a pri crtanju se smanjuje — rub je tako potpuno gladak.
+            const int Scale = 4;
+            int big = AvatarSize * Scale;
+
+            using var scaled = new Bitmap(big, big);
+            using (var gs = Graphics.FromImage(scaled))
+            {
+                gs.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                gs.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                gs.DrawImage(_avatarImage, new Rectangle(0, 0, big, big));
+            }
+
+            _avatarBitmap = new Bitmap(big, big, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            using var g = Graphics.FromImage(_avatarBitmap);
+            g.Clear(Color.Transparent);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using var brush = new TextureBrush(scaled, WrapMode.Clamp);
+            g.FillEllipse(brush, 0, 0, big - 1, big - 1);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _avatarBitmap?.Dispose();
+            base.Dispose(disposing);
+        }
+
         public float IconSize { get; set; } = 13f;
         public int IconTextGap { get; set; } = 7;
 
@@ -59,7 +117,9 @@ namespace OwnerTrack.App.Controls
 
         private void UpdateIconPadding()
         {
-            int left = LeftInset + (string.IsNullOrEmpty(_iconGlyph) ? 0 : IconZoneWidth);
+            int left = LeftInset + (_avatarImage is not null
+                ? AvatarSize + IconTextGap
+                : string.IsNullOrEmpty(_iconGlyph) ? 0 : IconZoneWidth);
             if (Padding.Left != left)
                 Padding = new Padding(left, Padding.Top, Padding.Right, Padding.Bottom);
         }
@@ -85,6 +145,19 @@ namespace OwnerTrack.App.Controls
             {
                 using var barBrush = new SolidBrush(AccentBarColor);
                 g.FillRectangle(barBrush, 0, 0, AccentBarWidth, Height);
+            }
+
+            if (_avatarBitmap is not null)
+            {
+                bool avatarHasText = !string.IsNullOrEmpty(Text);
+                int ax = avatarHasText ? LeftInset : (Width - AvatarSize) / 2;
+                int ay = (Height - AvatarSize) / 2;
+
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.DrawImage(_avatarBitmap, new Rectangle(ax, ay, AvatarSize, AvatarSize));
+                return;
             }
 
             if (string.IsNullOrEmpty(IconGlyph)) return;

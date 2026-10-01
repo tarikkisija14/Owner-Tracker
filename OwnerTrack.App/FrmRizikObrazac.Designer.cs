@@ -21,8 +21,9 @@ namespace OwnerTrack.App
             lblHeaderNaziv = new Label();
             lblOdgovoreno = new Label();
             scrollPanel = new Panel();
-            cardStranke = new Panel();
-            cardPoslovniOdnos = new Panel();
+            cardOpci = new Panel();
+            cardIdentifikacija = new Panel();
+            cardTransakcije = new Panel();
             cardGeografski = new Panel();
             cardUkupno = new Panel();
             panelButtons = new Panel();
@@ -61,13 +62,17 @@ namespace OwnerTrack.App
             scrollPanel.BackColor = UiTheme.FormBackgroundDialog;
             scrollPanel.Name = "scrollPanel";
 
-            cardStranke.BackColor = Color.White;
-            cardStranke.Width = 860;
-            cardStranke.Name = "cardStranke";
+            cardOpci.BackColor = Color.White;
+            cardOpci.Width = 860;
+            cardOpci.Name = "cardOpci";
 
-            cardPoslovniOdnos.BackColor = Color.White;
-            cardPoslovniOdnos.Width = 860;
-            cardPoslovniOdnos.Name = "cardPoslovniOdnos";
+            cardIdentifikacija.BackColor = Color.White;
+            cardIdentifikacija.Width = 860;
+            cardIdentifikacija.Name = "cardIdentifikacija";
+
+            cardTransakcije.BackColor = Color.White;
+            cardTransakcije.Width = 860;
+            cardTransakcije.Name = "cardTransakcije";
 
             cardGeografski.BackColor = Color.White;
             cardGeografski.Width = 860;
@@ -79,8 +84,9 @@ namespace OwnerTrack.App
 
             scrollPanel.Controls.Add(cardUkupno);
             scrollPanel.Controls.Add(cardGeografski);
-            scrollPanel.Controls.Add(cardPoslovniOdnos);
-            scrollPanel.Controls.Add(cardStranke);
+            scrollPanel.Controls.Add(cardTransakcije);
+            scrollPanel.Controls.Add(cardIdentifikacija);
+            scrollPanel.Controls.Add(cardOpci);
 
             // ── panelButtons ──────────────────────────────────────
             panelButtons.Dock = DockStyle.Bottom;
@@ -136,8 +142,9 @@ namespace OwnerTrack.App
         private Label lblHeaderNaziv;
         private Label lblOdgovoreno;
         private Panel scrollPanel;
-        private Panel cardStranke;
-        private Panel cardPoslovniOdnos;
+        private Panel cardOpci;
+        private Panel cardIdentifikacija;
+        private Panel cardTransakcije;
         private Panel cardGeografski;
         private Panel cardUkupno;
         private Panel panelButtons;

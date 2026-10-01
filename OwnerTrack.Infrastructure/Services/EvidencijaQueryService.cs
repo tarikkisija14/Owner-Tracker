@@ -30,17 +30,47 @@ namespace OwnerTrack.Infrastructure.Services
                     Tabela = a.Tabela,
                     EntitetId = a.EntitetId,
                     Akcija = a.Akcija,
+                    Korisnik = a.Korisnik ?? "—",
                     Opis = a.Opis,
                 })
                 .ToList();
+        }
+
+        public List<AuditEntryViewModel> GetAuditEntriesForUser(string username, int take)
+        {
+            return _db.AuditLogs
+                .AsNoTracking()
+                .Where(a => a.Korisnik == username)
+                .OrderByDescending(a => a.Vrijeme)
+                .Take(take)
+                .Select(a => new AuditEntryViewModel
+                {
+                    Vrijeme = a.Vrijeme,
+                    Tabela = a.Tabela,
+                    EntitetId = a.EntitetId,
+                    Akcija = a.Akcija,
+                    Korisnik = a.Korisnik,
+                    Opis = a.Opis,
+                })
+                .ToList();
+        }
+
+        public int CountAuditEntriesForUserSince(string username, DateTime since) =>
+            _db.AuditLogs.AsNoTracking().Count(a => a.Korisnik == username && a.Vrijeme >= since);
+
+        // Jeftin "otisak" stanja baze za automatsko osvježavanje: svaka izmjena u aplikaciji
+        // (dodavanje, izmjena, arhiviranje, import, obrazac rizika, korisnici) upisuje red u
+        // AuditLogs, pa se najveći Id mijenja kad god neko drugi nešto promijeni.
+        public string GetChangeToken()
+        {
+            int maxAuditId = _db.AuditLogs.AsNoTracking().Max(a => (int?)a.Id) ?? 0;
+            return maxAuditId.ToString();
         }
 
         public List<KycViewModel> GetKycEvidencija()
         {
             var klijenti = _db.Klijenti
                 .Include(k => k.Djelatnost)
-                .Include(k => k.Vlasnici)
-                .Include(k => k.Direktori)
                 .AsNoTracking()
                 .OrderBy(k => k.Id)
                 .ToList();
@@ -56,11 +86,7 @@ namespace OwnerTrack.Infrastructure.Services
                 Djelatnost = k.Djelatnost?.Naziv,
                 DatumUspostaveOdnosa = k.DatumUspostave,
                 VrstaKlijenta = k.VrstaKlijenta.ToDisplay(),
-                VlasnikImena = string.Join(", ", k.Vlasnici.Select(v => v.ImePrezime)),
-                DirektorImena = string.Join(", ", k.Direktori.Select(d => d.ImePrezime)),
-                Velicina = k.Velicina,
                 PepRizik = k.PepRizik,
-                UboRizik = k.UboRizik,
                 UkupnaProcjena = k.UkupnaProcjena,
             }).ToList();
         }
@@ -117,7 +143,6 @@ namespace OwnerTrack.Infrastructure.Services
         {
             var klijenti = _db.Klijenti
                 .Include(k => k.Djelatnost)
-                .Include(k => k.Ugovor)
                 .Include(k => k.Vlasnici)
                 .Include(k => k.Direktori)
                 .AsNoTracking()
@@ -134,16 +159,12 @@ namespace OwnerTrack.Infrastructure.Services
                 VrstaKlijenta = k.VrstaKlijenta.ToDisplay(),
                 VlasnikImena = string.Join(", ", k.Vlasnici.Select(v => v.ImePrezime)),
                 DirektorImena = string.Join(", ", k.Direktori.Select(d => d.ImePrezime)),
-                Velicina = k.Velicina,
                 OpciIndikatoriRizika = k.OpciIndikatoriRizika,
                 IndikatoriIdentifikacijeRizika = k.IndikatoriIdentifikacijeRizika,
                 IndikatoriTransakcijaRizika = k.IndikatoriTransakcijaRizika,
                 GeografskiRizik = k.GeografskiRizik,
                 UkupnaProcjena = k.UkupnaProcjena,
                 DatumProcjeneRizika = k.DatumProcjene,
-                OvjeraCr = k.OvjeraCr,
-                VrstaUgovora = k.Ugovor?.VrstaUgovora,
-                DatumUgovora = k.Ugovor?.DatumUgovora,
             }).ToList();
         }
     }
