@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using OwnerTrack.Infrastructure.Services;
 
 namespace OwnerTrack.Infrastructure
 {
@@ -51,6 +52,8 @@ namespace OwnerTrack.Infrastructure
             if (version < 14) ApplyV14(conn);
             if (version < 15) ApplyV15(conn);
             if (version < 16) ApplyV16(conn);
+            if (version < 17) ApplyV17(conn);
+            if (version < 18) ApplyV18(conn);
 
             Debug.WriteLine($"[SCHEMA] Gotovo. Verzija: {GetCurrentVersion(conn)}");
         }
@@ -423,6 +426,73 @@ namespace OwnerTrack.Infrastructure
                               ('PRAVNOLICE', 'FIZICKOLICE', 'FIZIČKOLICE', 'UDRUZENJE', 'UDRUŽENJE', 'OBRTNIK', 'JAVNAUSTANOVA')");
                 }
             });
+
+        // Lokalni login: tabela korisnika + početni korisnici. Seed je idempotentan
+        // (postojeći username se preskače, lozinka postojećeg korisnika se nikad ne
+        // prepisuje), a UNIQUE + NOCASE na KorisnickoIme čuva jedinstvenost i na
+        // nivou baze. Pošto je dio verzionisane migracije, vraćanje starijeg
+        // backupa (bez tabele) ponovo je pokreće iz DatabaseService.RestoreBackup.
+        private void ApplyV17(SqliteConnection conn) =>
+            ApplyMigration(conn, 17, "kreiranje tabele Korisnici i seed početnih korisnika", (c, tx) =>
+            {
+                ExecSql(c, tx, @"
+                    CREATE TABLE IF NOT EXISTS Korisnici (
+                        Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                        KorisnickoIme TEXT NOT NULL COLLATE NOCASE,
+                        PrikaznoIme   TEXT,
+                        PasswordHash  TEXT NOT NULL,
+                        PasswordSalt  TEXT NOT NULL,
+                        Aktivan       INTEGER NOT NULL DEFAULT 1,
+                        Kreiran       TEXT NOT NULL DEFAULT (datetime('now'))
+                    )");
+
+                ExecSql(c, tx,
+                    "CREATE UNIQUE INDEX IF NOT EXISTS UX_Korisnici_KorisnickoIme ON Korisnici(KorisnickoIme)");
+
+                SeedKorisnici(c, tx);
+            });
+
+        private void ApplyV18(SqliteConnection conn) =>
+            ApplyMigration(conn, 18, "dodavanje Slika kolone (profilna slika) na Korisnici", (c, tx) =>
+            {
+                AddColumnIfMissing(c, tx, "Korisnici", "Slika", "BLOB");
+            });
+
+        private static void SeedKorisnici(SqliteConnection conn, SqliteTransaction tx)
+        {
+            var pocetniKorisnici = new (string KorisnickoIme, string PrikaznoIme, string Lozinka)[]
+            {
+                ("admin", "Administrator", "0000"),
+                ("indira.ugarak", "Indira Ugarak", "0111"),
+                ("minela.kulas", "Minela Kulas", "1907"),
+            };
+
+            foreach (var (korisnickoIme, prikaznoIme, lozinka) in pocetniKorisnici)
+            {
+                using (var exists = conn.CreateCommand())
+                {
+                    exists.Transaction = tx;
+                    exists.CommandText = "SELECT COUNT(*) FROM Korisnici WHERE KorisnickoIme = @u";
+                    exists.Parameters.AddWithValue("@u", korisnickoIme);
+                    if (Convert.ToInt32(exists.ExecuteScalar()) > 0)
+                        continue;
+                }
+
+                var (hash, salt) = PasswordHasher.Hash(lozinka);
+
+                using var insert = conn.CreateCommand();
+                insert.Transaction = tx;
+                insert.CommandText = @"
+                    INSERT OR IGNORE INTO Korisnici (KorisnickoIme, PrikaznoIme, PasswordHash, PasswordSalt, Aktivan, Kreiran)
+                    VALUES (@u, @p, @h, @s, 1, @k)";
+                insert.Parameters.AddWithValue("@u", korisnickoIme);
+                insert.Parameters.AddWithValue("@p", prikaznoIme);
+                insert.Parameters.AddWithValue("@h", hash);
+                insert.Parameters.AddWithValue("@s", salt);
+                insert.Parameters.AddWithValue("@k", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                insert.ExecuteNonQuery();
+            }
+        }
 
         // Nakon rebuilda Klijenti tabele (koji je rađen sa foreign_keys=OFF)
         // provjerava da nijedan Vlasnik/Direktor/Ugovor ne pokazuje na

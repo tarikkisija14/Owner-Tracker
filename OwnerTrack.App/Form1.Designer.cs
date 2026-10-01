@@ -38,6 +38,24 @@ namespace OwnerTrack.App
             btnNavUdruzenja = new IconButton();
             btnNavStecaj = new IconButton();
             btnNavAuditLog = new IconButton();
+            btnNavProfil = new IconButton();
+            btnNavLogout = new IconButton();
+            panelSidebarBottomDivider = new Panel();
+            panelViewProfil = new Panel();
+            panelProfilHeader = new Panel();
+            lblProfilTitle = new Label();
+            groupBoxProfil = new GroupBox();
+            lblProfilKorisnickoIme = new Label();
+            lblProfilKorisnickoImeValue = new Label();
+            lblProfilPrikaznoIme = new Label();
+            lblProfilPrikaznoImeValue = new Label();
+            lblProfilStatus = new Label();
+            lblProfilStatusValue = new Label();
+            btnPromijeniLozinku = new IconButton();
+            btnNoviKorisnik = new IconButton();
+            picProfil = new PictureBox();
+            btnOdaberiSliku = new IconButton();
+            btnUkloniSliku = new IconButton();
             panelSidebarDivider = new Panel();
             panelViewDashboard = new Panel();
             panelDashboardHeader = new Panel();
@@ -1158,6 +1176,114 @@ namespace OwnerTrack.App
             panelViewAuditLog.Controls.Add(lblEmptyAuditLog);
             panelViewAuditLog.Controls.Add(panelAuditLogHeader);
 
+            // ── panelViewProfil ───────────────────────────────────
+            lblProfilTitle.Dock = DockStyle.Left;
+            lblProfilTitle.AutoSize = true;
+            lblProfilTitle.BackColor = UiTheme.PanelLight;
+            lblProfilTitle.ForeColor = UiTheme.Navy;
+            lblProfilTitle.Font = UiTheme.Base(11f, FontStyle.Bold);
+            lblProfilTitle.TextAlign = ContentAlignment.MiddleLeft;
+            lblProfilTitle.Padding = new Padding(12, 0, 0, 0);
+            lblProfilTitle.Text = "Profil";
+            lblProfilTitle.Name = "lblProfilTitle";
+
+            panelProfilHeader.Dock = DockStyle.Top;
+            panelProfilHeader.Height = 48;
+            panelProfilHeader.BackColor = UiTheme.PanelLight;
+            panelProfilHeader.Name = "panelProfilHeader";
+            panelProfilHeader.Controls.Add(lblProfilTitle);
+
+            UiTheme.StyleGroupBox(groupBoxProfil, "Prijavljeni korisnik");
+            groupBoxProfil.Location = new Point(24, 216);
+            groupBoxProfil.Size = new Size(480, 150);
+            groupBoxProfil.Name = "groupBoxProfil";
+
+            lblProfilKorisnickoIme.Text = "Korisničko ime:";
+            lblProfilKorisnickoIme.Location = new Point(12, 36);
+            lblProfilKorisnickoIme.Name = "lblProfilKorisnickoIme";
+            UiTheme.StyleLabel(lblProfilKorisnickoIme);
+            lblProfilKorisnickoImeValue.Location = new Point(165, 36);
+            lblProfilKorisnickoImeValue.Name = "lblProfilKorisnickoImeValue";
+            UiTheme.StyleLabel(lblProfilKorisnickoImeValue);
+            lblProfilKorisnickoImeValue.Font = UiTheme.Base(9.5f, FontStyle.Bold);
+
+            lblProfilPrikaznoIme.Text = "Ime:";
+            lblProfilPrikaznoIme.Location = new Point(12, 72);
+            lblProfilPrikaznoIme.Name = "lblProfilPrikaznoIme";
+            UiTheme.StyleLabel(lblProfilPrikaznoIme);
+            lblProfilPrikaznoImeValue.Location = new Point(165, 72);
+            lblProfilPrikaznoImeValue.Name = "lblProfilPrikaznoImeValue";
+            UiTheme.StyleLabel(lblProfilPrikaznoImeValue);
+            lblProfilPrikaznoImeValue.Font = UiTheme.Base(9.5f, FontStyle.Bold);
+
+            lblProfilStatus.Text = "Status:";
+            lblProfilStatus.Location = new Point(12, 108);
+            lblProfilStatus.Name = "lblProfilStatus";
+            UiTheme.StyleLabel(lblProfilStatus);
+            lblProfilStatusValue.Location = new Point(165, 108);
+            lblProfilStatusValue.Name = "lblProfilStatusValue";
+            UiTheme.StyleLabel(lblProfilStatusValue);
+            lblProfilStatusValue.Font = UiTheme.Base(9.5f, FontStyle.Bold);
+
+            groupBoxProfil.Controls.Add(lblProfilKorisnickoIme);
+            groupBoxProfil.Controls.Add(lblProfilKorisnickoImeValue);
+            groupBoxProfil.Controls.Add(lblProfilPrikaznoIme);
+            groupBoxProfil.Controls.Add(lblProfilPrikaznoImeValue);
+            groupBoxProfil.Controls.Add(lblProfilStatus);
+            groupBoxProfil.Controls.Add(lblProfilStatusValue);
+
+            // ── Profilna slika ────────────────────────────────────
+            picProfil.Location = new Point(24, 68);
+            picProfil.Size = new Size(130, 130);
+            picProfil.SizeMode = PictureBoxSizeMode.Zoom;
+            picProfil.BorderStyle = BorderStyle.FixedSingle;
+            picProfil.BackColor = UiTheme.PanelLight;
+            picProfil.Name = "picProfil";
+
+            btnOdaberiSliku.Location = new Point(172, 100);
+            btnOdaberiSliku.Size = new Size(170, 36);
+            btnOdaberiSliku.Text = "Odaberi sliku";
+            btnOdaberiSliku.Name = "btnOdaberiSliku";
+            btnOdaberiSliku.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnOdaberiSliku, UiTheme.Blue, 10f);
+            btnOdaberiSliku.Click += btnOdaberiSliku_Click;
+
+            btnUkloniSliku.Location = new Point(172, 146);
+            btnUkloniSliku.Size = new Size(170, 36);
+            btnUkloniSliku.Text = "Ukloni sliku";
+            btnUkloniSliku.Name = "btnUkloniSliku";
+            btnUkloniSliku.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnUkloniSliku, UiTheme.Red, 10f);
+            btnUkloniSliku.Click += btnUkloniSliku_Click;
+
+            btnPromijeniLozinku.Location = new Point(24, 386);
+            btnPromijeniLozinku.Size = new Size(200, 36);
+            btnPromijeniLozinku.Text = "Promijeni lozinku";
+            btnPromijeniLozinku.Name = "btnPromijeniLozinku";
+            btnPromijeniLozinku.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnPromijeniLozinku, UiTheme.Blue, 10f);
+            btnPromijeniLozinku.Click += btnPromijeniLozinku_Click;
+
+            btnNoviKorisnik.Location = new Point(236, 386);
+            btnNoviKorisnik.Size = new Size(200, 36);
+            btnNoviKorisnik.Text = "Novi korisnik";
+            btnNoviKorisnik.Name = "btnNoviKorisnik";
+            btnNoviKorisnik.IconGlyph = "";
+            UiTheme.StyleFlatButton(btnNoviKorisnik, UiTheme.Green, 10f);
+            btnNoviKorisnik.Click += btnNoviKorisnik_Click;
+
+            panelViewProfil.Dock = DockStyle.Fill;
+            panelViewProfil.Name = "panelViewProfil";
+            panelViewProfil.Visible = false;
+            panelViewProfil.AutoScroll = true;
+            panelViewProfil.Controls.Add(btnPromijeniLozinku);
+            panelViewProfil.Controls.Add(btnNoviKorisnik);
+            panelViewProfil.Controls.Add(picProfil);
+            panelViewProfil.Controls.Add(btnOdaberiSliku);
+            panelViewProfil.Controls.Add(btnUkloniSliku);
+            panelViewProfil.Controls.Add(groupBoxProfil);
+            panelViewProfil.Controls.Add(panelProfilHeader);
+
             // ── panelViewKlijenti (postojeći sadržaj, sad kao jedna sekcija) ─
             panelViewKlijenti.Dock = DockStyle.Fill;
             panelViewKlijenti.Name = "panelViewKlijenti";
@@ -1168,6 +1294,7 @@ namespace OwnerTrack.App
             // ── panelMainContent ───────────────────────────────────
             panelMainContent.Dock = DockStyle.Fill;
             panelMainContent.Name = "panelMainContent";
+            panelMainContent.Controls.Add(panelViewProfil);
             panelMainContent.Controls.Add(panelViewAuditLog);
             panelMainContent.Controls.Add(panelViewStecaj);
             panelMainContent.Controls.Add(panelViewOtkazani);
@@ -1185,6 +1312,9 @@ namespace OwnerTrack.App
             panelSidebar.Width = SidebarExpandedWidth;
             panelSidebar.Name = "panelSidebar";
             panelSidebar.BackColor = UiTheme.SidebarBackground;
+            panelSidebar.Controls.Add(panelSidebarBottomDivider);
+            panelSidebar.Controls.Add(btnNavProfil);
+            panelSidebar.Controls.Add(btnNavLogout);
             panelSidebar.Controls.Add(btnNavAuditLog);
             panelSidebar.Controls.Add(btnNavStecaj);
             panelSidebar.Controls.Add(btnNavOtkazani);
@@ -1343,6 +1473,28 @@ namespace OwnerTrack.App
             UiTheme.StyleSidebarButton(btnNavAuditLog);
             btnNavAuditLog.Click += btnNavAuditLog_Click;
 
+            // ── Profil / Odjava (dno sidebara) ────────────────────
+            panelSidebarBottomDivider.Dock = DockStyle.Bottom;
+            panelSidebarBottomDivider.Height = 1;
+            panelSidebarBottomDivider.Name = "panelSidebarBottomDivider";
+            panelSidebarBottomDivider.BackColor = UiTheme.SidebarDivider;
+
+            btnNavProfil.Dock = DockStyle.Bottom;
+            btnNavProfil.Height = 46;
+            btnNavProfil.Name = "btnNavProfil";
+            btnNavProfil.Text = "Profil";
+            btnNavProfil.IconGlyph = "\uE168";
+            UiTheme.StyleSidebarButton(btnNavProfil);
+            btnNavProfil.Click += btnNavProfil_Click;
+
+            btnNavLogout.Dock = DockStyle.Bottom;
+            btnNavLogout.Height = 46;
+            btnNavLogout.Name = "btnNavLogout";
+            btnNavLogout.Text = "Odjava";
+            btnNavLogout.IconGlyph = "";
+            UiTheme.StyleSidebarButton(btnNavLogout);
+            btnNavLogout.Click += btnNavLogout_Click;
+
             // ── Form1 ─────────────────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -1488,6 +1640,24 @@ namespace OwnerTrack.App
         public System.Windows.Forms.DataGridView dataGridStecaj;
         private System.Windows.Forms.Label lblEmptyStecaj;
         private IconButton btnNavAuditLog;
+        private IconButton btnNavProfil;
+        private IconButton btnNavLogout;
+        private System.Windows.Forms.Panel panelSidebarBottomDivider;
+        private System.Windows.Forms.Panel panelViewProfil;
+        private System.Windows.Forms.Panel panelProfilHeader;
+        private System.Windows.Forms.Label lblProfilTitle;
+        private System.Windows.Forms.GroupBox groupBoxProfil;
+        private System.Windows.Forms.Label lblProfilKorisnickoIme;
+        private System.Windows.Forms.Label lblProfilKorisnickoImeValue;
+        private System.Windows.Forms.Label lblProfilPrikaznoIme;
+        private System.Windows.Forms.Label lblProfilPrikaznoImeValue;
+        private System.Windows.Forms.Label lblProfilStatus;
+        private System.Windows.Forms.Label lblProfilStatusValue;
+        private IconButton btnPromijeniLozinku;
+        private IconButton btnNoviKorisnik;
+        private System.Windows.Forms.PictureBox picProfil;
+        private IconButton btnOdaberiSliku;
+        private IconButton btnUkloniSliku;
         private System.Windows.Forms.Panel panelViewAuditLog;
         private System.Windows.Forms.Panel panelAuditLogHeader;
         private System.Windows.Forms.Label lblAuditLogTitle;

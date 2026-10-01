@@ -26,6 +26,7 @@
 
        
         public const string ExcelZirvanaKeyword = "ZBIRNA";
+        public const string ImageFilter = "Slike (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp";
         public const string ExcelFilter = "Excel Files (*.xlsx)|*.xlsx";
 
         

@@ -41,6 +41,10 @@ namespace OwnerTrack.Infrastructure.Services
                 SqliteConnection.ClearAllPools();
                 File.Copy(backupPath, _dbPath, overwrite: true);
                 DeleteStaleWalSidecarFiles();
+
+                // Stariji backup može biti bez tabele Korisnici — ponovo primijeni
+                // migracije da login nakon vraćanja i dalje radi.
+                new SchemaManager(_connectionString).ApplyMigrations();
             }
             catch (Exception ex)
             {

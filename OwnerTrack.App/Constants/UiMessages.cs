@@ -18,6 +18,33 @@
 
         
 
+        public const string LoginTitle = "Prijava";
+        public const string LoginUsernameRequired = "Unesi korisničko ime.";
+        public const string LoginPasswordRequired = "Unesi lozinku.";
+        public const string LoginFailedTitle = "Prijava neuspješna";
+        public const string LoginFailed = "Korisničko ime ili lozinka nisu ispravni.";
+
+        public const string PasswordCurrentRequired = "Unesi trenutnu lozinku.";
+        public const string PasswordNewInvalid = "Nova lozinka mora imati tačno 4 znaka (bez razmaka).";
+        public const string PasswordMismatch = "Nova lozinka i potvrda se ne podudaraju.";
+        public const string PasswordCurrentWrong = "Trenutna lozinka nije ispravna.";
+        public const string PasswordChanged = "Lozinka je promijenjena.";
+        public const string PasswordChangeTitle = "Promjena lozinke";
+
+        public const string PhotoDialogTitle = "Odaberi profilnu sliku";
+        public const string PhotoInvalid = "Odabrani fajl nije valjana slika.";
+        public const string PhotoSaved = "Profilna slika je sačuvana.";
+        public const string PhotoRemoved = "Profilna slika je uklonjena.";
+
+        public const string NewUserTitle = "Novi korisnik";
+        public const string NewUserUsernameInvalid = "Unesi korisničko ime (bez razmaka).";
+        public const string NewUserDuplicate = "Korisnik s tim korisničkim imenom već postoji.";
+        public const string NewUserCreatedFormat = "Korisnik '{0}' je dodan. Može se prijaviti sa zadanom lozinkom.";
+
+        public const string LogoutPrompt = "Odjaviti se iz aplikacije?";
+        public const string ProfileActiveStatus = "AKTIVAN";
+        public const string ProfileInactiveStatus = "NEAKTIVAN";
+
         public const string ArchiveKlijentPrompt = "Firma će biti arhivirana i neće biti vidljiva.";
         public const string ArchiveVlasnikPrompt = "Arhivirati vlasnika?";
         public const string ArchiveDirektorPrompt = "Arhivirati direktora?";

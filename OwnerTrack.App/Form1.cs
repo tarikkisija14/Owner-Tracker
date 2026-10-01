@@ -15,8 +15,9 @@ namespace OwnerTrack.App
 {
     public partial class Form1 : Form
     {
-        private enum SidebarView { Dashboard, Klijenti, Kyc, Ubo, Pep, Rizik, BezUgovora, Otkazani, Udruzenja, Stecaj, AuditLog }
+        private enum SidebarView { Dashboard, Klijenti, Kyc, Ubo, Pep, Rizik, BezUgovora, Otkazani, Udruzenja, Stecaj, AuditLog, Profil }
 
+        private readonly UserSession _session;
         private readonly System.Windows.Forms.Timer _searchDebounceTimer;
         private readonly ArchivePresenter _archivePresenter;
         private readonly PdfExportPresenter _pdfPresenter;
@@ -24,8 +25,16 @@ namespace OwnerTrack.App
         private bool _sidebarExpanded = true;
         private SidebarView _currentView = SidebarView.Dashboard;
 
-        public Form1()
+        // True kad je korisnik kliknuo Odjava — Program tada vraća prikaz Login forme
+        // umjesto da završi aplikaciju.
+        public bool LogoutRequested { get; private set; }
+
+        public Form1(UserSession session)
         {
+            if (!session.IsAuthenticated)
+                throw new InvalidOperationException("Glavna forma se ne može otvoriti bez prijavljenog korisnika.");
+
+            _session = session;
             InitializeComponent();
 
             _searchDebounceTimer = new System.Windows.Forms.Timer
@@ -89,8 +98,7 @@ namespace OwnerTrack.App
         {
             try
             {
-                new SchemaManager(DbContextFactory.ConnectionString).ApplyMigrations();
-
+                // Migracije se primjenjuju u Program.Main, prije prijave.
                 LoadActivityCodeFilter();
                 LoadSizeFilter();
                 LoadClients();
@@ -627,6 +635,7 @@ namespace OwnerTrack.App
             panelViewUdruzenja.Visible = view == SidebarView.Udruzenja;
             panelViewStecaj.Visible = view == SidebarView.Stecaj;
             panelViewAuditLog.Visible = view == SidebarView.AuditLog;
+            panelViewProfil.Visible = view == SidebarView.Profil;
 
             UiTheme.StyleSidebarButton(btnNavDashboard, active: view == SidebarView.Dashboard);
             UiTheme.StyleSidebarButton(btnNavKlijenti, active: view == SidebarView.Klijenti);
@@ -639,6 +648,7 @@ namespace OwnerTrack.App
             UiTheme.StyleSidebarButton(btnNavUdruzenja, active: view == SidebarView.Udruzenja);
             UiTheme.StyleSidebarButton(btnNavStecaj, active: view == SidebarView.Stecaj);
             UiTheme.StyleSidebarButton(btnNavAuditLog, active: view == SidebarView.AuditLog);
+            UiTheme.StyleSidebarButton(btnNavProfil, active: view == SidebarView.Profil);
 
             switch (view)
             {
@@ -652,7 +662,116 @@ namespace OwnerTrack.App
                 case SidebarView.Udruzenja: LoadUdruzenja(); break;
                 case SidebarView.Stecaj: LoadStecajKlijenti(); break;
                 case SidebarView.AuditLog: LoadAuditLog(); break;
+                case SidebarView.Profil: LoadProfil(); break;
             }
+        }
+
+        // ── Profil / odjava ────────────────────────────────────────
+
+        private void LoadProfil()
+        {
+            var user = _session.CurrentUser;
+            if (user is null) return;
+
+            lblProfilKorisnickoImeValue.Text = user.Username;
+            lblProfilPrikaznoImeValue.Text = user.DisplayName;
+            lblProfilStatusValue.Text = user.IsActive
+                ? UiMessages.ProfileActiveStatus
+                : UiMessages.ProfileInactiveStatus;
+            lblProfilStatusValue.ForeColor = user.IsActive ? UiTheme.Green : UiTheme.Red;
+
+            try
+            {
+                using var db = DbContextFactory.Create();
+                ShowProfilPhoto(new AuthService(db).GetPhoto(user.Id));
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri učitavanju profilne slike");
+            }
+        }
+
+        private void ShowProfilPhoto(byte[]? photo)
+        {
+            var old = picProfil.Image;
+            picProfil.Image = photo is { Length: > 0 }
+                ? ProfileImageHelper.FromBytes(photo)
+                : ProfileImageHelper.CreatePlaceholder(picProfil.Width);
+            old?.Dispose();
+        }
+
+        private void btnOdaberiSliku_Click(object sender, EventArgs e)
+        {
+            var user = _session.CurrentUser;
+            if (user is null) return;
+
+            using var dialog = DialogHelper.CreateOpenDialogImage();
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            byte[] photo;
+            try
+            {
+                photo = ProfileImageHelper.LoadAndNormalize(dialog.FileName);
+            }
+            catch (Exception ex) when (ex is ArgumentException or OutOfMemoryException or IOException)
+            {
+                MessageBox.Show(UiMessages.PhotoInvalid);
+                return;
+            }
+
+            try
+            {
+                using var db = DbContextFactory.Create();
+                new AuthService(db).SetPhoto(user.Id, photo);
+                ShowProfilPhoto(photo);
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri spremanju slike");
+            }
+        }
+
+        private void btnUkloniSliku_Click(object sender, EventArgs e)
+        {
+            var user = _session.CurrentUser;
+            if (user is null) return;
+
+            try
+            {
+                using var db = DbContextFactory.Create();
+                new AuthService(db).SetPhoto(user.Id, null);
+                ShowProfilPhoto(null);
+            }
+            catch (Exception ex)
+            {
+                DialogHelper.LogAndShowError(ex, "Greška pri uklanjanju slike");
+            }
+        }
+
+        private void btnPromijeniLozinku_Click(object sender, EventArgs e)
+        {
+            var user = _session.CurrentUser;
+            if (user is null) return;
+
+            using var form = new FrmPromjenaLozinke(user.Id);
+            form.ShowDialog(this);
+        }
+
+        private void btnNoviKorisnik_Click(object sender, EventArgs e)
+        {
+            using var form = new FrmNoviKorisnik();
+            form.ShowDialog(this);
+        }
+
+        private void btnNavProfil_Click(object sender, EventArgs e) => ShowView(SidebarView.Profil);
+
+        private void btnNavLogout_Click(object sender, EventArgs e)
+        {
+            if (!DialogHelper.ConfirmLogout()) return;
+
+            _session.SignOut();
+            LogoutRequested = true;
+            Close();
         }
 
         private async void btnKycSacuvajPdf_Click(object sender, EventArgs e) =>
@@ -977,6 +1096,8 @@ namespace OwnerTrack.App
             SetNavButtonLabel(btnNavUdruzenja, "Udruženja");
             SetNavButtonLabel(btnNavStecaj, "Klijenti u stečaju");
             SetNavButtonLabel(btnNavAuditLog, "Historija promjena");
+            SetNavButtonLabel(btnNavProfil, "Profil");
+            SetNavButtonLabel(btnNavLogout, "Odjava");
         }
 
         // Kada je sidebar collapsed, dugmad prikazuju samo ikonu — naziv

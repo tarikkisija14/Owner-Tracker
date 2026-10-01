@@ -15,7 +15,12 @@ namespace OwnerTrack.App.Helpers
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) == DialogResult.Yes;
 
-      
+        public static bool ConfirmLogout() =>
+            MessageBox.Show(
+                UiMessages.LogoutPrompt,
+                "Potvrda",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question) == DialogResult.Yes;
 
         public static SaveFileDialog CreateSaveDialogPdf(string title, string fileName) =>
             new SaveFileDialog
@@ -25,6 +30,13 @@ namespace OwnerTrack.App.Helpers
                 DefaultExt = UiConstants.PdfExt,
                 FileName = fileName,
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            };
+
+        public static OpenFileDialog CreateOpenDialogImage() =>
+            new OpenFileDialog
+            {
+                Title = UiMessages.PhotoDialogTitle,
+                Filter = UiConstants.ImageFilter,
             };
 
         public static OpenFileDialog CreateOpenDialogExcel(string? title = null)
